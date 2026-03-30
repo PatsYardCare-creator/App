@@ -79,12 +79,12 @@ nav{padding:10px 0;flex:1;}
 .total-row.final{font-size:16px;font-weight:700;color:var(--text);border-top:2px solid var(--border);margin-top:6px;padding-top:8px;}
 .empty{text-align:center;padding:40px 24px;color:var(--text3);}.empty-icon{font-size:36px;margin-bottom:10px;}
 .li-row{display:grid;grid-template-columns:1fr 64px 96px 32px;gap:6px;align-items:center;margin-bottom:8px;}
-.sched-grid{display:grid;grid-template-columns:64px 1fr;}
-.time-col{display:flex;flex-direction:column;}
+.sched-grid{display:grid;grid-template-columns:1fr;}
+.time-col{display:none;}
 .time-slot{height:60px;display:flex;align-items:flex-start;padding-top:4px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;padding-right:10px;}
 .jobs-col{position:relative;border-left:1px solid var(--border);}
 .hour-line{height:60px;border-bottom:1px solid var(--border);}
-.job-block{position:absolute;left:8px;right:8px;border-radius:6px;padding:5px 8px;font-size:11px;font-weight:600;cursor:pointer;}
+.job-block{position:relative;left:0;right:0;border-radius:6px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;}
 .job-block.jgreen{background:#d4edda;color:var(--green-dark);border-left:3px solid var(--green);}
 .job-block.jblue{background:#dbeafe;color:#1e40af;border-left:3px solid #3b82f6;}
 .job-block.jgold{background:#fef3dc;color:#92600a;border-left:3px solid var(--gold);}
@@ -689,11 +689,8 @@ function renderDash(){
 let schedD=new Date();
 function renderSched(){
   document.getElementById('sched-label').textContent=schedD.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-  const hrs=Array.from({length:13},(_,i)=>i+7);
-  document.getElementById('sched-times').innerHTML=hrs.map(h=>`<div class="time-slot">${h<=12?h:h-12} ${h<12?'AM':h===12?'PM':'PM'}</div>`).join('');
   const jc=document.getElementById('sched-jobs');
-  jc.innerHTML=hrs.map(()=>'<div class="hour-line"></div>').join('');
-  jc.style.height=(hrs.length*60)+'px';
+  jc.innerHTML='';
   const ds=schedD.toISOString().slice(0,10);
   const dayJobs=DB.jobs.filter(j=>j.date===ds);
   if(!dayJobs.length){
@@ -702,14 +699,11 @@ function renderSched(){
     e.textContent='No jobs this day';jc.appendChild(e);return;
   }
   dayJobs.forEach((j,idx)=>{
-    const total=dayJobs.length;
-    const top=idx*(780/total)+4;
-    const height=Math.max(780/total-8,40);
     const col=j.status==='Completed'?'jgreen':j.status==='In Progress'?'jblue':'jgold';
     const b=document.createElement('div');
     b.className=`job-block ${col}`;
-    b.style.cssText=`top:${top}px;height:${height}px;`;
-    b.innerHTML=`<div>${cname(j.clientId)}</div><div style="font-weight:400;opacity:.8">${j.sv}</div>`;
+    b.style.cssText=`position:relative;margin-bottom:8px;height:auto;top:auto;`;
+    b.innerHTML=`<div><strong>${cname(j.clientId)}</strong></div><div style="font-weight:400;opacity:.8">${j.sv}</div>`;
     b.onclick=()=>editJob(j.id);jc.appendChild(b);
   });
 }
@@ -1021,7 +1015,6 @@ function buildInvHTML(inv,c,bp){
       </div>
     </div>
     <div class="inv-parties">
-      <div><div class="party-label">From</div><div style="font-weight:700">${bp.owner}</div><div style="font-size:13px;color:var(--text2)">${bp.name}<br>${bp.addr}</div></div>
       <div><div class="party-label">Bill To</div><div style="font-weight:700">${c?(c.fn+' '+c.ln).trim():'Client'}</div><div style="font-size:13px;color:var(--text2)">${c?.ph||''}<br>${c?.ad||''}</div></div>
     </div>
     <table class="line-items" style="--accent:${bp.color}"><thead style="background:${bp.color}20"><tr>
