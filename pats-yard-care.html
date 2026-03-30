@@ -185,7 +185,7 @@ nav{padding:10px 0;flex:1;}
     <div class="nav-item" onclick="gotoPage('data',this)">💾 Data &amp; Backup</div>
   </nav>
   <div class="sidebar-footer" style="display:flex;justify-content:space-between;align-items:center;">
-    <span>Pat Johnson · Owner</span>
+    <span>Patrik Wiechmann · Owner</span>
     <button onclick="lockApp()" style="background:rgba(255,255,255,.12);border:none;color:rgba(255,255,255,.7);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit;">🔒 Lock</button>
   </div>
 </aside>
@@ -284,7 +284,7 @@ nav{padding:10px 0;flex:1;}
 
     <div class="page" id="page-team">
       <div class="card"><table class="table"><thead><tr><th>Name</th><th>Role</th><th>Phone</th></tr></thead><tbody>
-        <tr><td><div style="display:flex;align-items:center;gap:10px"><div class="avatar">PJ</div><strong>Pat Johnson</strong></div></td><td>Owner / Lead</td><td>(940) 555-0192</td></tr>
+        <tr><td><div style="display:flex;align-items:center;gap:10px"><div class="avatar">PW</div><strong>Patrik Wiechmann</strong></div></td><td>Owner / Lead</td><td>(580) 475-1561</td></tr>
       </tbody></table></div>
     </div>
 
@@ -335,14 +335,14 @@ nav{padding:10px 0;flex:1;}
             </div>
             <div style="flex:1;min-width:200px;">
               <div class="form-group"><label class="form-label">Business Name</label><input class="form-control" id="bp-name" placeholder="Pat's Yard Care"></div>
-              <div class="form-group"><label class="form-label">Owner Name</label><input class="form-control" id="bp-owner" placeholder="Pat Johnson"></div>
+              <div class="form-group"><label class="form-label">Owner Name</label><input class="form-control" id="bp-owner" placeholder="Patrik Wiechmann"></div>
             </div>
           </div>
           <div class="form-row">
-            <div class="form-group"><label class="form-label">Phone</label><input class="form-control" id="bp-phone" placeholder="(940) 555-0192"></div>
-            <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="bp-email" placeholder="pat@patsyardcare.com"></div>
+            <div class="form-group"><label class="form-label">Phone</label><input class="form-control" id="bp-phone" placeholder="(580) 475-1561"></div>
+            <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="bp-email" placeholder="patsyardcare@gmail.com"></div>
           </div>
-          <div class="form-group"><label class="form-label">Address</label><input class="form-control" id="bp-addr" placeholder="City, State ZIP"></div>
+          <div class="form-group"><label class="form-label">Address</label><input class="form-control" id="bp-addr" placeholder="(optional)"></div>
           <div class="form-group"><label class="form-label">Website (optional)</label><input class="form-control" id="bp-web" placeholder="patsyardcare.com"></div>
         </div>
       </div>
@@ -947,12 +947,12 @@ function printInv(){
 
 // ── BUSINESS PROFILE ─────────────────────────────────────────────────
 const BP_KEY='pyc_bp';
-function defaultBP(){return{name:"Pat's Yard Care",owner:'Pat Johnson',phone:'(940) 555-0192',email:'pat@patsyardcare.com',addr:'Wichita Falls, TX',web:'',logo:'',color:'#2d7a3a',prefix:'INV-',terms:'Due on receipt',footer:"Thank you for your business! Payment accepted via check, cash, Venmo, or Zelle.",tax:0};}
+function defaultBP(){return{name:"Pat's Yard Care",owner:'Patrik Wiechmann',phone:'(580) 475-1561',email:'patsyardcare@gmail.com',addr:'',web:'',logo:'',color:'#2d7a3a',prefix:'INV-',terms:'Due on receipt',footer:"Thank you for your business! Payment accepted via check, cash, Venmo, or Zelle.",tax:0};}
 function getBP(){try{const s=localStorage.getItem(BP_KEY);return s?{...defaultBP(),...JSON.parse(s)}:defaultBP();}catch(e){return defaultBP();}}
 function saveBizProfile(){
   const bp={
     name:document.getElementById('bp-name').value||"Pat's Yard Care",
-    owner:document.getElementById('bp-owner').value||'Pat Johnson',
+    owner:document.getElementById('bp-owner').value||'Patrik Wiechmann',
     phone:document.getElementById('bp-phone').value,
     email:document.getElementById('bp-email').value,
     addr:document.getElementById('bp-addr').value,
