@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Pat's Yard Care</title>
+<meta name="description" content="Field management app for Pat's Yard Care">
+<meta name="theme-color" content="#1a5226">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Yard Care">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--green:#2d7a3a;--green-light:#e8f5ea;--green-mid:#4a9e5c;--green-dark:#1a5226;--gold:#c8973a;--bg:#f5f7f5;--surface:#fff;--surface2:#f0f4f1;--border:#dde8de;--text:#1a2e1c;--text2:#4d6651;--text3:#7a9c7e;--red:#c0392b;--shadow:0 1px 4px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.04);--radius:10px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden;}
+.sidebar{width:220px;min-width:220px;background:var(--green-dark);display:flex;flex-direction:column;color:#fff;height:100vh;overflow-y:auto;}
+.logo{padding:22px 18px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.1);}
+.logo-text{font-size:14px;font-weight:700;line-height:1.2;}.logo-sub{font-size:11px;opacity:.6;}
+nav{padding:10px 0;flex:1;}
+.nav-section{padding:16px 14px 4px;font-size:10px;letter-spacing:1px;text-transform:uppercase;opacity:.4;font-weight:600;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;font-size:14px;font-weight:500;color:rgba(255,255,255,.75);transition:all .15s;position:relative;}
+.nav-item:hover{background:rgba(255,255,255,.08);color:#fff;}
+.nav-item.active{background:rgba(255,255,255,.15);color:#fff;}
+.nav-item.active::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:#7ed89a;border-radius:0 2px 2px 0;}
+.nav-badge{margin-left:auto;background:var(--gold);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;}
+.sidebar-footer{padding:14px 16px;border-top:1px solid rgba(255,255,255,.1);font-size:12px;opacity:.5;}
+.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:12px;height:56px;min-height:56px;}
+.topbar-title{font-size:17px;font-weight:700;flex:1;}
+.content{flex:1;overflow-y:auto;padding:24px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;font-family:inherit;}
+.btn-primary{background:var(--green);color:#fff;}.btn-primary:hover{background:var(--green-mid);}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}.btn-secondary:hover{background:var(--border);}
+.btn-danger{background:#fde9e7;color:var(--red);border:1px solid #f5c6c2;}.btn-ghost{background:transparent;color:var(--text2);}
+.btn-sm{padding:5px 12px;font-size:12px;}.btn-xs{padding:3px 8px;font-size:11px;}
+.page{display:none;}.page.active{display:block;}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);}
+.stat-label{font-size:12px;color:var(--text3);font-weight:500;margin-bottom:6px;}.stat-value{font-size:26px;font-weight:700;line-height:1;}
+.stat-sub{font-size:12px;color:var(--green);margin-top:4px;font-weight:500;}.stat-sub.warn{color:var(--gold);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}.section-title{font-size:15px;font-weight:700;margin-bottom:12px;}
+.table{width:100%;border-collapse:collapse;}
+.table th{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:10px 16px;text-align:left;background:var(--surface2);border-bottom:1px solid var(--border);}
+.table td{padding:11px 16px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.table tr:last-child td{border-bottom:none;}.table tbody tr:hover{background:var(--green-light);}
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge-green{background:#e3f5e7;color:#1e6e2e;}.badge-gold{background:#fef3dc;color:#9a6d1a;}.badge-red{background:#fde9e7;color:#b02a1e;}.badge-blue{background:#e8f0fe;color:#2150a8;}.badge-gray{background:#f0f0f0;color:#666;}
+.search-bar{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 14px;margin-bottom:16px;}
+.search-bar input{border:none;outline:none;flex:1;font-size:14px;font-family:inherit;background:transparent;}
+.form-group{margin-bottom:16px;}.form-label{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px;display:block;}
+.form-control{width:100%;border:1px solid var(--border);border-radius:7px;padding:9px 12px;font-size:14px;font-family:inherit;outline:none;background:var(--surface);transition:border .15s;}
+.form-control:focus{border-color:var(--green);}.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:none;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;border-radius:12px;width:500px;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1;}
+.modal-header h3{font-size:16px;font-weight:700;}.modal-body{padding:20px 24px;}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;position:sticky;bottom:0;background:#fff;}
+.close-btn{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text3);}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--green-dark);color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.2);transform:translateY(80px);transition:transform .3s;z-index:300;}
+.toast.show{transform:translateY(0);}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--green);color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.pill-tabs{display:flex;gap:4px;background:var(--surface2);padding:4px;border-radius:8px;margin-bottom:18px;width:fit-content;overflow-x:auto;}
+.pill-tab{padding:6px 16px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text2);transition:all .15s;white-space:nowrap;}
+.pill-tab.active{background:#fff;color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.1);}
+.invoice-box{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:32px;max-width:640px;box-shadow:var(--shadow);}
+.inv-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;}
+.inv-logo{font-size:20px;font-weight:800;color:var(--green-dark);}.inv-logo span{color:var(--green);}
+.inv-parties{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;}
+.party-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.line-items{width:100%;border-collapse:collapse;margin-bottom:20px;}
+.line-items th{background:var(--green-light);color:var(--green-dark);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;text-align:left;}
+.line-items td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;}.line-items td:last-child{text-align:right;}
+.total-row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;color:var(--text2);}
+.total-row.final{font-size:16px;font-weight:700;color:var(--text);border-top:2px solid var(--border);margin-top:6px;padding-top:8px;}
+.empty{text-align:center;padding:40px 24px;color:var(--text3);}.empty-icon{font-size:36px;margin-bottom:10px;}
+.li-row{display:grid;grid-template-columns:1fr 64px 96px 32px;gap:6px;align-items:center;margin-bottom:8px;}
+.sched-grid{display:grid;grid-template-columns:64px 1fr;}
+.time-col{display:flex;flex-direction:column;}
+.time-slot{height:60px;display:flex;align-items:flex-start;padding-top:4px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;padding-right:10px;}
+.jobs-col{position:relative;border-left:1px solid var(--border);}
+.hour-line{height:60px;border-bottom:1px solid var(--border);}
+.job-block{position:absolute;left:8px;right:8px;border-radius:6px;padding:5px 8px;font-size:11px;font-weight:600;cursor:pointer;}
+.job-block.jgreen{background:#d4edda;color:var(--green-dark);border-left:3px solid var(--green);}
+.job-block.jblue{background:#dbeafe;color:#1e40af;border-left:3px solid #3b82f6;}
+.job-block.jgold{background:#fef3dc;color:#92600a;border-left:3px solid var(--gold);}
+.actions{display:flex;gap:5px;flex-wrap:wrap;}
+::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+/* PIN LOCK */
+#pin-screen{position:fixed;inset:0;background:var(--green-dark);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;}
+.pin-logo{font-size:48px;margin-bottom:12px;}
+.pin-title{font-size:22px;font-weight:700;margin-bottom:4px;}
+.pin-sub{font-size:14px;opacity:.6;margin-bottom:36px;}
+.pin-dots{display:flex;gap:14px;margin-bottom:28px;}
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.4);transition:all .2s;}
+.pin-dot.filled{background:#7ed89a;border-color:#7ed89a;}
+.pin-pad{display:grid;grid-template-columns:repeat(3,72px);gap:12px;}
+.pin-btn{width:72px;height:72px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:22px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
+.pin-btn:hover,.pin-btn:active{background:rgba(255,255,255,.2);}
+.pin-btn.del{font-size:18px;}
+.pin-error{margin-top:16px;font-size:13px;color:#ff8a8a;height:18px;}
+.pin-change-wrap{margin-top:28px;font-size:13px;opacity:.5;cursor:pointer;text-decoration:underline;}
+/* PWA install banner */
+#install-banner{display:none;position:fixed;bottom:80px;left:12px;right:12px;background:var(--green-dark);color:#fff;border-radius:12px;padding:14px 16px;z-index:200;box-shadow:0 4px 20px rgba(0,0,0,.3);align-items:center;gap:12px;}
+#install-banner.show{display:flex;}
+.install-text{flex:1;font-size:13px;}
+.install-text strong{display:block;font-size:14px;margin-bottom:2px;}
+.bottom-tabs{display:none;position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--green-dark);border-top:1px solid rgba(255,255,255,.12);padding:6px 0 env(safe-area-inset-bottom,6px);}
+.bottom-tabs-inner{display:flex;justify-content:space-around;}
+.tab-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 6px;cursor:pointer;color:rgba(255,255,255,.55);font-size:9px;font-weight:600;border:none;background:none;font-family:inherit;position:relative;transition:color .15s;min-width:46px;}
+.tab-btn.active{color:#7ed89a;}.tab-btn .ti{font-size:19px;line-height:1;}
+.tab-badge{position:absolute;top:2px;right:6px;background:var(--gold);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;min-width:16px;text-align:center;}
+.fab{display:none;position:fixed;bottom:76px;right:18px;z-index:60;width:52px;height:52px;border-radius:50%;background:var(--green);color:#fff;font-size:26px;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);align-items:center;justify-content:center;}
+.fab-menu{display:none;position:fixed;bottom:136px;right:18px;z-index:60;flex-direction:column;gap:8px;align-items:flex-end;}
+.fab-menu.open{display:flex;}
+.fab-item{display:flex;align-items:center;gap:10px;background:var(--green-dark);color:#fff;border:none;border-radius:24px;padding:9px 16px 9px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 2px 10px rgba(0,0,0,.2);white-space:nowrap;}
+@media(max-width:700px){
+  body{flex-direction:column;}.sidebar{display:none;}.bottom-tabs{display:block;}.fab{display:flex;}
+  .main{height:100dvh;}.topbar{padding:0 16px;height:52px;min-height:52px;}.topbar .desktop-btn{display:none;}
+  .content{padding:14px 12px 80px;}.stat-grid{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .stat-value{font-size:20px;}.two-col{grid-template-columns:1fr;}
+  .card{overflow-x:auto;}.table th,.table td{padding:9px 10px;font-size:12px;white-space:nowrap;}
+  .modal{width:calc(100vw - 16px);max-height:92vh;}.form-row{grid-template-columns:1fr;}
+  .inv-head{flex-direction:column;gap:12px;}.inv-parties{grid-template-columns:1fr;}.invoice-box{padding:18px;}
+  .li-row{grid-template-columns:1fr 48px 72px 28px;}
+}
+</style>
+</head>
+<body>
+<!-- PIN LOCK SCREEN -->
+<div id="pin-screen">
+  <div class="pin-logo">🌿</div>
+  <div class="pin-title">Pat's Yard Care</div>
+  <div class="pin-sub" id="pin-prompt">Enter your PIN</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+  </div>
+  <div class="pin-pad">
+    <button class="pin-btn" onclick="pinPress('1')">1</button>
+    <button class="pin-btn" onclick="pinPress('2')">2</button>
+    <button class="pin-btn" onclick="pinPress('3')">3</button>
+    <button class="pin-btn" onclick="pinPress('4')">4</button>
+    <button class="pin-btn" onclick="pinPress('5')">5</button>
+    <button class="pin-btn" onclick="pinPress('6')">6</button>
+    <button class="pin-btn" onclick="pinPress('7')">7</button>
+    <button class="pin-btn" onclick="pinPress('8')">8</button>
+    <button class="pin-btn" onclick="pinPress('9')">9</button>
+    <button class="pin-btn" onclick="pinPress('bio')">🌿</button>
+    <button class="pin-btn" onclick="pinPress('0')">0</button>
+    <button class="pin-btn del" onclick="pinPress('del')">⌫</button>
+  </div>
+  <div class="pin-error" id="pin-error"></div>
+  <div class="pin-change-wrap" id="pin-change-lbl" onclick="showChangePIN()" style="display:none">Change PIN</div>
+</div>
+
+<!-- PWA INSTALL BANNER -->
+<div id="install-banner">
+  <div style="font-size:28px">🌿</div>
+  <div class="install-text"><strong>Add to Home Screen</strong>Tap Share → Add to Home Screen for the best experience</div>
+  <button class="btn btn-secondary btn-sm" onclick="document.getElementById('install-banner').classList.remove('show')">✕</button>
+</div>
+
+<aside class="sidebar">
+  <div class="logo"><div style="font-size:22px">🌿</div><div><div class="logo-text">Pat's Yard Care</div><div class="logo-sub">Field Management</div></div></div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <div class="nav-item active" onclick="gotoPage('dashboard',this)">📊 Dashboard</div>
+    <div class="nav-section">Work</div>
+    <div class="nav-item" onclick="gotoPage('schedule',this)">📅 Schedule</div>
+    <div class="nav-item" onclick="gotoPage('jobs',this)">🔧 Jobs <span class="nav-badge" id="nb-jobs"></span></div>
+    <div class="nav-item" onclick="gotoPage('quotes',this)">📄 Quotes</div>
+    <div class="nav-section">Finance</div>
+    <div class="nav-item" onclick="gotoPage('invoices',this)">🧾 Invoices <span class="nav-badge" id="nb-inv" style="display:none"></span></div>
+    <div class="nav-section">Clients</div>
+    <div class="nav-item" onclick="gotoPage('clients',this)">👥 Clients</div>
+    <div class="nav-section">Settings</div>
+    <div class="nav-item" onclick="gotoPage('team',this)">🧑‍🤝‍🧑 Team</div>
+    <div class="nav-item" onclick="gotoPage('data',this)">💾 Data &amp; Backup</div>
+  </nav>
+  <div class="sidebar-footer" style="display:flex;justify-content:space-between;align-items:center;">
+    <span>Pat Johnson · Owner</span>
+    <button onclick="lockApp()" style="background:rgba(255,255,255,.12);border:none;color:rgba(255,255,255,.7);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit;">🔒 Lock</button>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="page-title">Dashboard</div>
+    <button class="btn btn-secondary btn-sm desktop-btn" id="btn-new-job">+ New Job</button>
+    <button class="btn btn-primary btn-sm desktop-btn" id="btn-new-quote">+ New Quote</button>
+  </div>
+  <div class="content">
+
+    <div class="page active" id="page-dashboard">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-label">Revenue This Month</div><div class="stat-value" id="ds-rev">$0</div><div class="stat-sub" id="ds-rev-s"></div></div>
+        <div class="stat-card"><div class="stat-label">Jobs This Week</div><div class="stat-value" id="ds-jobs">0</div><div class="stat-sub" id="ds-jobs-s"></div></div>
+        <div class="stat-card"><div class="stat-label">Outstanding</div><div class="stat-value" id="ds-out">$0</div><div class="stat-sub warn" id="ds-out-s"></div></div>
+        <div class="stat-card"><div class="stat-label">Active Clients</div><div class="stat-value" id="ds-cli">0</div><div class="stat-sub" id="ds-cli-s"></div></div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header"><span style="font-weight:700">Today's Jobs</span><span style="font-size:12px;color:var(--text3)" id="ds-datestr"></span></div>
+          <div id="ds-today"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span style="font-weight:700">Recent Activity</span></div>
+          <div id="ds-activity"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-schedule">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" onclick="schedNav(-1)">&#9664;</button>
+        <span style="font-weight:700;font-size:15px" id="sched-label"></span>
+        <button class="btn btn-secondary btn-sm" onclick="schedNav(1)">&#9654;</button>
+        <button class="btn btn-ghost btn-sm" onclick="schedToday()">Today</button>
+        <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="newJob()">+ New Job</button>
+      </div>
+      <div class="card" style="padding:18px;">
+        <div class="sched-grid">
+          <div class="time-col" id="sched-times"></div>
+          <div class="jobs-col" id="sched-jobs" style="position:relative;height:780px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-jobs">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+        <div class="pill-tabs" id="job-tabs" style="margin-bottom:0">
+          <div class="pill-tab active" onclick="filterJobs('All',this)">All</div>
+          <div class="pill-tab" onclick="filterJobs('In Progress',this)">In Progress</div>
+          <div class="pill-tab" onclick="filterJobs('Upcoming',this)">Upcoming</div>
+          <div class="pill-tab" onclick="filterJobs('Completed',this)">Completed</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="newJob()">+ New Job</button>
+      </div>
+      <div class="card"><div id="jobs-list"></div></div>
+    </div>
+
+    <div class="page" id="page-quotes">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+        <button class="btn btn-primary btn-sm" onclick="newQuote()">+ New Quote</button>
+      </div>
+      <div class="card"><div id="quotes-list"></div></div>
+    </div>
+
+    <div class="page" id="page-invoices">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+        <button class="btn btn-primary btn-sm" onclick="newInvoice()">+ New Invoice</button>
+      </div>
+      <div class="two-col" style="margin-bottom:18px;">
+        <div class="stat-card"><div class="stat-label">Outstanding</div><div class="stat-value" id="inv-out">$0</div><div class="stat-sub warn" id="inv-out-s">All current</div></div>
+        <div class="stat-card"><div class="stat-label">Collected This Month</div><div class="stat-value" id="inv-col">$0</div><div class="stat-sub">Paid invoices</div></div>
+      </div>
+      <div class="card"><div id="invoices-list"></div></div>
+      <div id="inv-preview-wrap" style="margin-top:24px;display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <span style="font-weight:700;font-size:15px" id="inv-prev-lbl">Invoice Preview</span>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary btn-sm" onclick="printInv()">&#128424; Print / PDF</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('inv-preview-wrap').style.display='none'">&#10005; Close</button>
+          </div>
+        </div>
+        <div class="invoice-box" id="inv-box"></div>
+      </div>
+    </div>
+
+    <div class="page" id="page-clients">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+        <button class="btn btn-primary btn-sm" onclick="newClient()">+ New Client</button>
+      </div>
+      <div class="search-bar"><span>&#128269;</span><input type="text" placeholder="Search clients…" id="client-q" oninput="renderClients()"></div>
+      <div class="card"><div id="clients-list"></div></div>
+    </div>
+
+    <div class="page" id="page-team">
+      <div class="card"><table class="table"><thead><tr><th>Name</th><th>Role</th><th>Phone</th></tr></thead><tbody>
+        <tr><td><div style="display:flex;align-items:center;gap:10px"><div class="avatar">PJ</div><strong>Pat Johnson</strong></div></td><td>Owner / Lead</td><td>(940) 555-0192</td></tr>
+      </tbody></table></div>
+    </div>
+
+    <div class="page" id="page-data">
+      <div class="section-title">Export App Data</div>
+      <div class="card" style="margin-bottom:20px;"><div style="padding:18px;">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Download a complete backup of all clients, jobs, quotes, and invoices.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="exportData('json')">&#11015; Export JSON Backup</button>
+          <button class="btn btn-secondary" onclick="exportData('csv')">&#11015; Export CSV</button>
+        </div>
+      </div></div>
+      <div class="section-title">Import / Restore</div>
+      <div class="card" style="margin-bottom:20px;"><div style="padding:18px;">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Restore from a previously exported JSON backup file.</p>
+        <label class="btn btn-secondary" style="cursor:pointer;">&#128194; Choose Backup File <input type="file" accept=".json" style="display:none" onchange="importData(event)"></label>
+        <div id="import-msg" style="display:none;margin-top:12px;padding:12px;background:var(--green-light);border-radius:8px;font-size:13px;color:var(--green-dark);"></div>
+      </div></div>
+      <div class="section-title">🔒 Security</div>
+      <div class="card" style="margin-bottom:20px;"><div style="padding:18px;">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Change your 4-digit PIN or lock the app.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-secondary" onclick="showChangePIN()">🔑 Change PIN</button>
+          <button class="btn btn-secondary" onclick="lockApp()">🔒 Lock App Now</button>
+        </div>
+        <p style="font-size:11px;color:var(--text3);margin-top:10px;">Default PIN is <strong>1234</strong> — change it after first login.</p>
+      </div></div>
+      <div class="section-title">Danger Zone</div>
+      <div class="card"><div style="padding:18px;">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Permanently delete all app data. Cannot be undone.</p>
+        <button class="btn btn-danger" onclick="resetData()">&#128465; Clear All Data</button>
+      </div></div>
+    </div>
+
+    <!-- INVOICE SETTINGS PAGE -->
+    <div class="page" id="page-settings">
+      <div class="section-title">🏢 Business Info</div>
+      <div class="card" style="margin-bottom:20px;">
+        <div style="padding:18px;">
+          <div style="display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap;margin-bottom:18px;">
+            <div style="flex-shrink:0">
+              <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;">Logo</div>
+              <div id="logo-preview" style="width:110px;height:110px;border:2px dashed var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--surface2);overflow:hidden;cursor:pointer;" onclick="document.getElementById('logo-upload').click()">
+                <span style="font-size:11px;color:var(--text3);text-align:center;padding:8px;">Tap to upload logo</span>
+              </div>
+              <input type="file" id="logo-upload" accept="image/*" style="display:none" onchange="uploadLogo(event)">
+              <button class="btn btn-ghost btn-xs" style="margin-top:6px;width:110px;" onclick="removeLogo()">Remove</button>
+            </div>
+            <div style="flex:1;min-width:200px;">
+              <div class="form-group"><label class="form-label">Business Name</label><input class="form-control" id="bp-name" placeholder="Pat's Yard Care"></div>
+              <div class="form-group"><label class="form-label">Owner Name</label><input class="form-control" id="bp-owner" placeholder="Pat Johnson"></div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Phone</label><input class="form-control" id="bp-phone" placeholder="(940) 555-0192"></div>
+            <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="bp-email" placeholder="pat@patsyardcare.com"></div>
+          </div>
+          <div class="form-group"><label class="form-label">Address</label><input class="form-control" id="bp-addr" placeholder="City, State ZIP"></div>
+          <div class="form-group"><label class="form-label">Website (optional)</label><input class="form-control" id="bp-web" placeholder="patsyardcare.com"></div>
+        </div>
+      </div>
+
+      <div class="section-title">🎨 Invoice Appearance</div>
+      <div class="card" style="margin-bottom:20px;">
+        <div style="padding:18px;">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Accent Color</label>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <input type="color" id="bp-color" value="#2d7a3a" style="width:44px;height:36px;border:1px solid var(--border);border-radius:7px;cursor:pointer;padding:2px;">
+                <span style="font-size:12px;color:var(--text3)">Used for header & totals</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Invoice # Prefix</label>
+              <input class="form-control" id="bp-prefix" placeholder="e.g. INV- or PYC-" value="INV-">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">📝 Payment Terms & Footer</div>
+      <div class="card" style="margin-bottom:20px;">
+        <div style="padding:18px;">
+          <div class="form-group"><label class="form-label">Payment Terms</label>
+            <select class="form-control" id="bp-terms">
+              <option value="Due on receipt">Due on receipt</option>
+              <option value="Net 7">Net 7 (due in 7 days)</option>
+              <option value="Net 14">Net 14 (due in 14 days)</option>
+              <option value="Net 30">Net 30 (due in 30 days)</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Footer / Thank You Note</label>
+            <textarea class="form-control" id="bp-footer" rows="2" placeholder="Thank you for your business! Payment accepted via check, cash, Venmo, or Zelle."></textarea>
+          </div>
+          <div class="form-group"><label class="form-label">Tax Rate (%)</label>
+            <input class="form-control" id="bp-tax" type="number" min="0" max="100" step="0.1" placeholder="0" value="0">
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px;">
+        <button class="btn btn-primary" onclick="saveBizProfile()">💾 Save Settings</button>
+        <button class="btn btn-secondary" onclick="gotoPage('invoices',document.querySelector('.nav-item:nth-child(8)'))">Preview on Invoice →</button>
+      </div>
+
+      <div class="section-title">👁 Invoice Preview</div>
+      <div id="settings-inv-preview" style="max-width:640px;"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-tabs">
+  <div class="bottom-tabs-inner">
+    <button class="tab-btn active" onclick="gotoMobile('dashboard',this)" data-p="dashboard"><span class="ti">&#128202;</span>Home</button>
+    <button class="tab-btn" onclick="gotoMobile('schedule',this)" data-p="schedule"><span class="ti">&#128197;</span>Schedule</button>
+    <button class="tab-btn" onclick="gotoMobile('jobs',this)" data-p="jobs"><span class="ti">&#128295;</span>Jobs<span class="tab-badge" id="tb-jobs"></span></button>
+    <button class="tab-btn" onclick="gotoMobile('invoices',this)" data-p="invoices"><span class="ti">&#129534;</span>Invoices<span class="tab-badge" id="tb-inv" style="display:none"></span></button>
+    <button class="tab-btn" onclick="gotoMobile('clients',this)" data-p="clients"><span class="ti">&#128101;</span>Clients</button>
+    <button class="tab-btn" onclick="gotoMobile('data',this)" data-p="data"><span class="ti">&#128190;</span>Backup</button>
+  </div>
+</nav>
+<div class="fab-menu" id="fab-menu">
+  <button class="fab-item" onclick="newJob();closeFab()">&#128295; New Job</button>
+  <button class="fab-item" onclick="newQuote();closeFab()">&#128196; New Quote</button>
+  <button class="fab-item" onclick="newClient();closeFab()">&#128100; New Client</button>
+  <button class="fab-item" onclick="newInvoice();closeFab()">&#129534; New Invoice</button>
+  <button class="fab-item" onclick="gotoMobile('data',null);closeFab()">&#128190; Data &amp; Backup</button>
+  <button class="fab-item" onclick="gotoMobile('settings',null);closeFab()">⚙️ Invoice Settings</button>
+</div>
+<button class="fab" id="fab-btn" onclick="toggleFab()" style="display:none;">+</button>
+
+<!-- CLIENT MODAL -->
+<div class="modal-overlay" id="m-client">
+  <div class="modal">
+    <div class="modal-header"><h3 id="mc-title">&#128100; New Client</h3><button class="close-btn" onclick="closeModal('m-client')">&#215;</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="c-id">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">First Name *</label><input class="form-control" id="c-fn" placeholder="First"></div>
+        <div class="form-group"><label class="form-label">Last Name</label><input class="form-control" id="c-ln" placeholder="Last"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="c-em" type="email" placeholder="email@example.com"></div>
+      <div class="form-group"><label class="form-label">Phone</label><input class="form-control" id="c-ph" placeholder="(580) 555-0000"></div>
+      <div class="form-group"><label class="form-label">Address</label><input class="form-control" id="c-ad" placeholder="Street address, city, state"></div>
+      <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control" id="c-no" rows="2" placeholder="Gate code, special instructions…"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('m-client')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveClient()">Save Client</button>
+    </div>
+  </div>
+</div>
+
+<!-- JOB MODAL -->
+<div class="modal-overlay" id="m-job">
+  <div class="modal">
+    <div class="modal-header"><h3 id="mj-title">&#128295; New Job</h3><button class="close-btn" onclick="closeModal('m-job')">&#215;</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="j-id">
+      <div class="form-group"><label class="form-label">Client *</label><select class="form-control" id="j-cl"></select></div>
+      <div class="form-group"><label class="form-label">Service *</label>
+        <select class="form-control" id="j-sv">
+          <option>Lawn Mowing</option><option>Hedge Trimming</option><option>Lawn Edging</option>
+          <option>Full Yard Cleanup</option><option>Fertilization + Weed Control</option>
+          <option>Aeration + Overseeding</option><option>Mulching</option><option>Irrigation</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Date *</label><input class="form-control" id="j-dt" type="date"></div>
+      <div class="form-group"><label class="form-label">Recurrence</label>
+        <select class="form-control" id="j-rec" onchange="toggleRecEnd()">
+          <option value="none">One-time (no repeat)</option>
+          <option value="weekly">Weekly</option>
+          <option value="biweekly">Biweekly (every 2 weeks)</option>
+        </select>
+      </div>
+      <div class="form-group" id="j-rec-end-wrap" style="display:none">
+        <label class="form-label">Repeat Until</label>
+        <input class="form-control" id="j-rec-end" type="date">
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Duration (hrs)</label><input class="form-control" id="j-dur" type="number" value="1" min="0.5" step="0.5"></div>
+        <div class="form-group"><label class="form-label">Total ($)</label><input class="form-control" id="j-tot" type="number" placeholder="0.00" min="0" step="0.01"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select class="form-control" id="j-st"><option>Upcoming</option><option>In Progress</option><option>Completed</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control" id="j-no" rows="2" placeholder="Gate code, parking, special instructions…"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('m-job')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveJob()">Save Job</button>
+    </div>
+  </div>
+</div>
+
+<!-- QUOTE MODAL -->
+<div class="modal-overlay" id="m-quote">
+  <div class="modal">
+    <div class="modal-header"><h3 id="mq-title">&#128196; New Quote</h3><button class="close-btn" onclick="closeModal('m-quote')">&#215;</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="q-id">
+      <div class="form-group"><label class="form-label">Client *</label><select class="form-control" id="q-cl"></select></div>
+      <div class="form-group"><label class="form-label">Title</label><input class="form-control" id="q-ti" placeholder="e.g. Spring Cleanup Package"></div>
+      <div class="form-group">
+        <label class="form-label">Line Items</label>
+        <div id="q-lines"></div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="addLine('q-lines','q-td')">+ Add Line</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:12px 0;border-top:1px solid var(--border);">
+        <span style="font-weight:700">Total</span><span style="font-weight:800;font-size:20px;color:var(--green-dark)" id="q-td">$0.00</span>
+      </div>
+      <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control" id="q-no" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('m-quote')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveQuote()">Save Quote</button>
+    </div>
+  </div>
+</div>
+
+<!-- INVOICE MODAL -->
+<div class="modal-overlay" id="m-invoice">
+  <div class="modal">
+    <div class="modal-header"><h3 id="mi-title">&#129534; New Invoice</h3><button class="close-btn" onclick="closeModal('m-invoice')">&#215;</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="i-id">
+      <div class="form-group"><label class="form-label">Client *</label><select class="form-control" id="i-cl"></select></div>
+      <div class="form-group"><label class="form-label">Description</label><input class="form-control" id="i-de" placeholder="e.g. Lawn Mowing — Mar 26"></div>
+      <div class="form-group">
+        <label class="form-label">Line Items</label>
+        <div id="i-lines"></div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="addLine('i-lines','i-td')">+ Add Line</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:12px 0;border-top:1px solid var(--border);">
+        <span style="font-weight:700">Total</span><span style="font-weight:800;font-size:20px;color:var(--green-dark)" id="i-td">$0.00</span>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Date</label><input class="form-control" id="i-dt" type="date"></div>
+        <div class="form-group"><label class="form-label">Status</label>
+          <select class="form-control" id="i-st"><option>Sent</option><option>Paid</option><option>Overdue</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('m-invoice')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveInvoice()">Save Invoice</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay" id="m-confirm">
+  <div class="modal" style="width:360px;">
+    <div class="modal-header"><h3 id="conf-title">Confirm Delete</h3><button class="close-btn" onclick="closeModal('m-confirm')">&#215;</button></div>
+    <div class="modal-body"><p id="conf-msg" style="font-size:14px;color:var(--text2);"></p></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('m-confirm')">Cancel</button>
+      <button class="btn btn-danger" id="conf-ok">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY='pyc2';
+const SEED={
+  clients:[
+    {id:1,fn:'Debbie',ln:'Hopkins',em:'',ph:'580) 467-3587',ad:'',no:''},
+    {id:2,fn:'Stacy',ln:'Brown',em:'',ph:'(580) 606-1257',ad:'2012 Redbud ave Duncan, OK 73533',no:''},
+    {id:3,fn:'Sam',ln:'Porter',em:'',ph:'(580) 512-4897',ad:'',no:''},
+    {id:4,fn:'Rebecca',ln:'Whatler',em:'',ph:'(479) 259-8265',ad:'1434 N 5th St Duncan OK 73533',no:''},
+    {id:5,fn:'Josh',ln:'Gruver',em:'',ph:'+1 (314) 685-4032',ad:'',no:''},
+    {id:6,fn:'Eulice',ln:'Mcroy',em:'',ph:'(580) 467-7266',ad:'',no:''},
+    {id:7,fn:'Betty',ln:'Jefferies',em:'',ph:'(580) 656-5181',ad:'7521 pleasant view LN Duncan, Oklahoma',no:''},
+    {id:8,fn:'Autumn',ln:'Jackson',em:'',ph:'(580) 467-7112',ad:'2011 W Walnut Duncan OK 73533',no:''},
+    {id:9,fn:'Bruce',ln:'Jones',em:'',ph:'(580) 277-4235',ad:'281743 Bell Road Comanche OK 73529',no:''},
+    {id:10,fn:'Bill',ln:'Parson',em:'',ph:'1 (254) 485-4220',ad:'',no:''},
+    {id:11,fn:'Pam',ln:'',em:'',ph:'+1 (979) 864-7214',ad:'',no:''},
+    {id:12,fn:'Cheryl',ln:'Wilkinson',em:'',ph:'+1 (405) 550-5375',ad:'3305 Spencer Road Duncan OK 73533',no:''},
+    {id:13,fn:'Paul',ln:'',em:'',ph:'+1 (405) 403-5591',ad:'1201 North Harville Rd. in Duncan',no:''},
+    {id:14,fn:'Tony',ln:'Brittain',em:'',ph:'(580) 475-2399',ad:'3747 S Ridgeback Rd Marlow OK 73055',no:''},
+    {id:15,fn:'Patrick',ln:'',em:'',ph:'+1 (805) 705-4643',ad:'1030 E Plato Rd, Duncan, OK',no:''},
+    {id:16,fn:'Cindy',ln:'',em:'',ph:'+1 (580) 470-6396',ad:'1324 Normandy Duncan OK 73533',no:''},
+  ],
+  jobs:[
+    {id:1,clientId:14,sv:'Full Yard Cleanup',date:'2026-03-30',dur:1,tot:200,status:'Upcoming',no:'',rec:'none'},
+    {id:2,clientId:1,sv:'Full Yard Cleanup',date:'2026-04-03',dur:1,tot:50,status:'Upcoming',no:'',rec:'none'},
+    {id:3,clientId:2,sv:'Full Yard Cleanup',date:'2026-04-03',dur:1,tot:50,status:'Upcoming',no:'',rec:'none'},
+    {id:4,clientId:5,sv:'Lawn Mowing',date:'2026-04-03',dur:1,tot:55,status:'Upcoming',no:'',rec:'none'},
+    {id:5,clientId:11,sv:'Lawn Mowing',date:'2026-04-03',dur:1,tot:50,status:'Upcoming',no:'',rec:'none'},
+    {id:6,clientId:16,sv:'Other',date:'2026-03-30',dur:1,tot:65,status:'Upcoming',no:'',rec:'none'},
+    {id:7,clientId:6,sv:'Lawn Mowing',date:'2026-04-02',dur:1,tot:120,status:'Upcoming',no:'',rec:'none'},
+  ],
+  quotes:[],invoices:[],activity:[
+    {m:'🔧 New job: Eulice Mcroy — Lawn Mowing on Apr 2, 2026',t:new Date(Date.now()-4*3600000).toISOString()},
+    {m:'✏️ Updated job: Debbie Hopkins — Full Yard Cleanup',t:new Date(Date.now()-5*3600000).toISOString()},
+    {m:'👤 New client: Cindy',t:new Date(Date.now()-6*3600000).toISOString()},
+  ],
+  nxt:{c:17,j:8,q:1,i:1}
+};
+
+function blank(){return {clients:[],jobs:[],quotes:[],invoices:[],activity:[],nxt:{c:1,j:1,q:1,i:1}};}
+let DB=(()=>{try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);if(p&&p.clients&&p.clients.length>0)return p;}return JSON.parse(JSON.stringify(SEED));}catch(e){return JSON.parse(JSON.stringify(SEED));}})();
+function save(){localStorage.setItem(KEY,JSON.stringify(DB));badges();}
+function nid(t){const id=DB.nxt[t]++;save();return id;}
+function log(m){DB.activity.unshift({m,t:new Date().toISOString()});if(DB.activity.length>40)DB.activity.pop();save();}
+
+const TITLES={dashboard:'Dashboard',schedule:'Schedule',jobs:'Jobs',quotes:'Quotes',invoices:'Invoices',clients:'Clients',team:'Team',data:'Data & Backup',settings:'Invoice Settings'};
+function gotoPage(p,el){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
+  document.getElementById('page-title').textContent=TITLES[p]||p;
+  closeFab();renderPage(p);
+}
+function gotoMobile(p,el){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.textContent.toLowerCase().includes(p)));
+  document.getElementById('page-title').textContent=TITLES[p]||p;
+  closeFab();renderPage(p);
+}
+function renderPage(p){
+  if(p==='dashboard')renderDash();
+  else if(p==='schedule')renderSched();
+  else if(p==='jobs')renderJobs();
+  else if(p==='quotes')renderQuotes();
+  else if(p==='invoices')renderInvoices();
+  else if(p==='clients')renderClients();
+  else if(p==='settings'){loadBizProfile();renderSettingsPreview();}
+}
+
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+
+function toggleFab(){const m=document.getElementById('fab-menu');m.classList.toggle('open');document.getElementById('fab-btn').textContent=m.classList.contains('open')?'×':'+';}
+function closeFab(){document.getElementById('fab-menu').classList.remove('open');const f=document.getElementById('fab-btn');if(f)f.textContent='+';}
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+
+function badges(){
+  const aj=DB.jobs.filter(j=>j.status!=='Completed').length;
+  const ui=DB.invoices.filter(i=>i.status!=='Paid').length;
+  ['nb-jobs','tb-jobs'].forEach(id=>{const e=document.getElementById(id);if(e){e.textContent=aj||'';e.style.display=aj?'':'none';}});
+  ['nb-inv','tb-inv'].forEach(id=>{const e=document.getElementById(id);if(e){e.textContent=ui||'';e.style.display=ui?'':'none';}});
+}
+
+function cname(id){const c=DB.clients.find(c=>c.id===id);return c?(c.fn+' '+c.ln).trim()||'Unknown':'Unknown';}
+function cby(id){return DB.clients.find(c=>c.id===id);}
+function ini(n){return(n||'').split(' ').map(x=>x[0]||'').join('').toUpperCase().slice(0,2)||'?';}
+function fdate(iso){if(!iso)return'';const d=new Date(iso+'T12:00:00');return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
+function today(){return new Date().toISOString().slice(0,10);}
+function rel(iso){const d=(Date.now()-new Date(iso))/1000;if(d<60)return'Just now';if(d<3600)return Math.floor(d/60)+'m ago';if(d<86400)return Math.floor(d/3600)+'h ago';return Math.floor(d/86400)+'d ago';}
+function sbadge(s){const m={'Completed':'badge-green','In Progress':'badge-blue','Upcoming':'badge-gold','Paid':'badge-green','Sent':'badge-gold','Overdue':'badge-red','Approved':'badge-green','Awaiting Approval':'badge-gold','Declined':'badge-red'};return`<span class="badge ${m[s]||'badge-gray'}">${s}</span>`;}
+function fmtMoney(v){return'$'+(parseFloat(v)||0).toFixed(2);}
+function empty(msg){return`<div class="empty"><div class="empty-icon">&#128203;</div><div>${msg}</div></div>`;}
+function fillClients(selId,selVal){
+  const s=document.getElementById(selId);
+  s.innerHTML='<option value="">Select client…</option>';
+  DB.clients.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=(c.fn+' '+c.ln).trim();if(c.id===selVal)o.selected=true;s.appendChild(o);});
+}
+
+function renderDash(){
+  const now=new Date();
+  document.getElementById('ds-datestr').textContent=now.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  const m=now.getMonth(),y=now.getFullYear();
+  const rev=DB.invoices.filter(i=>i.status==='Paid'&&new Date(i.date+'T12:00:00').getMonth()===m&&new Date(i.date+'T12:00:00').getFullYear()===y).reduce((s,i)=>s+i.total,0);
+  document.getElementById('ds-rev').textContent='$'+rev.toLocaleString();
+  const ws=new Date(now);ws.setDate(now.getDate()-now.getDay());
+  const we=new Date(ws);we.setDate(ws.getDate()+6);
+  const wj=DB.jobs.filter(j=>{const d=new Date(j.date+'T12:00:00');return d>=ws&&d<=we;});
+  document.getElementById('ds-jobs').textContent=wj.length;
+  const done=wj.filter(j=>j.status==='Completed').length;
+  document.getElementById('ds-jobs-s').textContent=wj.length?`${done} done · ${wj.length-done} pending`:'No jobs this week';
+  const out=DB.invoices.filter(i=>i.status!=='Paid').reduce((s,i)=>s+i.total,0);
+  const ov=DB.invoices.filter(i=>i.status==='Overdue').length;
+  document.getElementById('ds-out').textContent='$'+out.toLocaleString();
+  document.getElementById('ds-out-s').textContent=ov?`${ov} overdue`:'All current';
+  document.getElementById('ds-cli').textContent=DB.clients.length;
+  document.getElementById('ds-cli-s').textContent=DB.clients.length+' total clients';
+  const tj=DB.jobs.filter(j=>j.date===today());
+  const tjEl=document.getElementById('ds-today');
+  if(!tj.length){tjEl.innerHTML=empty('No jobs today');}
+  else{tjEl.innerHTML=`<table class="table"><thead><tr><th>Client</th><th>Service</th><th>Status</th><th></th></tr></thead><tbody>`+
+    tj.map(j=>`<tr><td><strong>${cname(j.clientId)}</strong></td><td>${j.sv}</td><td>${sbadge(j.status)}</td>
+    <td>${j.status!=='Completed'?`<button class="btn btn-primary btn-xs" style="background:var(--green)" onclick="completeJob(${j.id});event.stopPropagation()">&#10003; Done</button>`:''}</td></tr>`).join('')+'</tbody></table>';}
+  const actEl=document.getElementById('ds-activity');
+  if(!DB.activity.length){actEl.innerHTML=empty('No activity yet');}
+  else{actEl.innerHTML=`<table class="table"><thead><tr><th>Event</th><th>When</th></tr></thead><tbody>`+
+    DB.activity.slice(0,8).map(a=>`<tr><td>${a.m}</td><td style="font-size:11px;color:var(--text3);white-space:nowrap">${rel(a.t)}</td></tr>`).join('')+'</tbody></table>';}
+}
+
+let schedD=new Date();
+function renderSched(){
+  document.getElementById('sched-label').textContent=schedD.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const hrs=Array.from({length:13},(_,i)=>i+7);
+  document.getElementById('sched-times').innerHTML=hrs.map(h=>`<div class="time-slot">${h<=12?h:h-12} ${h<12?'AM':h===12?'PM':'PM'}</div>`).join('');
+  const jc=document.getElementById('sched-jobs');
+  jc.innerHTML=hrs.map(()=>'<div class="hour-line"></div>').join('');
+  jc.style.height=(hrs.length*60)+'px';
+  const ds=schedD.toISOString().slice(0,10);
+  const dayJobs=DB.jobs.filter(j=>j.date===ds);
+  if(!dayJobs.length){
+    const e=document.createElement('div');
+    e.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:13px;';
+    e.textContent='No jobs this day';jc.appendChild(e);return;
+  }
+  dayJobs.forEach((j,idx)=>{
+    const total=dayJobs.length;
+    const top=idx*(780/total)+4;
+    const height=Math.max(780/total-8,40);
+    const col=j.status==='Completed'?'jgreen':j.status==='In Progress'?'jblue':'jgold';
+    const b=document.createElement('div');
+    b.className=`job-block ${col}`;
+    b.style.cssText=`top:${top}px;height:${height}px;`;
+    b.innerHTML=`<div>${cname(j.clientId)}</div><div style="font-weight:400;opacity:.8">${j.sv}</div>`;
+    b.onclick=()=>editJob(j.id);jc.appendChild(b);
+  });
+}
+function schedNav(d){schedD.setDate(schedD.getDate()+d);renderSched();}
+function schedToday(){schedD=new Date();renderSched();}
+
+function renderClients(){
+  const q=(document.getElementById('client-q')?.value||'').toLowerCase();
+  const list=DB.clients.filter(c=>((c.fn+' '+c.ln+c.em+c.ph+c.ad).toLowerCase().includes(q)));
+  const el=document.getElementById('clients-list');
+  if(!list.length){el.innerHTML=empty('No clients found.');return;}
+  el.innerHTML=`<table class="table"><thead><tr><th>Name</th><th>Phone</th><th>Address</th><th>Balance</th><th></th></tr></thead><tbody>`+
+    list.map(c=>{
+      const bal=DB.invoices.filter(i=>i.clientId===c.id&&i.status!=='Paid').reduce((s,i)=>s+i.total,0);
+      return`<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="avatar">${ini(c.fn+' '+c.ln)}</div><div><strong>${(c.fn+' '+c.ln).trim()}</strong><br><span style="font-size:11px;color:var(--text3)">${c.em||''}</span></div></div></td>
+      <td>${c.ph||'—'}</td><td>${c.ad||'—'}</td>
+      <td style="font-weight:600;color:${bal>0?'var(--red)':'var(--green)'}">${fmtMoney(bal)}</td>
+      <td><div class="actions"><button class="btn btn-secondary btn-xs" onclick="editClient(${c.id})">Edit</button><button class="btn btn-danger btn-xs" onclick="askDelete('client',${c.id})">Del</button></div></td></tr>`;
+    }).join('')+'</tbody></table>';
+}
+function newClient(){document.getElementById('mc-title').textContent='New Client';document.getElementById('c-id').value='';['c-fn','c-ln','c-em','c-ph','c-ad','c-no'].forEach(i=>document.getElementById(i).value='');openModal('m-client');}
+function editClient(id){
+  const c=DB.clients.find(c=>c.id===id);if(!c)return;
+  document.getElementById('mc-title').textContent='Edit Client';document.getElementById('c-id').value=id;
+  document.getElementById('c-fn').value=c.fn||'';document.getElementById('c-ln').value=c.ln||'';
+  document.getElementById('c-em').value=c.em||'';document.getElementById('c-ph').value=c.ph||'';
+  document.getElementById('c-ad').value=c.ad||'';document.getElementById('c-no').value=c.no||'';
+  openModal('m-client');
+}
+function saveClient(){
+  const fn=document.getElementById('c-fn').value.trim();if(!fn){toast('Please enter a first name');return;}
+  const data={fn,ln:document.getElementById('c-ln').value.trim(),em:document.getElementById('c-em').value.trim(),ph:document.getElementById('c-ph').value.trim(),ad:document.getElementById('c-ad').value.trim(),no:document.getElementById('c-no').value.trim()};
+  const eid=parseInt(document.getElementById('c-id').value);
+  if(eid){Object.assign(DB.clients.find(c=>c.id===eid),data);log('Updated client: '+fn+' '+data.ln);toast('Client updated!');}
+  else{DB.clients.push({id:nid('c'),...data});log('New client: '+fn+' '+data.ln);toast('Client saved!');}
+  save();closeModal('m-client');renderClients();renderDash();
+}
+
+let jFilter='All';
+function filterJobs(f,el){jFilter=f;document.querySelectorAll('#job-tabs .pill-tab').forEach(t=>t.classList.remove('active'));if(el)el.classList.add('active');renderJobs();}
+function renderJobs(){
+  let list=[...DB.jobs].sort((a,b)=>a.date.localeCompare(b.date));
+  if(jFilter!=='All')list=list.filter(j=>j.status===jFilter);
+  const el=document.getElementById('jobs-list');
+  if(!list.length){el.innerHTML=empty('No jobs found.');return;}
+  el.innerHTML=`<table class="table"><thead><tr><th>Client</th><th>Service</th><th>Date</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>`+
+    list.map(j=>`<tr><td><strong>${cname(j.clientId)}</strong></td><td>${j.sv}</td>
+    <td style="font-size:12px;color:var(--text3)">${fdate(j.date)}</td>
+    <td><strong>${fmtMoney(j.tot)}</strong></td><td>${sbadge(j.status)}</td>
+    <td><div class="actions">
+      ${j.status!=='Completed'?`<button class="btn btn-primary btn-xs" style="background:var(--green);color:#fff" onclick="completeJob(${j.id})">&#10003; Done</button>`:''}
+      <button class="btn btn-secondary btn-xs" onclick="editJob(${j.id})">Edit</button>
+      <button class="btn btn-primary btn-xs" onclick="jobToInvoice(${j.id})">&#8594; Inv</button>
+      <button class="btn btn-danger btn-xs" onclick="askDelete('job',${j.id})">Del</button>
+    </div></td></tr>`).join('')+'</tbody></table>';
+}
+
+function toggleRecEnd(){const v=document.getElementById('j-rec').value;document.getElementById('j-rec-end-wrap').style.display=v==='none'?'none':'block';}
+
+function completeJob(id){
+  const j=DB.jobs.find(x=>x.id===id);if(!j)return;
+  j.status='Completed';save();renderJobs();renderDash();
+  log('Completed: '+cname(j.clientId)+' — '+j.sv);
+  document.getElementById('mi-title').textContent='Invoice — Review & Save';
+  document.getElementById('i-id').value='';
+  fillClients('i-cl',j.clientId);
+  document.getElementById('i-de').value=j.sv+(j.date?' — '+fdate(j.date):'');
+  document.getElementById('i-dt').value=today();
+  document.getElementById('i-st').value='Sent';
+  document.getElementById('i-lines').innerHTML='';
+  document.getElementById('i-td').textContent='$0.00';
+  if(j.tot){setLines('i-lines','i-td',[{d:j.sv,q:1,p:j.tot}]);}else{addLine('i-lines','i-td');}
+  let note=document.getElementById('inv-auto-note');
+  if(!note){note=document.createElement('div');note.id='inv-auto-note';note.style.cssText='background:var(--green-light);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--green-dark);margin-bottom:14px;font-weight:500;';document.querySelector('#m-invoice .modal-body').insertBefore(note,document.querySelector('#m-invoice .modal-body').firstChild);}
+  note.textContent='Job marked complete! Review and edit below, then tap Save Invoice.';
+  openModal('m-invoice');
+}
+
+function newJob(){
+  document.getElementById('mj-title').textContent='New Job';document.getElementById('j-id').value='';
+  fillClients('j-cl');document.getElementById('j-dt').value=today();
+  document.getElementById('j-rec').value='none';document.getElementById('j-rec-end-wrap').style.display='none';
+  const d3=new Date();d3.setMonth(d3.getMonth()+3);document.getElementById('j-rec-end').value=d3.toISOString().slice(0,10);
+  document.getElementById('j-dur').value='1';document.getElementById('j-tot').value='';
+  document.getElementById('j-st').value='Upcoming';document.getElementById('j-no').value='';
+  openModal('m-job');
+}
+function editJob(id){
+  const j=DB.jobs.find(j=>j.id===id);if(!j)return;
+  document.getElementById('mj-title').textContent='Edit Job';document.getElementById('j-id').value=id;
+  fillClients('j-cl',j.clientId);document.getElementById('j-sv').value=j.sv;
+  document.getElementById('j-dt').value=j.date;
+  document.getElementById('j-rec').value=j.rec||'none';
+  document.getElementById('j-rec-end-wrap').style.display=(j.rec&&j.rec!=='none')?'block':'none';
+  document.getElementById('j-dur').value=j.dur||1;document.getElementById('j-tot').value=j.tot||'';
+  document.getElementById('j-st').value=j.status;document.getElementById('j-no').value=j.no||'';
+  openModal('m-job');
+}
+function saveJob(){
+  const cid=parseInt(document.getElementById('j-cl').value);if(!cid){toast('Please select a client');return;}
+  const dt=document.getElementById('j-dt').value;if(!dt){toast('Please select a date');return;}
+  const rec=document.getElementById('j-rec').value;
+  const recEnd=document.getElementById('j-rec-end').value;
+  const data={clientId:cid,sv:document.getElementById('j-sv').value,date:dt,dur:parseFloat(document.getElementById('j-dur').value)||1,tot:parseFloat(document.getElementById('j-tot').value)||0,status:document.getElementById('j-st').value,no:document.getElementById('j-no').value.trim(),rec:rec};
+  const eid=parseInt(document.getElementById('j-id').value);
+  if(eid){Object.assign(DB.jobs.find(j=>j.id===eid),data);log('Updated job: '+cname(cid)+' — '+data.sv);toast('Job updated!');}
+  else{
+    DB.jobs.push({id:nid('j'),...data});
+    if(rec!=='none'&&recEnd&&recEnd>dt){
+      const interval=rec==='weekly'?7:14;let cur=new Date(dt+'T12:00');const end=new Date(recEnd+'T12:00');let count=0;
+      while(count<52){cur.setDate(cur.getDate()+interval);if(cur>end)break;DB.jobs.push({id:nid('j'),...data,date:cur.toISOString().slice(0,10)});count++;}
+      log('Recurring job ('+rec+'): '+cname(cid)+' — '+data.sv+', '+count+' times');toast('Job saved! '+count+' recurring jobs created.');
+    }else{log('New job: '+cname(cid)+' — '+data.sv+' on '+fdate(dt));toast('Job saved!');}
+  }
+  save();closeModal('m-job');renderJobs();renderDash();
+}
+
+function addLine(cid,tid){
+  const wrap=document.getElementById(cid);const row=document.createElement('div');row.className='li-row';
+  row.innerHTML=`<input class="form-control" placeholder="Description" oninput="calcT('${cid}','${tid}')">
+    <input class="form-control" type="number" value="1" min="1" oninput="calcT('${cid}','${tid}')">
+    <input class="form-control" type="number" value="" min="0" step="0.01" oninput="calcT('${cid}','${tid}')">
+    <button class="btn btn-ghost btn-xs" style="padding:4px;font-size:16px;color:var(--red)" onclick="this.parentElement.remove();calcT('${cid}','${tid}')">&#215;</button>`;
+  wrap.appendChild(row);
+}
+function calcT(cid,tid){let t=0;document.querySelectorAll('#'+cid+' .li-row').forEach(r=>{const ins=r.querySelectorAll('input');t+=(parseFloat(ins[1]?.value)||0)*(parseFloat(ins[2]?.value)||0);});document.getElementById(tid).textContent='$'+t.toFixed(2);}
+function getLines(cid){const items=[];document.querySelectorAll('#'+cid+' .li-row').forEach(r=>{const ins=r.querySelectorAll('input');const d=ins[0]?.value.trim();if(d)items.push({d,q:parseFloat(ins[1]?.value)||1,p:parseFloat(ins[2]?.value)||0});});return items;}
+function setLines(cid,tid,items){
+  document.getElementById(cid).innerHTML='';
+  items.forEach(item=>{const wrap=document.getElementById(cid);const row=document.createElement('div');row.className='li-row';
+    row.innerHTML=`<input class="form-control" value="${item.d}" oninput="calcT('${cid}','${tid}')">
+      <input class="form-control" type="number" value="${item.q}" oninput="calcT('${cid}','${tid}')">
+      <input class="form-control" type="number" value="${item.p}" step="0.01" oninput="calcT('${cid}','${tid}')">
+      <button class="btn btn-ghost btn-xs" style="padding:4px;font-size:16px;color:var(--red)" onclick="this.parentElement.remove();calcT('${cid}','${tid}')">&#215;</button>`;
+    wrap.appendChild(row);});calcT(cid,tid);
+}
+
+function renderQuotes(){
+  const list=[...DB.quotes].sort((a,b)=>(b.at||'').localeCompare(a.at||''));
+  const el=document.getElementById('quotes-list');
+  if(!list.length){el.innerHTML=empty('No quotes yet.');return;}
+  el.innerHTML=`<table class="table"><thead><tr><th>#</th><th>Client</th><th>Title</th><th>Date</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>`+
+    list.map(q=>`<tr><td style="font-family:'DM Mono',monospace">Q-${String(q.id).padStart(3,'0')}</td>
+    <td><strong>${cname(q.clientId)}</strong></td><td>${q.ti||'—'}</td>
+    <td style="font-size:12px;color:var(--text3)">${fdate(q.date)}</td><td><strong>${fmtMoney(q.total)}</strong></td>
+    <td><select class="form-control" style="padding:4px 8px;font-size:12px;width:160px" onchange="setQStatus(${q.id},this.value)">
+      <option ${q.status==='Awaiting Approval'?'selected':''}>Awaiting Approval</option>
+      <option ${q.status==='Approved'?'selected':''}>Approved</option>
+      <option ${q.status==='Declined'?'selected':''}>Declined</option>
+    </select></td>
+    <td><div class="actions">
+      <button class="btn btn-secondary btn-xs" onclick="editQuote(${q.id})">Edit</button>
+      <button class="btn btn-primary btn-xs" onclick="quoteToInvoice(${q.id})">&#8594; Inv</button>
+      <button class="btn btn-danger btn-xs" onclick="askDelete('quote',${q.id})">Del</button>
+    </div></td></tr>`).join('')+'</tbody></table>';
+}
+function setQStatus(id,s){const q=DB.quotes.find(q=>q.id===id);if(q){q.status=s;save();}}
+function newQuote(){document.getElementById('mq-title').textContent='New Quote';document.getElementById('q-id').value='';fillClients('q-cl');document.getElementById('q-ti').value='';document.getElementById('q-no').value='';document.getElementById('q-lines').innerHTML='';document.getElementById('q-td').textContent='$0.00';addLine('q-lines','q-td');openModal('m-quote');}
+function editQuote(id){const q=DB.quotes.find(q=>q.id===id);if(!q)return;document.getElementById('mq-title').textContent='Edit Quote';document.getElementById('q-id').value=id;fillClients('q-cl',q.clientId);document.getElementById('q-ti').value=q.ti||'';document.getElementById('q-no').value=q.no||'';setLines('q-lines','q-td',q.items||[]);openModal('m-quote');}
+function saveQuote(){
+  const cid=parseInt(document.getElementById('q-cl').value);if(!cid){toast('Please select a client');return;}
+  const items=getLines('q-lines');if(!items.length){toast('Add at least one line item');return;}
+  const total=items.reduce((s,i)=>s+i.q*i.p,0);
+  const data={clientId:cid,ti:document.getElementById('q-ti').value.trim()||'Quote',items,total,no:document.getElementById('q-no').value.trim(),status:'Awaiting Approval'};
+  const eid=parseInt(document.getElementById('q-id').value);
+  if(eid){const q=DB.quotes.find(q=>q.id===eid);Object.assign(q,{...data,status:q.status});toast('Quote updated!');}
+  else{DB.quotes.push({id:nid('q'),...data,date:today(),at:new Date().toISOString()});log('New quote: '+cname(cid)+' — $'+total.toFixed(2));toast('Quote saved!');}
+  save();closeModal('m-quote');renderQuotes();
+}
+function quoteToInvoice(qid){const q=DB.quotes.find(q=>q.id===qid);if(!q)return;document.getElementById('mi-title').textContent='Invoice from Quote';document.getElementById('i-id').value='';fillClients('i-cl',q.clientId);document.getElementById('i-de').value=q.ti||'';document.getElementById('i-dt').value=today();document.getElementById('i-st').value='Sent';setLines('i-lines','i-td',q.items||[]);openModal('m-invoice');}
+
+function renderInvoices(){
+  const list=[...DB.invoices].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const out=list.filter(i=>i.status!=='Paid').reduce((s,i)=>s+i.total,0);
+  const ov=list.filter(i=>i.status==='Overdue').length;
+  const col=list.filter(i=>i.status==='Paid').reduce((s,i)=>s+i.total,0);
+  document.getElementById('inv-out').textContent='$'+out.toLocaleString();
+  document.getElementById('inv-out-s').textContent=ov?`${ov} overdue`:'All current';
+  document.getElementById('inv-col').textContent='$'+col.toLocaleString();
+  const el=document.getElementById('invoices-list');
+  if(!list.length){el.innerHTML=empty('No invoices yet.');return;}
+  el.innerHTML=`<table class="table"><thead><tr><th>#</th><th>Client</th><th>Description</th><th>Date</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody>`+
+    list.map(inv=>`<tr><td style="font-family:'DM Mono',monospace">#${String(inv.id).padStart(4,'0')}</td>
+    <td><strong>${cname(inv.clientId)}</strong></td><td style="font-size:12px;color:var(--text2)">${inv.de||'—'}</td>
+    <td style="font-size:12px;color:var(--text3)">${fdate(inv.date)}</td><td><strong>${fmtMoney(inv.total)}</strong></td>
+    <td><select class="form-control" style="padding:4px 8px;font-size:12px;width:110px" onchange="setIStatus(${inv.id},this.value)">
+      <option ${inv.status==='Sent'?'selected':''}>Sent</option>
+      <option ${inv.status==='Paid'?'selected':''}>Paid</option>
+      <option ${inv.status==='Overdue'?'selected':''}>Overdue</option>
+    </select></td>
+    <td><div class="actions">
+      <button class="btn btn-secondary btn-xs" onclick="viewInv(${inv.id})">View</button>
+      <button class="btn btn-secondary btn-xs" onclick="editInv(${inv.id})">Edit</button>
+      <button class="btn btn-danger btn-xs" onclick="askDelete('invoice',${inv.id})">Del</button>
+    </div></td></tr>`).join('')+'</tbody></table>';
+}
+function setIStatus(id,s){const inv=DB.invoices.find(i=>i.id===id);if(inv){inv.status=s;save();log('Invoice #'+String(id).padStart(4,'0')+' marked '+s);renderInvoices();renderDash();}}
+function newInvoice(){document.getElementById('mi-title').textContent='New Invoice';document.getElementById('i-id').value='';fillClients('i-cl');document.getElementById('i-de').value='';document.getElementById('i-dt').value=today();document.getElementById('i-st').value='Sent';document.getElementById('i-lines').innerHTML='';document.getElementById('i-td').textContent='$0.00';addLine('i-lines','i-td');openModal('m-invoice');}
+function jobToInvoice(jid){const j=DB.jobs.find(j=>j.id===jid);if(!j)return;document.getElementById('mi-title').textContent='New Invoice';document.getElementById('i-id').value='';fillClients('i-cl',j.clientId);document.getElementById('i-de').value=j.sv+(j.date?' — '+fdate(j.date):'');document.getElementById('i-dt').value=today();document.getElementById('i-st').value='Sent';document.getElementById('i-lines').innerHTML='';document.getElementById('i-td').textContent='$0.00';if(j.tot){setLines('i-lines','i-td',[{d:j.sv,q:1,p:j.tot}]);}else{addLine('i-lines','i-td');}openModal('m-invoice');}
+function editInv(id){const inv=DB.invoices.find(i=>i.id===id);if(!inv)return;document.getElementById('mi-title').textContent='Edit Invoice';document.getElementById('i-id').value=id;fillClients('i-cl',inv.clientId);document.getElementById('i-de').value=inv.de||'';document.getElementById('i-dt').value=inv.date||today();document.getElementById('i-st').value=inv.status;setLines('i-lines','i-td',inv.items||[]);openModal('m-invoice');}
+function saveInvoice(){
+  const cid=parseInt(document.getElementById('i-cl').value);if(!cid){toast('Please select a client');return;}
+  const items=getLines('i-lines');if(!items.length){toast('Add at least one line item');return;}
+  const total=items.reduce((s,i)=>s+i.q*i.p,0);
+  const data={clientId:cid,de:document.getElementById('i-de').value.trim(),items,total,date:document.getElementById('i-dt').value,status:document.getElementById('i-st').value};
+  const eid=parseInt(document.getElementById('i-id').value);
+  if(eid){Object.assign(DB.invoices.find(i=>i.id===eid),data);log('Updated invoice for '+cname(cid));toast('Invoice updated!');}
+  else{DB.invoices.push({id:nid('i'),...data,at:new Date().toISOString()});log('Invoice created: '+cname(cid)+' — $'+total.toFixed(2));toast('Invoice saved!');}
+  save();closeModal('m-invoice');renderInvoices();renderDash();
+}
+function viewInv(id){
+  const inv=DB.invoices.find(i=>i.id===id);if(!inv)return;
+  const c=cby(inv.clientId);const bp=getBP();
+  document.getElementById('inv-prev-lbl').textContent=(bp.prefix||'INV-')+String(inv.id).padStart(4,'0');
+  document.getElementById('inv-box').innerHTML=buildInvHTML(inv,c,bp);
+  const wrap=document.getElementById('inv-preview-wrap');wrap.style.display='block';wrap.scrollIntoView({behavior:'smooth'});
+}
+function printInv(){
+  const bp=getBP();const box=document.getElementById('inv-box');const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Invoice</title><style>
+    body{font-family:sans-serif;padding:32px;max-width:680px;margin:0 auto}
+    .inv-head{display:flex;justify-content:space-between;margin-bottom:24px}
+    table{width:100%;border-collapse:collapse;margin:16px 0}
+    th{background:${bp.color}20;padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:${bp.color}}
+    td{padding:10px 12px;border-bottom:1px solid #ddd;font-size:13px}
+    .inv-parties{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px}
+    .party-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+    .total-row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;color:#555}
+    .final{font-weight:700;font-size:15px;border-top:2px solid #ddd;padding-top:8px;margin-top:6px;color:${bp.color}}
+    img{max-height:80px;object-fit:contain}
+    @media print{body{padding:16px}}
+  </style></head><body>`);
+  w.document.write(box.innerHTML);w.document.write('</body></html>');w.document.close();w.onload=()=>w.print();
+}
+
+// ── BUSINESS PROFILE ─────────────────────────────────────────────────
+const BP_KEY='pyc_bp';
+function defaultBP(){return{name:"Pat's Yard Care",owner:'Pat Johnson',phone:'(940) 555-0192',email:'pat@patsyardcare.com',addr:'Wichita Falls, TX',web:'',logo:'',color:'#2d7a3a',prefix:'INV-',terms:'Due on receipt',footer:"Thank you for your business! Payment accepted via check, cash, Venmo, or Zelle.",tax:0};}
+function getBP(){try{const s=localStorage.getItem(BP_KEY);return s?{...defaultBP(),...JSON.parse(s)}:defaultBP();}catch(e){return defaultBP();}}
+function saveBizProfile(){
+  const bp={
+    name:document.getElementById('bp-name').value||"Pat's Yard Care",
+    owner:document.getElementById('bp-owner').value||'Pat Johnson',
+    phone:document.getElementById('bp-phone').value,
+    email:document.getElementById('bp-email').value,
+    addr:document.getElementById('bp-addr').value,
+    web:document.getElementById('bp-web').value,
+    logo:document.getElementById('logo-preview').dataset.src||'',
+    color:document.getElementById('bp-color').value,
+    prefix:document.getElementById('bp-prefix').value||'INV-',
+    terms:document.getElementById('bp-terms').value,
+    footer:document.getElementById('bp-footer').value,
+    tax:parseFloat(document.getElementById('bp-tax').value)||0
+  };
+  localStorage.setItem(BP_KEY,JSON.stringify(bp));
+  toast('✅ Invoice settings saved!');
+  renderSettingsPreview();
+}
+function loadBizProfile(){
+  const bp=getBP();
+  document.getElementById('bp-name').value=bp.name;
+  document.getElementById('bp-owner').value=bp.owner;
+  document.getElementById('bp-phone').value=bp.phone;
+  document.getElementById('bp-email').value=bp.email;
+  document.getElementById('bp-addr').value=bp.addr;
+  document.getElementById('bp-web').value=bp.web||'';
+  document.getElementById('bp-color').value=bp.color;
+  document.getElementById('bp-prefix').value=bp.prefix;
+  document.getElementById('bp-terms').value=bp.terms;
+  document.getElementById('bp-footer').value=bp.footer;
+  document.getElementById('bp-tax').value=bp.tax;
+  const prev=document.getElementById('logo-preview');
+  if(bp.logo){prev.innerHTML=`<img src="${bp.logo}" style="width:100%;height:100%;object-fit:contain;">`;prev.dataset.src=bp.logo;}
+  else{prev.innerHTML='<span style="font-size:11px;color:var(--text3);text-align:center;padding:8px;">Tap to upload logo</span>';prev.dataset.src='';}
+}
+function uploadLogo(e){
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const src=ev.target.result;
+    const prev=document.getElementById('logo-preview');
+    prev.innerHTML=`<img src="${src}" style="width:100%;height:100%;object-fit:contain;">`;
+    prev.dataset.src=src;
+    renderSettingsPreview();
+  };
+  r.readAsDataURL(file);
+}
+function removeLogo(){
+  const prev=document.getElementById('logo-preview');
+  prev.innerHTML='<span style="font-size:11px;color:var(--text3);text-align:center;padding:8px;">Tap to upload logo</span>';
+  prev.dataset.src='';
+  renderSettingsPreview();
+}
+function buildInvHTML(inv,c,bp){
+  const num=(bp.prefix||'INV-')+String(inv.id).padStart(4,'0');
+  const rows=(inv.items||[]).map(i=>`<tr><td>${i.d}</td><td>${i.q}</td><td>$${i.p.toFixed(2)}</td><td>$${(i.q*i.p).toFixed(2)}</td></tr>`).join('');
+  const subtotal=inv.total||0;
+  const taxAmt=subtotal*(bp.tax/100);
+  const total=subtotal+taxAmt;
+  const logoHTML=bp.logo?`<img src="${bp.logo}" style="max-height:80px;max-width:160px;object-fit:contain;">`:
+    `<div style="font-size:20px;font-weight:800;color:${bp.color}">${bp.name}</div>`;
+  return `
+    <div class="inv-head">
+      <div>${logoHTML}<div style="font-size:12px;color:var(--text3);margin-top:6px">${[bp.email,bp.phone,bp.addr,bp.web].filter(Boolean).join('<br>')}</div></div>
+      <div style="text-align:right"><h2 style="font-size:22px;font-weight:700;color:${bp.color}">INVOICE</h2>
+        <p style="font-size:13px;color:var(--text2)">${num}</p>
+        <p style="font-size:13px;color:var(--text2)">${fdate(inv.date)}</p>
+        <p style="font-size:12px;color:var(--text3);margin-top:2px">${bp.terms}</p>
+      </div>
+    </div>
+    <div class="inv-parties">
+      <div><div class="party-label">From</div><div style="font-weight:700">${bp.owner}</div><div style="font-size:13px;color:var(--text2)">${bp.name}<br>${bp.addr}</div></div>
+      <div><div class="party-label">Bill To</div><div style="font-weight:700">${c?(c.fn+' '+c.ln).trim():'Client'}</div><div style="font-size:13px;color:var(--text2)">${c?.ph||''}<br>${c?.ad||''}</div></div>
+    </div>
+    <table class="line-items" style="--accent:${bp.color}"><thead style="background:${bp.color}20"><tr>
+      <th style="color:${bp.color}">Description</th><th style="color:${bp.color}">Qty</th><th style="color:${bp.color}">Unit Price</th><th style="color:${bp.color}">Total</th>
+    </tr></thead><tbody>${rows}</tbody></table>
+    <div style="display:flex;justify-content:flex-end"><div style="min-width:200px">
+      <div class="total-row"><span>Subtotal</span><span>${fmtMoney(subtotal)}</span></div>
+      ${bp.tax>0?`<div class="total-row"><span>Tax (${bp.tax}%)</span><span>${fmtMoney(taxAmt)}</span></div>`:'<div class="total-row"><span>Tax (0%)</span><span>$0.00</span></div>'}
+      <div class="total-row final" style="color:${bp.color}"><span>Total Due</span><span>${fmtMoney(total)}</span></div>
+    </div></div>
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);font-size:12px;color:var(--text3)">${bp.footer}</div>`;
+}
+function renderSettingsPreview(){
+  const bp=getBP();
+  // use a dummy invoice for preview
+  const dummyInv={id:1,items:[{d:'Lawn Mowing',q:1,p:75},{d:'Edging',q:1,p:25}],total:100,date:new Date().toISOString().slice(0,10),status:'Sent'};
+  const dummyClient=DB.clients[0]||{fn:'Sample',ln:'Client',ph:'',ad:''};
+  const el=document.getElementById('settings-inv-preview');
+  if(el)el.innerHTML=`<div class="invoice-box">${buildInvHTML(dummyInv,dummyClient,bp)}</div>`;
+}
+
+function askDelete(type,id){
+  document.getElementById('conf-title').textContent='Delete '+type+'?';
+  document.getElementById('conf-msg').textContent='Are you sure? This cannot be undone.';
+  document.getElementById('conf-ok').onclick=()=>{doDelete(type,id);closeModal('m-confirm');};
+  openModal('m-confirm');
+}
+function doDelete(type,id){
+  if(type==='client')DB.clients=DB.clients.filter(c=>c.id!==id);
+  else if(type==='job')DB.jobs=DB.jobs.filter(j=>j.id!==id);
+  else if(type==='quote')DB.quotes=DB.quotes.filter(q=>q.id!==id);
+  else if(type==='invoice')DB.invoices=DB.invoices.filter(i=>i.id!==id);
+  log('Deleted '+type+' #'+id);save();
+  renderPage(document.querySelector('.page.active')?.id.replace('page-',''));renderDash();toast('Deleted.');
+}
+
+function exportData(fmt){
+  const snap={...DB,exportedAt:new Date().toISOString(),v:2};const ds=new Date().toISOString().slice(0,10);
+  if(fmt==='json'){const b=new Blob([JSON.stringify(snap,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='pats-yard-care-'+ds+'.json';a.click();toast('JSON backup downloaded!');}
+  else{
+    let csv='CLIENTS\nName,Phone,Address\n'+DB.clients.map(c=>`"${(c.fn+' '+c.ln).trim()}","${c.ph}","${c.ad}"`).join('\n');
+    csv+='\n\nJOBS\nClient,Service,Date,Total,Status\n'+DB.jobs.map(j=>`"${cname(j.clientId)}","${j.sv}","${j.date}","${j.tot}","${j.status}"`).join('\n');
+    csv+='\n\nINVOICES\nClient,Description,Date,Total,Status\n'+DB.invoices.map(i=>`"${cname(i.clientId)}","${i.de}","${i.date}","${i.total}","${i.status}"`).join('\n');
+    const b=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='pats-yard-care-'+ds+'.csv';a.click();toast('CSV exported!');
+  }
+}
+function importData(e){
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const p=JSON.parse(ev.target.result);
+      if(!p.clients||!p.jobs)throw new Error('bad');
+      if(confirm('Import backup from '+(p.exportedAt?.slice(0,10)||'?')+'?\n\n'+p.clients.length+' clients, '+p.jobs.length+' jobs, '+(p.invoices?.length||0)+' invoices.\n\nThis replaces all current data.')){
+        DB={...blank(),...p};save();renderDash();
+        const m=document.getElementById('import-msg');m.style.display='block';
+        m.textContent='Restored: '+DB.clients.length+' clients, '+DB.jobs.length+' jobs, '+DB.invoices.length+' invoices.';
+        toast('Data restored!');
+      }
+    }catch(err){toast('Invalid backup file');}
+  };
+  r.readAsText(file);e.target.value='';
+}
+function resetData(){
+  if(confirm('Delete ALL data permanently? Cannot be undone.')){DB=blank();save();renderDash();toast('All data cleared.');}}
+
+window.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('btn-new-job').onclick=newJob;
+  document.getElementById('btn-new-quote').onclick=newQuote;
+  const fab=document.getElementById('fab-btn');
+  const showFab=()=>{fab.style.display=window.innerWidth<=700?'flex':'none';};
+  showFab();window.addEventListener('resize',showFab);
+
+  // Restore real client/job data if DB is empty
+  if(DB.clients.length===0){
+    DB.clients=[
+  {id:1,fn:'Debbie',ln:'Hopkins',em:'',ph:'580) 467-3587',ad:'',no:''},
+  {id:2,fn:'Stacy',ln:'Brown',em:'',ph:'(580) 606-1257',ad:'2012 Redbud ave Duncan, OK 73533',no:''},
+  {id:3,fn:'Sam',ln:'Porter',em:'',ph:'(580) 512-4897',ad:'',no:''},
+  {id:4,fn:'Rebecca',ln:'Whatler',em:'',ph:'(479) 259-8265',ad:'1434 N 5th St Duncan OK 73533',no:''},
+  {id:5,fn:'Josh',ln:'Gruver',em:'',ph:'+1 (314) 685-4032',ad:'',no:''},
+  {id:6,fn:'Eulice',ln:'Mcroy',em:'',ph:'(580) 467-7266',ad:'',no:''},
+  {id:7,fn:'Betty',ln:'Jefferies',em:'',ph:'(580) 656-5181',ad:'7521 pleasant view LN Duncan,Oklahoma',no:''},
+  {id:8,fn:'Autumn',ln:'Jackson',em:'',ph:'(580) 467-7112',ad:'2011 W Walnut Duncan OK 73533',no:''},
+  {id:9,fn:'Bruce',ln:'Jones',em:'',ph:'(580) 277-4235',ad:'281743 Bell Road Comanche OK 73529',no:''},
+  {id:10,fn:'Bill',ln:'Parson',em:'',ph:'1 (254) 485-4220',ad:'',no:''},
+  {id:11,fn:'Pam',ln:'',em:'',ph:'+1 (979) 864-7214',ad:'',no:''},
+  {id:12,fn:'Cheryl',ln:'Wilkinson',em:'',ph:'+1 (405) 550-5375',ad:'3305 Spencer Road Duncan OK 73533',no:''},
+  {id:13,fn:'Paul',ln:'',em:'',ph:'+1 (405) 403-5591',ad:'1201 North Harville Rd. in Duncan',no:''},
+  {id:14,fn:'Tony',ln:'Brittain',em:'',ph:'(580) 475-2399',ad:'3747 S Ridgeback Rd Marlow OK 73055',no:''},
+  {id:15,fn:'Patrick',ln:'',em:'',ph:'+1 (805) 705-4643',ad:'1030 E Plato Rd, Duncan, OK',no:''},
+  {id:16,fn:'Cindy',ln:'',em:'',ph:'+1 (580) 470-6396',ad:'1324 Normandy Duncan OK 73533',no:''}
+];
+    DB.jobs=[
+  {id:1,clientId:14,sv:'Full Yard Cleanup',date:'2026-03-30',tm:'08:00',dur:1,tot:200,status:'Upcoming',no:'',rec:'none'},
+  {id:2,clientId:1,sv:'Full Yard Cleanup',date:'2026-04-03',tm:'08:00',dur:1,tot:50,status:'Upcoming',no:'',rec:'none'},
+  {id:3,clientId:2,sv:'Full Yard Cleanup',date:'2026-04-03',tm:'08:00',dur:1,tot:50,status:'Upcoming',no:'',rec:'none'},
+  {id:4,clientId:5,sv:'Lawn Mowing',date:'2026-04-03',tm:'08:00',dur:1,tot:55,status:'Upcoming',no:'',rec:'none'},
+  {id:5,clientId:11,sv:'Lawn Mowing',date:'2026-04-03',tm:'08:00',dur:1,tot:50,status:'Upcoming',no:'',rec:'none'},
+  {id:6,clientId:16,sv:'Other',date:'2026-03-30',tm:'08:00',dur:1,tot:65,status:'Upcoming',no:'',rec:'none'},
+  {id:7,clientId:6,sv:'Lawn Mowing',date:'2026-04-02',tm:'08:00',dur:1,tot:120,status:'Upcoming',no:'',rec:'none'}
+];
+    DB.activity=[
+  {m:'🔧 New job: Eulice Mcroy — Lawn Mowing on Apr 2, 2026',t:new Date(Date.now()-4*3600000).toISOString()},
+  {m:'✏️ Updated job: Debbie Hopkins — Full Yard Cleanup',t:new Date(Date.now()-5*3600000).toISOString()},
+  {m:'👤 New client: Cindy',t:new Date(Date.now()-6*3600000).toISOString()},
+  {m:'👤 New client: Patrick',t:new Date(Date.now()-6*3600000).toISOString()}
+];
+    DB.nxt={c:17,j:8,q:1,i:1};
+    save();
+  }
+
+  renderDash();badges();
+
+  // ── PWA SERVICE WORKER ──────────────────────────────────────────────
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+
+  // ── PWA INSTALL BANNER ──────────────────────────────────────────────
+  let deferredPrompt=null;
+  window.addEventListener('beforeinstallprompt',e=>{
+    e.preventDefault();deferredPrompt=e;
+    // Show iOS hint banner after 3s if not standalone
+    if(!window.matchMedia('(display-mode: standalone)').matches){
+      setTimeout(()=>{
+        const b=document.getElementById('install-banner');
+        if(b&&!localStorage.getItem('install-dismissed'))b.classList.add('show');
+      },3000);
+    }
+  });
+  document.getElementById('install-banner')?.querySelector('button')?.addEventListener('click',()=>{
+    localStorage.setItem('install-dismissed','1');
+  });
+
+  // ── PIN LOCK ────────────────────────────────────────────────────────
+  initPIN();
+});
+
+// PIN constants
+const PIN_KEY='pyc_pin';
+const PIN_SESSION='pyc_unlocked';
+const DEFAULT_PIN='1234';
+
+let pinBuffer='';
+let pinMode='unlock'; // 'unlock' | 'set-new' | 'confirm-new'
+let pinNewTemp='';
+
+function initPIN(){
+  const stored=localStorage.getItem(PIN_KEY);
+  if(!stored){
+    // First launch — set default PIN and show setup prompt
+    localStorage.setItem(PIN_KEY,DEFAULT_PIN);
+  }
+  // Check session (stays unlocked for 8 hours)
+  const unlocked=sessionStorage.getItem(PIN_SESSION);
+  if(unlocked==='1'){
+    hidePINScreen();return;
+  }
+  // Show lock screen
+  document.getElementById('pin-screen').style.display='flex';
+  document.getElementById('pin-change-lbl').style.display='none';
+  pinMode='unlock';pinBuffer='';updateDots();
+  document.getElementById('pin-prompt').textContent='Enter your PIN';
+  document.getElementById('pin-error').textContent='';
+  // Show "Change PIN" hint after unlock
+}
+
+function pinPress(val){
+  const errEl=document.getElementById('pin-error');
+  if(val==='del'){
+    pinBuffer=pinBuffer.slice(0,-1);updateDots();errEl.textContent='';return;
+  }
+  if(val==='bio'){
+    // Placeholder for biometric — just show hint
+    errEl.textContent='';return;
+  }
+  if(pinBuffer.length>=4)return;
+  pinBuffer+=val;
+  updateDots();
+  if(pinBuffer.length===4){
+    setTimeout(()=>checkPIN(),150);
+  }
+}
+
+function updateDots(){
+  for(let i=0;i<4;i++){
+    document.getElementById('pd'+i).classList.toggle('filled',i<pinBuffer.length);
+  }
+}
+
+function checkPIN(){
+  const errEl=document.getElementById('pin-error');
+  if(pinMode==='unlock'){
+    const stored=localStorage.getItem(PIN_KEY)||DEFAULT_PIN;
+    if(pinBuffer===stored){
+      sessionStorage.setItem(PIN_SESSION,'1');
+      hidePINScreen();
+    } else {
+      errEl.textContent='Incorrect PIN. Try again.';
+      pinBuffer='';updateDots();
+      // Shake animation
+      const screen=document.getElementById('pin-screen');
+      screen.style.animation='none';
+      requestAnimationFrame(()=>{screen.style.animation='shake .3s ease';});
+    }
+  } else if(pinMode==='set-new'){
+    pinNewTemp=pinBuffer;
+    pinBuffer='';updateDots();
+    pinMode='confirm-new';
+    document.getElementById('pin-prompt').textContent='Confirm new PIN';
+    errEl.textContent='';
+  } else if(pinMode==='confirm-new'){
+    if(pinBuffer===pinNewTemp){
+      localStorage.setItem(PIN_KEY,pinBuffer);
+      toast('✅ PIN updated!');
+      pinBuffer='';pinNewTemp='';pinMode='unlock';
+      hidePINScreen();
+    } else {
+      errEl.textContent='PINs do not match. Try again.';
+      pinBuffer='';updateDots();
+      pinMode='set-new';
+      document.getElementById('pin-prompt').textContent='Choose a new PIN';
+    }
+  }
+}
+
+function hidePINScreen(){
+  const s=document.getElementById('pin-screen');
+  s.style.opacity='0';s.style.transition='opacity .3s';
+  setTimeout(()=>{s.style.display='none';s.style.opacity='';},300);
+  document.getElementById('pin-change-lbl').style.display='block';
+}
+
+function showChangePIN(){
+  const s=document.getElementById('pin-screen');
+  s.style.display='flex';s.style.opacity='1';
+  pinMode='set-new';pinBuffer='';updateDots();
+  document.getElementById('pin-prompt').textContent='Choose a new PIN';
+  document.getElementById('pin-error').textContent='';
+  document.getElementById('pin-change-lbl').style.display='none';
+}
+
+function lockApp(){
+  sessionStorage.removeItem(PIN_SESSION);
+  pinBuffer='';pinMode='unlock';
+  updateDots();
+  const s=document.getElementById('pin-screen');
+  s.style.display='flex';s.style.opacity='1';
+  document.getElementById('pin-prompt').textContent='Enter your PIN';
+  document.getElementById('pin-error').textContent='';
+  document.getElementById('pin-change-lbl').style.display='none';
+}
+</script>
+<style>
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+</style>
+</body></html>
