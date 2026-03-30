@@ -82,8 +82,8 @@ nav{padding:10px 0;flex:1;}
 .sched-grid{display:grid;grid-template-columns:1fr;}
 .time-col{display:none;}
 .time-slot{height:60px;display:flex;align-items:flex-start;padding-top:4px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;padding-right:10px;}
-.jobs-col{position:relative;border-left:1px solid var(--border);}
-.hour-line{height:60px;border-bottom:1px solid var(--border);}
+.jobs-col{position:relative;}
+.hour-line{display:none;}
 .job-block{position:relative;left:0;right:0;border-radius:6px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;}
 .job-block.jgreen{background:#d4edda;color:var(--green-dark);border-left:3px solid var(--green);}
 .job-block.jblue{background:#dbeafe;color:#1e40af;border-left:3px solid #3b82f6;}
@@ -228,7 +228,7 @@ nav{padding:10px 0;flex:1;}
       <div class="card" style="padding:18px;">
         <div class="sched-grid">
           <div class="time-col" id="sched-times"></div>
-          <div class="jobs-col" id="sched-jobs" style="position:relative;height:780px;"></div>
+          <div class="jobs-col" id="sched-jobs"></div>
         </div>
       </div>
     </div>
