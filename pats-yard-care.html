@@ -129,6 +129,25 @@ nav{padding:10px 0;flex:1;}
   .li-row{grid-template-columns:1fr 48px 72px 28px;}
 }
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js"></script>
+<script>
+// Firebase Configuration for Pat's Yard Care
+const firebaseConfig = {
+  apiKey: "AIzaSyAtCZ4WXSMfIQ6RC5eqhLleNRY6J99hM7Y",
+  authDomain: "pats-yard-care.firebaseapp.com",
+  projectId: "pats-yard-care",
+  storageBucket: "pats-yard-care.firebasestorage.app",
+  messagingSenderId: "1092152807421",
+  appId: "1:1092152807421:web:2349916db2ea9c2800d394",
+  databaseURL: "https://pats-yard-care-default-rtdb.firebaseio.com"
+};
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const fbDb = firebase.database();
+let firebaseReady = false;
+fbDb.ref().once('value').then(() => { firebaseReady = true; console.log('Firebase connected'); }).catch(e => { console.log('Firebase offline'); });
+</script>
 </head>
 <body>
 <!-- PIN LOCK SCREEN -->
@@ -592,12 +611,46 @@ const SEED={
 
 function blank(){return {clients:[],jobs:[],quotes:[],invoices:[],activity:[],nxt:{c:1,j:1,q:1,i:1}};}
 let DB=(()=>{try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);if(p&&p.clients&&p.clients.length>0)return p;}return JSON.parse(JSON.stringify(SEED));}catch(e){return JSON.parse(JSON.stringify(SEED));}})();
-function save(){localStorage.setItem(KEY,JSON.stringify(DB));badges();}
+function save(){localStorage.setItem(KEY,JSON.stringify(DB));if(firebaseReady){fbDb.ref('app-data').set(DB).catch(e=>console.log('Firebase sync error'));}badges();}
+
+function loadFromFirebase(){
+  if(!firebaseReady) return;
+  fbDb.ref('app-data').once('value',snapshot=>{
+    if(snapshot.exists()){
+      const fbData=snapshot.val();
+      if(fbData&&fbData.clients&&fbData.clients.length>0){
+        DB=fbData;
+        localStorage.setItem(KEY,JSON.stringify(DB));
+        renderDash();badges();console.log('Loaded data from Firebase');
+      }
+    }
+  }).catch(e=>console.log('Firebase load error'));
+}
+
+function syncFromFirebase(){
+  if(!firebaseReady) return;
+  fbDb.ref('app-data').on('value',snapshot=>{
+    if(snapshot.exists()){
+      const fbData=snapshot.val();
+      if(fbData&&fbData.clients&&fbData.clients.length>0){
+        const localStr=JSON.stringify(DB);
+        const fbStr=JSON.stringify(fbData);
+        if(localStr!==fbStr){
+          DB=fbData;
+          localStorage.setItem(KEY,JSON.stringify(DB));
+          renderPage(currentPage);console.log('Synced from Firebase');
+        }
+      }
+    }
+  });
+}
 function nid(t){const id=DB.nxt[t]++;save();return id;}
 function log(m){DB.activity.unshift({m,t:new Date().toISOString()});if(DB.activity.length>40)DB.activity.pop();save();}
 
 const TITLES={dashboard:'Dashboard',schedule:'Schedule',jobs:'Jobs',quotes:'Quotes',invoices:'Invoices',clients:'Clients',team:'Team',data:'Data & Backup',settings:'Invoice Settings'};
+let currentPage='dashboard';
 function gotoPage(p,el){
+  currentPage=p;
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
@@ -1157,7 +1210,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 // PIN constants
 const PIN_KEY='pyc_pin';
 const PIN_SESSION='pyc_unlocked';
-const DEFAULT_PIN='1234';
+const DEFAULT_PIN='2606';
 
 let pinBuffer='';
 let pinMode='unlock'; // 'unlock' | 'set-new' | 'confirm-new'
@@ -1247,6 +1300,8 @@ function hidePINScreen(){
   s.style.opacity='0';s.style.transition='opacity .3s';
   setTimeout(()=>{s.style.display='none';s.style.opacity='';},300);
   document.getElementById('pin-change-lbl').style.display='block';
+  // Load from Firebase on app unlock
+  setTimeout(()=>{ if(firebaseReady) syncFromFirebase(); else loadFromFirebase(); }, 500);
 }
 
 function showChangePIN(){
