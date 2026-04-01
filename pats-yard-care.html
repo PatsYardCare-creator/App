@@ -616,7 +616,47 @@ const SEED={
 
 function blank(){return {clients:[],jobs:[],quotes:[],invoices:[],activity:[],nxt:{c:1,j:1,q:1,i:1}};}
 let DB=(()=>{try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);if(p&&p.clients&&p.clients.length>0)return p;}return JSON.parse(JSON.stringify(SEED));}catch(e){return JSON.parse(JSON.stringify(SEED));}})();
-function save(){localStorage.setItem(KEY,JSON.stringify(DB));if(firebaseReady){fbDb.ref('app-data').set(DB).catch(e=>console.log('Firebase sync error'));}badges();}
+function save(){localStorage.setItem(KEY,JSON.stringify(DB));if(firebaseReady){fbDb.ref('app-data').set(DB).catch(e=>console.log('Firebase sync error'));}badges();autoBackup();}
+
+function autoBackup(){
+  // Auto-backup every hour or when significant changes occur
+  const lastBackup=localStorage.getItem('lastBackup');
+  const now=Date.now();
+  if(!lastBackup||now-parseInt(lastBackup)>3600000){ // 1 hour
+    downloadBackup();
+    localStorage.setItem('lastBackup',now.toString());
+  }
+}
+
+function downloadBackup(){
+  const backup={
+    clients:DB.clients,
+    jobs:DB.jobs,
+    quotes:DB.quotes,
+    invoices:DB.invoices,
+    activity:DB.activity,
+    nxt:DB.nxt,
+    exportedAt:new Date().toISOString(),
+    v:2
+  };
+  
+  const dataStr=JSON.stringify(backup,null,2);
+  const date=new Date();
+  const dateStr=date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
+  const filename=`pats-yard-care-${dateStr}.json`;
+  
+  // Create blob and download
+  const blob=new Blob([dataStr],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  console.log('Auto-backup saved: '+filename);
+}
 
 function loadFromFirebase(){
   if(!firebaseReady) return;
@@ -1096,7 +1136,8 @@ function saveJob(){
   const eid=parseInt(document.getElementById('j-id').value);
   if(eid){Object.assign(DB.jobs.find(j=>j.id===eid),data);log('Updated job: '+cname(cid)+' — '+data.sv);toast('Job updated!');}
   else{
-    const mainJob={id:nid('j'),...data,isRecInstance:false};
+    const mainJobId=DB.nxt.j++;
+    const mainJob={id:mainJobId,...data,isRecInstance:false};
     DB.jobs.push(mainJob);
     // Create next 12 weeks of recurring instances only
     if(rec!=='none'&&recEnd&&recEnd>dt){
@@ -1107,7 +1148,8 @@ function saveJob(){
       while(count<26){
         cur.setDate(cur.getDate()+interval);
         if(cur>end)break;
-        DB.jobs.push({id:nid('j'),...data,date:cur.toISOString().slice(0,10),isRecInstance:true,parentId:mainJob.id});
+        const newJobId=DB.nxt.j++;
+        DB.jobs.push({id:newJobId,...data,date:cur.toISOString().slice(0,10),isRecInstance:true,parentId:mainJob.id});
         count++;
       }
       log('Recurring job ('+rec+'): '+cname(cid)+' — '+data.sv+', '+count+' times');
