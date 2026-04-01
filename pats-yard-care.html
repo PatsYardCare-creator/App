@@ -750,6 +750,7 @@ function ensureRecurringJobsGenerated(){
   
   // Find all parent recurring jobs
   const parentJobs=DB.jobs.filter(j=>j.rec&&j.rec!=='none'&&!j.isRecInstance);
+  let jobsAdded=false;
   
   parentJobs.forEach(parent=>{
     if(!parent.recEnd||parent.recEnd<today.toISOString().slice(0,10)) return; // Skip if recurrence has ended
@@ -761,7 +762,10 @@ function ensureRecurringJobsGenerated(){
     const instances=DB.jobs.filter(j=>j.isRecInstance&&j.parentId===parent.id);
     let lastDate=parentDate;
     if(instances.length>0){
-      lastDate=new Date(Math.max(...instances.map(i=>new Date(i.date))));
+      const dates=instances.map(i=>new Date(i.date)).filter(d=>!isNaN(d));
+      if(dates.length>0){
+        lastDate=new Date(Math.max(...dates));
+      }
     }
     
     // Generate new instances up to 90 days ahead if needed
@@ -774,8 +778,9 @@ function ensureRecurringJobsGenerated(){
       const exists=DB.jobs.some(j=>j.parentId===parent.id&&j.date===newDate);
       
       if(!exists){
+        const newId=DB.nxt.j++;
         DB.jobs.push({
-          id:nid('j'),
+          id:newId,
           clientId:parent.clientId,
           sv:parent.sv,
           date:newDate,
@@ -788,9 +793,12 @@ function ensureRecurringJobsGenerated(){
           isRecInstance:true,
           parentId:parent.id
         });
+        jobsAdded=true;
       }
     }
   });
+  
+  if(jobsAdded) save();
 }
 function nid(t){const id=DB.nxt[t]++;save();return id;}
 function log(m){DB.activity.unshift({m,t:new Date().toISOString()});if(DB.activity.length>40)DB.activity.pop();save();}
