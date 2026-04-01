@@ -327,6 +327,12 @@ fbDb.ref().once('value').then(() => { firebaseReady = true; console.log('Firebas
           <button class="btn btn-secondary" onclick="exportData('csv')">&#11015; Export CSV</button>
         </div>
       </div></div>
+      <div class="section-title">☁️ Cloud Sync</div>
+      <div class="card" style="margin-bottom:20px;"><div style="padding:18px;">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Manually sync your data to Firebase. Auto-sync happens with every change, but you can force a sync here.</p>
+        <button class="btn btn-primary" onclick="manualSyncToFirebase()" id="manual-sync-btn">☁️ Sync to Firebase Now</button>
+        <div id="sync-msg" style="display:none;margin-top:12px;padding:12px;background:var(--green-light);border-radius:8px;font-size:13px;color:var(--green-dark);"></div>
+      </div></div>
       <div class="section-title">Import / Restore</div>
       <div class="card" style="margin-bottom:20px;"><div style="padding:18px;">
         <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Restore from a previously exported JSON backup file.</p>
@@ -649,6 +655,38 @@ function showSyncError(){
     indicator.innerHTML='';
     indicator.style.color='';
   },3000);
+}
+
+function manualSyncToFirebase(){
+  if(!firebaseReady){
+    toast('Firebase not connected. Check your internet connection.');
+    return;
+  }
+  
+  const btn=document.getElementById('manual-sync-btn');
+  const msg=document.getElementById('sync-msg');
+  btn.disabled=true;
+  btn.textContent='☁️ Syncing...';
+  msg.style.display='none';
+  
+  fbDb.ref('app-data').set(DB).then(()=>{
+    btn.textContent='☁️ Sync to Firebase Now';
+    btn.disabled=false;
+    msg.style.display='block';
+    msg.textContent='✓ Successfully synced to Firebase! All your data is backed up in the cloud.';
+    msg.style.background='var(--green-light)';
+    msg.style.color='var(--green-dark)';
+    toast('Data synced to Firebase!');
+    setTimeout(()=>{msg.style.display='none';},3000);
+  }).catch(err=>{
+    btn.textContent='☁️ Sync to Firebase Now';
+    btn.disabled=false;
+    msg.style.display='block';
+    msg.textContent='✗ Sync failed. Check your internet connection and try again.';
+    msg.style.background='#fde9e7';
+    msg.style.color='var(--red)';
+    toast('Sync failed - check connection');
+  });
 }
 
 function autoBackup(){
