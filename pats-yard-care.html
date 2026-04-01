@@ -134,7 +134,7 @@ nav{padding:10px 0;flex:1;}
   .card{overflow-x:auto;}.table th,.table td{padding:9px 10px;font-size:12px;white-space:nowrap;}
   .modal{width:calc(100vw - 16px);max-height:92vh;}.form-row{grid-template-columns:1fr;}
   .inv-head{flex-direction:column;gap:12px;}.inv-parties{grid-template-columns:1fr;}.invoice-box{padding:18px;}
-  .inv-head>div:last-child{order:-1;text-align:right;margin-bottom:12px;}
+  .inv-head>div:last-child{text-align:right;}
   .li-row{grid-template-columns:1fr 48px 72px 28px;}
 }
 </style>
@@ -1408,8 +1408,7 @@ function buildInvHTML(inv,c,bp){
   const subtotal=inv.total||0;
   const taxAmt=subtotal*(bp.tax/100);
   const total=subtotal+taxAmt;
-  const logoHTML=bp.logo?`<img src="${bp.logo}" style="max-height:80px;max-width:160px;object-fit:contain;">`:
-    `<div style="font-size:20px;font-weight:800;color:${bp.color}">${bp.name}</div>`;
+  const logoHTML=bp.logo?`<img src="${bp.logo}" style="max-height:80px;max-width:160px;object-fit:contain;">`:'';
   return `
     <div class="inv-head">
       <div>${logoHTML}<div style="font-size:12px;color:var(--text3);margin-top:6px">${[bp.email,bp.phone,bp.addr,bp.web].filter(Boolean).join('<br>')}</div></div>
