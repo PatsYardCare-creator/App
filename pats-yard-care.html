@@ -888,7 +888,11 @@ function renderSched(){
   document.getElementById('sched-label').textContent=schedD.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   const jc=document.getElementById('sched-jobs');
   jc.innerHTML='';
-  const ds=schedD.toISOString().slice(0,10);
+  // Fix timezone issue: format date in local time, not UTC
+  const year=schedD.getFullYear();
+  const month=String(schedD.getMonth()+1).padStart(2,'0');
+  const day=String(schedD.getDate()).padStart(2,'0');
+  const ds=`${year}-${month}-${day}`;
   const dayJobs=DB.jobs.filter(j=>j.date===ds);
   if(!dayJobs.length){
     const e=document.createElement('div');
