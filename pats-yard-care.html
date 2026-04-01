@@ -644,6 +644,149 @@ function syncFromFirebase(){
     }
   });
 }
+
+function skipJob(jobId){
+  const j=DB.jobs.find(x=>x.id===jobId);
+  if(!j)return;
+  
+  const dialog=document.createElement('div');
+  dialog.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:200;';
+  dialog.innerHTML=`<div style="background:#fff;border-radius:12px;padding:24px;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Skip this job?</h3>
+    <p style="font-size:13px;color:#666;margin-bottom:20px">What would you like to do?</p>
+    <div style="display:flex;gap:10px;flex-direction:column">
+      <button class="btn btn-primary" style="width:100%" onclick="changeJobDate(${jobId});this.closest('[style*=position:fixed]').remove()">📅 Reschedule to different date</button>
+      <button class="btn btn-secondary" style="width:100%" onclick="skipToNextWeek(${jobId});this.closest('[style*=position:fixed]').remove()">⏭️ Skip to next week</button>
+      <button class="btn btn-ghost" style="width:100%" onclick="this.closest('[style*=position:fixed]').remove()">Cancel</button>
+    </div>
+  </div>`;
+  document.body.appendChild(dialog);
+}
+
+function skipToNextWeek(jobId){
+  const j=DB.jobs.find(x=>x.id===jobId);
+  if(!j||!j.rec||j.rec==='none')return;
+  
+  const interval=j.rec==='weekly'?7:14;
+  const newDate=new Date(j.date+'T12:00');
+  newDate.setDate(newDate.getDate()+interval);
+  const newDateStr=newDate.toISOString().slice(0,10);
+  
+  if(j.recEnd&&newDateStr>j.recEnd){
+    toast('Cannot skip past recurrence end date');
+    return;
+  }
+  
+  // Check if job already exists on new date
+  const exists=DB.jobs.some(x=>x.parentId===j.parentId&&x.date===newDateStr);
+  if(exists){
+    toast('Job already scheduled for that date');
+    return;
+  }
+  
+  j.date=newDateStr;
+  save();
+  renderSched();
+  log('Skipped job: '+cname(j.clientId)+' — moved to '+fdate(newDateStr));
+  toast('Job moved to next week!');
+}
+
+function changeJobDate(jobId){
+  const j=DB.jobs.find(x=>x.id===jobId);
+  if(!j)return;
+  
+  const dialog=document.createElement('div');
+  dialog.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:200;';
+  dialog.innerHTML=`<div style="background:#fff;border-radius:12px;padding:24px;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:16px">Reschedule job</h3>
+    <div style="margin-bottom:16px">
+      <label style="font-size:12px;font-weight:600;color:#666;display:block;margin-bottom:6px">New date</label>
+      <input type="date" id="skip-date-input" value="${j.date}" style="width:100%;border:1px solid #ddd;border-radius:7px;padding:9px 12px;font-size:14px;font-family:inherit;box-sizing:border-box">
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" style="flex:1" onclick="confirmSkipDate(${jobId});this.closest('[style*=position:fixed]').remove()">Save</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="this.closest('[style*=position:fixed]').remove()">Cancel</button>
+    </div>
+  </div>`;
+  document.body.appendChild(dialog);
+  setTimeout(()=>document.getElementById('skip-date-input')?.focus(),100);
+}
+
+function confirmSkipDate(jobId){
+  const newDate=document.getElementById('skip-date-input')?.value;
+  if(!newDate)return;
+  
+  const j=DB.jobs.find(x=>x.id===jobId);
+  if(!j)return;
+  
+  if(j.recEnd&&newDate>j.recEnd){
+    toast('Cannot schedule past recurrence end date');
+    return;
+  }
+  
+  const exists=DB.jobs.some(x=>x.id!==jobId&&x.parentId===j.parentId&&x.date===newDate);
+  if(exists){
+    toast('Job already scheduled for that date');
+    return;
+  }
+  
+  j.date=newDate;
+  save();
+  renderSched();
+  log('Rescheduled job: '+cname(j.clientId)+' — moved to '+fdate(newDate));
+  toast('Job rescheduled!');
+}
+
+function ensureRecurringJobsGenerated(){
+  // Auto-generate future recurring job instances if needed
+  const today=new Date();
+  const future=new Date(today);
+  future.setDate(future.getDate()+90); // Look ahead 90 days
+  
+  // Find all parent recurring jobs
+  const parentJobs=DB.jobs.filter(j=>j.rec&&j.rec!=='none'&&!j.isRecInstance);
+  
+  parentJobs.forEach(parent=>{
+    if(!parent.recEnd||parent.recEnd<today.toISOString().slice(0,10)) return; // Skip if recurrence has ended
+    
+    const interval=parent.rec==='weekly'?7:14;
+    const parentDate=new Date(parent.date+'T12:00');
+    
+    // Find the latest instance of this recurring job
+    const instances=DB.jobs.filter(j=>j.isRecInstance&&j.parentId===parent.id);
+    let lastDate=parentDate;
+    if(instances.length>0){
+      lastDate=new Date(Math.max(...instances.map(i=>new Date(i.date))));
+    }
+    
+    // Generate new instances up to 90 days ahead if needed
+    let cur=new Date(lastDate);
+    while(cur<=future){
+      cur.setDate(cur.getDate()+interval);
+      if(cur.toISOString().slice(0,10)>parent.recEnd) break;
+      
+      const newDate=cur.toISOString().slice(0,10);
+      const exists=DB.jobs.some(j=>j.parentId===parent.id&&j.date===newDate);
+      
+      if(!exists){
+        DB.jobs.push({
+          id:nid('j'),
+          clientId:parent.clientId,
+          sv:parent.sv,
+          date:newDate,
+          dur:parent.dur,
+          tot:parent.tot,
+          status:'Upcoming',
+          no:parent.no||'',
+          rec:parent.rec,
+          recEnd:parent.recEnd,
+          isRecInstance:true,
+          parentId:parent.id
+        });
+      }
+    }
+  });
+}
 function nid(t){const id=DB.nxt[t]++;save();return id;}
 function log(m){DB.activity.unshift({m,t:new Date().toISOString()});if(DB.activity.length>40)DB.activity.pop();save();}
 
@@ -741,6 +884,7 @@ function renderDash(){
 
 let schedD=new Date();
 function renderSched(){
+  ensureRecurringJobsGenerated();
   document.getElementById('sched-label').textContent=schedD.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   const jc=document.getElementById('sched-jobs');
   jc.innerHTML='';
@@ -755,9 +899,24 @@ function renderSched(){
     const col=j.status==='Completed'?'jgreen':j.status==='In Progress'?'jblue':'jgold';
     const b=document.createElement('div');
     b.className=`job-block ${col}`;
-    b.style.cssText=`position:relative;margin-bottom:8px;height:auto;top:auto;`;
-    b.innerHTML=`<div><strong>${cname(j.clientId)}</strong></div><div style="font-weight:400;opacity:.8">${j.sv}</div>`;
-    b.onclick=()=>editJob(j.id);jc.appendChild(b);
+    b.style.cssText=`position:relative;margin-bottom:8px;height:auto;top:auto;display:flex;justify-content:space-between;align-items:center;`;
+    const jobInfo=document.createElement('div');
+    jobInfo.style.cssText='flex:1;cursor:pointer';
+    jobInfo.innerHTML=`<div><strong>${cname(j.clientId)}</strong></div><div style="font-weight:400;opacity:.8">${j.sv}</div>`;
+    jobInfo.onclick=()=>editJob(j.id);
+    b.appendChild(jobInfo);
+    
+    // Add skip button for recurring instances
+    if(j.isRecInstance&&j.rec&&j.rec!=='none'){
+      const skipBtn=document.createElement('button');
+      skipBtn.className='btn btn-ghost btn-xs';
+      skipBtn.textContent='⏭️ Skip';
+      skipBtn.style.cssText='margin-left:8px;padding:4px 8px;font-size:11px;color:var(--text2);';
+      skipBtn.onclick=(e)=>{e.stopPropagation();skipJob(j.id);};
+      b.appendChild(skipBtn);
+    }
+    
+    jc.appendChild(b);
   });
 }
 function schedNav(d){schedD.setDate(schedD.getDate()+d);renderSched();}
@@ -768,14 +927,43 @@ function renderClients(){
   const list=DB.clients.filter(c=>((c.fn+' '+c.ln+c.em+c.ph+c.ad).toLowerCase().includes(q)));
   const el=document.getElementById('clients-list');
   if(!list.length){el.innerHTML=empty('No clients found.');return;}
-  el.innerHTML=`<table class="table"><thead><tr><th>Name</th><th>Phone</th><th>Address</th><th>Balance</th><th></th></tr></thead><tbody>`+
-    list.map(c=>{
+  
+  const isMobile=window.innerWidth<=700;
+  
+  if(isMobile){
+    // Mobile card layout
+    el.innerHTML=list.map(c=>{
       const bal=DB.invoices.filter(i=>i.clientId===c.id&&i.status!=='Paid').reduce((s,i)=>s+i.total,0);
-      return`<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="avatar">${ini(c.fn+' '+c.ln)}</div><div><strong>${(c.fn+' '+c.ln).trim()}</strong><br><span style="font-size:11px;color:var(--text3)">${c.em||''}</span></div></div></td>
-      <td>${c.ph||'—'}</td><td>${c.ad||'—'}</td>
-      <td style="font-weight:600;color:${bal>0?'var(--red)':'var(--green)'}">${fmtMoney(bal)}</td>
-      <td><div class="actions"><button class="btn btn-secondary btn-xs" onclick="editClient(${c.id})">Edit</button><button class="btn btn-danger btn-xs" onclick="askDelete('client',${c.id})">Del</button></div></td></tr>`;
-    }).join('')+'</tbody></table>';
+      return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar">${ini(c.fn+' '+c.ln)}</div>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:14px">${(c.fn+' '+c.ln).trim()}</div>
+            <div style="font-size:11px;color:var(--text3)">${c.em||''}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;color:var(--text3)">
+          <div><span style="opacity:.6">Phone:</span> ${c.ph||'—'}</div>
+          <div><span style="opacity:.6">Balance:</span> <strong style="color:${bal>0?'var(--red)':'var(--green)'}">${fmtMoney(bal)}</strong></div>
+        </div>
+        ${c.ad?`<div style="font-size:12px;color:var(--text2)"><span style="opacity:.6">Address:</span> ${c.ad}</div>`:''}
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-secondary btn-xs" style="flex:1" onclick="editClient(${c.id})">Edit</button>
+          <button class="btn btn-danger btn-xs" style="flex:1" onclick="askDelete('client',${c.id})">Delete</button>
+        </div>
+      </div>`;
+    }).join('');
+  }else{
+    // Desktop table layout
+    el.innerHTML=`<table class="table"><thead><tr><th>Name</th><th>Phone</th><th>Address</th><th>Balance</th><th></th></tr></thead><tbody>`+
+      list.map(c=>{
+        const bal=DB.invoices.filter(i=>i.clientId===c.id&&i.status!=='Paid').reduce((s,i)=>s+i.total,0);
+        return`<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="avatar">${ini(c.fn+' '+c.ln)}</div><div><strong>${(c.fn+' '+c.ln).trim()}</strong><br><span style="font-size:11px;color:var(--text3)">${c.em||''}</span></div></div></td>
+        <td>${c.ph||'—'}</td><td>${c.ad||'—'}</td>
+        <td style="font-weight:600;color:${bal>0?'var(--red)':'var(--green)'}">${fmtMoney(bal)}</td>
+        <td><div class="actions"><button class="btn btn-secondary btn-xs" onclick="editClient(${c.id})">Edit</button><button class="btn btn-danger btn-xs" onclick="askDelete('client',${c.id})">Del</button></div></td></tr>`;
+      }).join('')+'</tbody></table>';
+  }
 }
 function newClient(){document.getElementById('mc-title').textContent='New Client';document.getElementById('c-id').value='';['c-fn','c-ln','c-em','c-ph','c-ad','c-no'].forEach(i=>document.getElementById(i).value='');openModal('m-client');}
 function editClient(id){
@@ -802,16 +990,43 @@ function renderJobs(){
   if(jFilter!=='All')list=list.filter(j=>j.status===jFilter);
   const el=document.getElementById('jobs-list');
   if(!list.length){el.innerHTML=empty('No jobs found.');return;}
-  el.innerHTML=`<table class="table"><thead><tr><th>Client</th><th>Service</th><th>Date</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>`+
-    list.map(j=>`<tr><td><strong>${cname(j.clientId)}</strong></td><td>${j.sv}</td>
-    <td style="font-size:12px;color:var(--text3)">${fdate(j.date)}</td>
-    <td><strong>${fmtMoney(j.tot)}</strong></td><td>${sbadge(j.status)}</td>
-    <td><div class="actions">
-      ${j.status!=='Completed'?`<button class="btn btn-primary btn-xs" style="background:var(--green);color:#fff" onclick="completeJob(${j.id})">&#10003; Done</button>`:''}
-      <button class="btn btn-secondary btn-xs" onclick="editJob(${j.id})">Edit</button>
-      <button class="btn btn-primary btn-xs" onclick="jobToInvoice(${j.id})">&#8594; Inv</button>
-      <button class="btn btn-danger btn-xs" onclick="askDelete('job',${j.id})">Del</button>
-    </div></td></tr>`).join('')+'</tbody></table>';
+  
+  const isMobile=window.innerWidth<=700;
+  
+  if(isMobile){
+    // Mobile card layout
+    el.innerHTML=list.map(j=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-weight:700;font-size:14px;color:var(--text)">${cname(j.clientId)}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px">${j.sv}</div>
+        </div>
+        ${sbadge(j.status)}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;color:var(--text3)">
+        <div><span style="opacity:.6">Date:</span> ${fdate(j.date)}</div>
+        <div><span style="opacity:.6">Total:</span> <strong style="color:var(--text)">${fmtMoney(j.tot)}</strong></div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${j.status!=='Completed'?`<button class="btn btn-primary btn-xs" style="background:var(--green);color:#fff;flex:1" onclick="completeJob(${j.id})">✓ Done</button>`:''}
+        <button class="btn btn-secondary btn-xs" style="flex:1" onclick="editJob(${j.id})">Edit</button>
+        <button class="btn btn-primary btn-xs" style="flex:1" onclick="jobToInvoice(${j.id})">→ Inv</button>
+        <button class="btn btn-danger btn-xs" style="flex:1" onclick="askDelete('job',${j.id})">Del</button>
+      </div>
+    </div>`).join('');
+  }else{
+    // Desktop table layout
+    el.innerHTML=`<table class="table"><thead><tr><th>Client</th><th>Service</th><th>Date</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>`+
+      list.map(j=>`<tr><td><strong>${cname(j.clientId)}</strong></td><td>${j.sv}</td>
+      <td style="font-size:12px;color:var(--text3)">${fdate(j.date)}</td>
+      <td><strong>${fmtMoney(j.tot)}</strong></td><td>${sbadge(j.status)}</td>
+      <td><div class="actions">
+        ${j.status!=='Completed'?`<button class="btn btn-primary btn-xs" style="background:var(--green);color:#fff" onclick="completeJob(${j.id})">&#10003; Done</button>`:''}
+        <button class="btn btn-secondary btn-xs" onclick="editJob(${j.id})">Edit</button>
+        <button class="btn btn-primary btn-xs" onclick="jobToInvoice(${j.id})">&#8594; Inv</button>
+        <button class="btn btn-danger btn-xs" onclick="askDelete('job',${j.id})">Del</button>
+      </div></td></tr>`).join('')+'</tbody></table>';
+  }
 }
 
 function toggleRecEnd(){const v=document.getElementById('j-rec').value;document.getElementById('j-rec-end-wrap').style.display=v==='none'?'none':'block';}
@@ -860,16 +1075,30 @@ function saveJob(){
   const dt=document.getElementById('j-dt').value;if(!dt){toast('Please select a date');return;}
   const rec=document.getElementById('j-rec').value;
   const recEnd=document.getElementById('j-rec-end').value;
-  const data={clientId:cid,sv:document.getElementById('j-sv').value,date:dt,dur:parseFloat(document.getElementById('j-dur').value)||1,tot:parseFloat(document.getElementById('j-tot').value)||0,status:document.getElementById('j-st').value,no:document.getElementById('j-no').value.trim(),rec:rec};
+  const data={clientId:cid,sv:document.getElementById('j-sv').value,date:dt,dur:parseFloat(document.getElementById('j-dur').value)||1,tot:parseFloat(document.getElementById('j-tot').value)||0,status:document.getElementById('j-st').value,no:document.getElementById('j-no').value.trim(),rec:rec,recEnd:rec!=='none'?recEnd:null,isRecInstance:false};
   const eid=parseInt(document.getElementById('j-id').value);
   if(eid){Object.assign(DB.jobs.find(j=>j.id===eid),data);log('Updated job: '+cname(cid)+' — '+data.sv);toast('Job updated!');}
   else{
-    DB.jobs.push({id:nid('j'),...data});
+    const mainJob={id:nid('j'),...data,isRecInstance:false};
+    DB.jobs.push(mainJob);
+    // Create next 12 weeks of recurring instances only
     if(rec!=='none'&&recEnd&&recEnd>dt){
-      const interval=rec==='weekly'?7:14;let cur=new Date(dt+'T12:00');const end=new Date(recEnd+'T12:00');let count=0;
-      while(count<52){cur.setDate(cur.getDate()+interval);if(cur>end)break;DB.jobs.push({id:nid('j'),...data,date:cur.toISOString().slice(0,10)});count++;}
-      log('Recurring job ('+rec+'): '+cname(cid)+' — '+data.sv+', '+count+' times');toast('Job saved! '+count+' recurring jobs created.');
-    }else{log('New job: '+cname(cid)+' — '+data.sv+' on '+fdate(dt));toast('Job saved!');}
+      const interval=rec==='weekly'?7:14;
+      let cur=new Date(dt+'T12:00');
+      const end=new Date(recEnd+'T12:00');
+      let count=0;
+      while(count<26){
+        cur.setDate(cur.getDate()+interval);
+        if(cur>end)break;
+        DB.jobs.push({id:nid('j'),...data,date:cur.toISOString().slice(0,10),isRecInstance:true,parentId:mainJob.id});
+        count++;
+      }
+      log('Recurring job ('+rec+'): '+cname(cid)+' — '+data.sv+', '+count+' times');
+      toast('Job saved! '+count+' recurring jobs created.');
+    }else{
+      log('New job: '+cname(cid)+' — '+data.sv+' on '+fdate(dt));
+      toast('Job saved!');
+    }
   }
   save();closeModal('m-job');renderJobs();renderDash();
 }
@@ -938,20 +1167,51 @@ function renderInvoices(){
   document.getElementById('inv-col').textContent='$'+col.toLocaleString();
   const el=document.getElementById('invoices-list');
   if(!list.length){el.innerHTML=empty('No invoices yet.');return;}
-  el.innerHTML=`<table class="table"><thead><tr><th>#</th><th>Client</th><th>Description</th><th>Date</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody>`+
-    list.map(inv=>`<tr><td style="font-family:'DM Mono',monospace">#${String(inv.id).padStart(4,'0')}</td>
-    <td><strong>${cname(inv.clientId)}</strong></td><td style="font-size:12px;color:var(--text2)">${inv.de||'—'}</td>
-    <td style="font-size:12px;color:var(--text3)">${fdate(inv.date)}</td><td><strong>${fmtMoney(inv.total)}</strong></td>
-    <td><select class="form-control" style="padding:4px 8px;font-size:12px;width:110px" onchange="setIStatus(${inv.id},this.value)">
-      <option ${inv.status==='Sent'?'selected':''}>Sent</option>
-      <option ${inv.status==='Paid'?'selected':''}>Paid</option>
-      <option ${inv.status==='Overdue'?'selected':''}>Overdue</option>
-    </select></td>
-    <td><div class="actions">
-      <button class="btn btn-secondary btn-xs" onclick="viewInv(${inv.id})">View</button>
-      <button class="btn btn-secondary btn-xs" onclick="editInv(${inv.id})">Edit</button>
-      <button class="btn btn-danger btn-xs" onclick="askDelete('invoice',${inv.id})">Del</button>
-    </div></td></tr>`).join('')+'</tbody></table>';
+  
+  const isMobile=window.innerWidth<=700;
+  
+  if(isMobile){
+    // Mobile card layout
+    el.innerHTML=list.map(inv=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-weight:700;font-size:14px;color:var(--green)">#${String(inv.id).padStart(4,'0')}</div>
+          <div style="font-weight:600;font-size:13px;margin-top:4px">${cname(inv.clientId)}</div>
+        </div>
+        <select class="form-control" style="padding:4px 8px;font-size:11px;width:90px" onchange="setIStatus(${inv.id},this.value)">
+          <option ${inv.status==='Sent'?'selected':''}>Sent</option>
+          <option ${inv.status==='Paid'?'selected':''}>Paid</option>
+          <option ${inv.status==='Overdue'?'selected':''}>Overdue</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;color:var(--text3)">
+        <div><span style="opacity:.6">Date:</span> ${fdate(inv.date)}</div>
+        <div><span style="opacity:.6">Amount:</span> <strong style="color:var(--text)">${fmtMoney(inv.total)}</strong></div>
+      </div>
+      ${inv.de?`<div style="font-size:12px;color:var(--text2)">${inv.de}</div>`:''}
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-secondary btn-xs" style="flex:1" onclick="viewInv(${inv.id})">View</button>
+        <button class="btn btn-secondary btn-xs" style="flex:1" onclick="editInv(${inv.id})">Edit</button>
+        <button class="btn btn-danger btn-xs" style="flex:1" onclick="askDelete('invoice',${inv.id})">Del</button>
+      </div>
+    </div>`).join('');
+  }else{
+    // Desktop table layout
+    el.innerHTML=`<table class="table"><thead><tr><th>#</th><th>Client</th><th>Description</th><th>Date</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody>`+
+      list.map(inv=>`<tr><td style="font-family:'DM Mono',monospace">#${String(inv.id).padStart(4,'0')}</td>
+      <td><strong>${cname(inv.clientId)}</strong></td><td style="font-size:12px;color:var(--text2)">${inv.de||'—'}</td>
+      <td style="font-size:12px;color:var(--text3)">${fdate(inv.date)}</td><td><strong>${fmtMoney(inv.total)}</strong></td>
+      <td><select class="form-control" style="padding:4px 8px;font-size:12px;width:110px" onchange="setIStatus(${inv.id},this.value)">
+        <option ${inv.status==='Sent'?'selected':''}>Sent</option>
+        <option ${inv.status==='Paid'?'selected':''}>Paid</option>
+        <option ${inv.status==='Overdue'?'selected':''}>Overdue</option>
+      </select></td>
+      <td><div class="actions">
+        <button class="btn btn-secondary btn-xs" onclick="viewInv(${inv.id})">View</button>
+        <button class="btn btn-secondary btn-xs" onclick="editInv(${inv.id})">Edit</button>
+        <button class="btn btn-danger btn-xs" onclick="askDelete('invoice',${inv.id})">Del</button>
+      </div></td></tr>`).join('')+'</tbody></table>';
+  }
 }
 function setIStatus(id,s){const inv=DB.invoices.find(i=>i.id===id);if(inv){inv.status=s;save();log('Invoice #'+String(id).padStart(4,'0')+' marked '+s);renderInvoices();renderDash();}}
 function newInvoice(){document.getElementById('mi-title').textContent='New Invoice';document.getElementById('i-id').value='';fillClients('i-cl');document.getElementById('i-de').value='';document.getElementById('i-dt').value=today();document.getElementById('i-st').value='Sent';document.getElementById('i-lines').innerHTML='';document.getElementById('i-td').textContent='$0.00';addLine('i-lines','i-td');openModal('m-invoice');}
