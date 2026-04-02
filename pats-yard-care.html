@@ -1582,13 +1582,15 @@ function resetData(){
   if(confirm('Delete ALL data permanently? Cannot be undone.')){DB=blank();save();renderDash();toast('All data cleared.');}}
 
 window.addEventListener('DOMContentLoaded',()=>{
-  console.log('DOMContentLoaded fired');
-  document.getElementById('btn-new-job').onclick=newJob;
-  document.getElementById('btn-new-quote').onclick=newQuote;
-  const fab=document.getElementById('fab-btn');
-  const showFab=()=>{fab.style.display=window.innerWidth<=700?'flex':'none';};
-  showFab();window.addEventListener('resize',showFab);
-
+  console.log('DOMContentLoaded fired - attempting to hide PIN screen');
+  try {
+    document.getElementById('pin-screen').style.display='none';
+    console.log('PIN screen hidden');
+  } catch(e) {
+    console.error('Error hiding PIN screen:', e);
+  }
+  console.log('Attempting to show main app');
+  
   // Restore real client/job data if DB is empty
   if(DB.clients.length===0){
     DB.clients=[
@@ -1627,8 +1629,10 @@ window.addEventListener('DOMContentLoaded',()=>{
     DB.nxt={c:17,j:8,q:1,i:1};
     save();
   }
-
+  
+  // Initialize app display
   renderDash();badges();
+});
 
   // ── PWA SERVICE WORKER ──────────────────────────────────────────────
   if('serviceWorker' in navigator){
