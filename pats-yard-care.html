@@ -658,17 +658,23 @@ function showSyncError(){
 }
 
 function manualSyncToFirebase(){
-  if(!firebaseReady){
-    toast('Firebase not connected. Check your internet connection.');
+  const btn=document.getElementById('manual-sync-btn');
+  const msg=document.getElementById('sync-msg');
+  
+  if(!fbDb){
+    toast('Firebase not initialized');
+    msg.style.display='block';
+    msg.textContent='✗ Firebase is not initialized. Please reload the app.';
+    msg.style.background='#fde9e7';
+    msg.style.color='var(--red)';
     return;
   }
   
-  const btn=document.getElementById('manual-sync-btn');
-  const msg=document.getElementById('sync-msg');
   btn.disabled=true;
   btn.textContent='☁️ Syncing...';
   msg.style.display='none';
   
+  // Try to sync, even if firebaseReady isn't true yet
   fbDb.ref('app-data').set(DB).then(()=>{
     btn.textContent='☁️ Sync to Firebase Now';
     btn.disabled=false;
@@ -677,15 +683,17 @@ function manualSyncToFirebase(){
     msg.style.background='var(--green-light)';
     msg.style.color='var(--green-dark)';
     toast('Data synced to Firebase!');
+    firebaseReady=true;
     setTimeout(()=>{msg.style.display='none';},3000);
   }).catch(err=>{
     btn.textContent='☁️ Sync to Firebase Now';
     btn.disabled=false;
     msg.style.display='block';
-    msg.textContent='✗ Sync failed. Check your internet connection and try again.';
+    msg.textContent='✗ Sync failed: '+err.message+'. Check your internet connection.';
     msg.style.background='#fde9e7';
     msg.style.color='var(--red)';
-    toast('Sync failed - check connection');
+    toast('Sync failed - '+err.message);
+    console.error('Firebase sync error:',err);
   });
 }
 
