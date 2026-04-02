@@ -141,6 +141,8 @@ nav{padding:10px 0;flex:1;}
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js"></script>
 <script>
+// Firebase temporarily disabled
+/*
 // Firebase Configuration for Pat's Yard Care
 const firebaseConfig = {
   apiKey: "AIzaSyAtCZ4WXSMfIQ6RC5eqhLleNRY6J99hM7Y",
@@ -155,9 +157,17 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const fbDb = firebase.database();
 let firebaseReady = false;
-setTimeout(()=>{
-  fbDb.ref().once('value').then(() => { firebaseReady = true; console.log('Firebase connected'); }).catch(e => { console.log('Firebase offline'); });
-}, 500);
+fbDb.ref().once('value').then(() => { 
+  firebaseReady = true; 
+  console.log('Firebase connected'); 
+}).catch(e => { 
+  console.log('Firebase offline:', e); 
+});
+*/
+
+const fbDb = null;
+let firebaseReady = false;
+console.log('Firebase disabled for testing');
 </script>
 </head>
 <body>
@@ -1572,6 +1582,7 @@ function resetData(){
   if(confirm('Delete ALL data permanently? Cannot be undone.')){DB=blank();save();renderDash();toast('All data cleared.');}}
 
 window.addEventListener('DOMContentLoaded',()=>{
+  console.log('DOMContentLoaded fired');
   document.getElementById('btn-new-job').onclick=newJob;
   document.getElementById('btn-new-quote').onclick=newQuote;
   const fab=document.getElementById('fab-btn');
