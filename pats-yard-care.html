@@ -1723,7 +1723,11 @@ window.addEventListener('DOMContentLoaded',()=>{
   }
 
   // ── PIN LOCK ────────────────────────────────────────────────────────
-  initPIN();
+  // Commented out PIN for testing - bypass lock screen
+  // initPIN();
+  sessionStorage.setItem(PIN_SESSION,'1');
+  document.getElementById('pin-screen').style.display='none';
+  renderDash();
 });
 
 // PIN constants and variables - MUST be before DOMContentLoaded
