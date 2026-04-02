@@ -1107,7 +1107,7 @@ function saveClient(){
   const data={fn,ln:document.getElementById('c-ln').value.trim(),em:document.getElementById('c-em').value.trim(),ph:document.getElementById('c-ph').value.trim(),ad:document.getElementById('c-ad').value.trim(),no:document.getElementById('c-no').value.trim()};
   const eid=parseInt(document.getElementById('c-id').value);
   if(eid){Object.assign(DB.clients.find(c=>c.id===eid),data);log('Updated client: '+fn+' '+data.ln);toast('Client updated!');}
-  else{DB.clients.push({id:nid('c'),...data});log('New client: '+fn+' '+data.ln);toast('Client saved!');}
+  else{const newId=DB.nxt.c++;DB.clients.push({id:newId,...data});log('New client: '+fn+' '+data.ln);toast('Client saved!');}
   save();closeModal('m-client');renderClients();renderDash();
 }
 
