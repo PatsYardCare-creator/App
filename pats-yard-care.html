@@ -661,21 +661,49 @@ function manualSyncToFirebase(){
   const btn=document.getElementById('manual-sync-btn');
   const msg=document.getElementById('sync-msg');
   
+  console.log('Manual sync clicked');
+  console.log('fbDb exists:', typeof fbDb !== 'undefined');
+  console.log('firebaseReady:', firebaseReady);
+  console.log('DB object:', DB ? 'exists' : 'missing');
+  
   if(!fbDb){
     toast('Firebase not initialized');
     msg.style.display='block';
     msg.textContent='✗ Firebase is not initialized. Please reload the app.';
     msg.style.background='#fde9e7';
     msg.style.color='var(--red)';
+    console.log('Error: fbDb not defined');
     return;
   }
   
   btn.disabled=true;
   btn.textContent='☁️ Syncing...';
-  msg.style.display='none';
+  msg.style.display='block';
+  msg.textContent='⏳ Syncing...';
+  msg.style.background='#fff9e6';
+  msg.style.color='#b8860b';
   
-  // Try to sync, even if firebaseReady isn't true yet
-  fbDb.ref('app-data').set(DB).then(()=>{
+  console.log('Starting Firebase sync...');
+  
+  // Show syncing indicator
+  const indicator=document.getElementById('sync-indicator');
+  if(indicator){
+    indicator.className='sync-indicator syncing';
+    indicator.innerHTML='☁️ Syncing...';
+  }
+  
+  // Try to sync
+  }).then(()=>{
+    console.log('Sync successful!');
+    const indicator=document.getElementById('sync-indicator');
+    if(indicator){
+      indicator.className='sync-indicator synced';
+      indicator.innerHTML='☁️ Synced';
+      setTimeout(()=>{
+        indicator.innerHTML='';
+        indicator.className='sync-indicator';
+      },2000);
+    }
     btn.textContent='☁️ Sync to Firebase Now';
     btn.disabled=false;
     msg.style.display='block';
@@ -686,14 +714,24 @@ function manualSyncToFirebase(){
     firebaseReady=true;
     setTimeout(()=>{msg.style.display='none';},3000);
   }).catch(err=>{
+    console.error('Sync error:', err);
+    const indicator=document.getElementById('sync-indicator');
+    if(indicator){
+      indicator.className='sync-indicator';
+      indicator.innerHTML='☁️ Error';
+      indicator.style.color='var(--red)';
+      setTimeout(()=>{
+        indicator.innerHTML='';
+        indicator.style.color='';
+      },3000);
+    }
     btn.textContent='☁️ Sync to Firebase Now';
     btn.disabled=false;
     msg.style.display='block';
-    msg.textContent='✗ Sync failed: '+err.message+'. Check your internet connection.';
+    msg.textContent='✗ Sync failed: '+err.message;
     msg.style.background='#fde9e7';
     msg.style.color='var(--red)';
     toast('Sync failed - '+err.message);
-    console.error('Firebase sync error:',err);
   });
 }
 
