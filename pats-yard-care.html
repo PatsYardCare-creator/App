@@ -1750,38 +1750,54 @@ function initPIN(){
 }
 
 function pinPress(val){
-  const errEl=document.getElementById('pin-error');
-  if(val==='del'){
-    pinBuffer=pinBuffer.slice(0,-1);updateDots();errEl.textContent='';return;
-  }
-  if(val==='bio'){
-    // Placeholder for biometric — just show hint
-    errEl.textContent='';return;
-  }
-  if(pinBuffer.length>=4)return;
-  pinBuffer+=val;
-  updateDots();
-  if(pinBuffer.length===4){
-    setTimeout(()=>checkPIN(),150);
+  try{
+    const errEl=document.getElementById('pin-error');
+    if(val==='del'){
+      pinBuffer=pinBuffer.slice(0,-1);
+      updateDots();
+      if(errEl)errEl.textContent='';
+      return;
+    }
+    if(val==='bio'){
+      if(errEl)errEl.textContent='';
+      return;
+    }
+    if(pinBuffer.length>=4)return;
+    pinBuffer+=val;
+    updateDots();
+    if(pinBuffer.length===4){
+      setTimeout(()=>checkPIN(),150);
+    }
+  }catch(e){
+    console.error('PIN error:',e);
   }
 }
 
 function updateDots(){
-  for(let i=0;i<4;i++){
-    document.getElementById('pd'+i).classList.toggle('filled',i<pinBuffer.length);
+  try{
+    for(let i=0;i<4;i++){
+      const dot=document.getElementById('pd'+i);
+      if(dot){
+        dot.classList.toggle('filled',i<pinBuffer.length);
+      }
+    }
+  }catch(e){
+    console.error('updateDots error:',e);
   }
 }
 
 function checkPIN(){
-  const errEl=document.getElementById('pin-error');
-  if(pinMode==='unlock'){
-    const stored=localStorage.getItem(PIN_KEY)||DEFAULT_PIN;
-    if(pinBuffer===stored){
-      sessionStorage.setItem(PIN_SESSION,'1');
-      hidePINScreen();
-    } else {
-      errEl.textContent='Incorrect PIN. Try again.';
-      pinBuffer='';updateDots();
+  try{
+    const errEl=document.getElementById('pin-error');
+    if(pinMode==='unlock'){
+      const stored=localStorage.getItem(PIN_KEY)||DEFAULT_PIN;
+      if(pinBuffer===stored){
+        sessionStorage.setItem(PIN_SESSION,'1');
+        hidePINScreen();
+      } else {
+        if(errEl)errEl.textContent='Incorrect PIN. Try again.';
+        pinBuffer='';
+        updateDots();
       // Shake animation
       const screen=document.getElementById('pin-screen');
       screen.style.animation='none';
