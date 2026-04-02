@@ -155,9 +155,13 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const fbDb = firebase.database();
 let firebaseReady = false;
+// Temporarily disabled for testing - comment out to re-enable
+/*
 setTimeout(()=>{
   fbDb.ref().once('value').then(() => { firebaseReady = true; console.log('Firebase connected'); }).catch(e => { console.log('Firebase offline'); });
 }, 500);
+*/
+console.log('Firebase temporarily disabled for testing');
 </script>
 </head>
 <body>
