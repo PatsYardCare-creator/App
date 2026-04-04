@@ -1542,6 +1542,30 @@ nav {
         <div class="form-group"><label class="form-label">Duration (hrs)</label><input class="form-control" id="j-dur" type="number" value="1" min="0.5" step="0.5"></div>
         <div class="form-group"><label class="form-label">Total ($)</label><input class="form-control" id="j-tot" type="number" placeholder="0.00" min="0" step="0.01"></div>
       </div>
+
+      <!-- TIME TRACKING SECTION -->
+      <div class="card" style="background: var(--surface2); border: 1px solid var(--border); padding: 14px; margin: 16px 0; border-radius: var(--radius);">
+        <div style="font-size: 12px; font-weight: 700; color: var(--text2); margin-bottom: 12px;">⏱️ Time Tracking</div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 130px;">
+            <label class="form-label" style="font-size: 11px;">Start Time</label>
+            <input class="form-control" id="j-start-time" type="time">
+          </div>
+          <div style="flex: 1; min-width: 130px;">
+            <label class="form-label" style="font-size: 11px;">Finish Time</label>
+            <input class="form-control" id="j-finish-time" type="time">
+          </div>
+          <div style="flex: 1; min-width: 130px;">
+            <label class="form-label" style="font-size: 11px;">Actual Duration</label>
+            <div id="j-actual-dur" style="font-weight: 700; font-size: 14px; color: var(--green); padding: 8px; background: var(--surface); border-radius: 6px; text-align: center; border: 1px solid var(--border);">—</div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+          <button class="btn btn-primary btn-sm" id="j-start-btn" onclick="startJobTimer()">▶ Start Now</button>
+          <button class="btn btn-secondary btn-sm" id="j-finish-btn" onclick="finishJobTimer()" style="display: none;">⏹ Stop Now</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearJobTimer()">Clear Times</button>
+        </div>
+      </div>
       <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control" id="j-no" rows="2" placeholder="Gate code, parking, special instructions..."></textarea></div>
       <div class="form-group">
         <label class="form-label">Recurring</label>
@@ -1674,13 +1698,15 @@ function nid(t) {
 }
 
 function today() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const centralTime = new Date(now.toLocaleString('en-US', {timeZone: 'America/Chicago'}));
+  return centralTime.toISOString().slice(0, 10);
 }
 
 function fdate(iso) {
   if (!iso) return '';
   const d = new Date(iso + 'T12:00:00');
-  return d.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'});
+  return d.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago'});
 }
 
 function cname(id) {
@@ -1945,6 +1971,74 @@ function toggleRecurrence() {
   document.getElementById('j-rec-end-wrap').style.display = v === 'none' ? 'none' : 'block';
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TIME TRACKING
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+let timerInterval = null;
+
+function startJobTimer() {
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const mins = String(now.getMinutes()).padStart(2, '0');
+  document.getElementById('j-start-time').value = `${hours}:${mins}`;
+  document.getElementById('j-start-btn').style.display = 'none';
+  document.getElementById('j-finish-btn').style.display = 'inline-block';
+  updateJobDuration();
+  
+  // Update every second while running
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(updateJobDuration, 1000);
+}
+
+function finishJobTimer() {
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const mins = String(now.getMinutes()).padStart(2, '0');
+  document.getElementById('j-finish-time').value = `${hours}:${mins}`;
+  document.getElementById('j-start-btn').style.display = 'inline-block';
+  document.getElementById('j-finish-btn').style.display = 'none';
+  clearInterval(timerInterval);
+  updateJobDuration();
+}
+
+function updateJobDuration() {
+  const start = document.getElementById('j-start-time').value;
+  const finish = document.getElementById('j-finish-time').value;
+  
+  if (!start) {
+    document.getElementById('j-actual-dur').textContent = '—';
+    return;
+  }
+  
+  const startTime = new Date(`2000-01-01T${start}`);
+  const endTime = finish ? new Date(`2000-01-01T${finish}`) : new Date();
+  
+  if (endTime <= startTime) {
+    document.getElementById('j-actual-dur').textContent = '—';
+    return;
+  }
+  
+  const diffMs = endTime - startTime;
+  const hours = Math.floor(diffMs / 3600000);
+  const mins = Math.floor((diffMs % 3600000) / 60000);
+  
+  let display = '';
+  if (hours > 0) display += `${hours}h `;
+  if (mins > 0 || hours === 0) display += `${mins}m`;
+  
+  document.getElementById('j-actual-dur').textContent = display;
+}
+
+function clearJobTimer() {
+  document.getElementById('j-start-time').value = '';
+  document.getElementById('j-finish-time').value = '';
+  document.getElementById('j-actual-dur').textContent = '—';
+  document.getElementById('j-start-btn').style.display = 'inline-block';
+  document.getElementById('j-finish-btn').style.display = 'none';
+  clearInterval(timerInterval);
+}
+
 function renderJobs() {
   const q = (document.getElementById('job-search')?.value || '').toLowerCase();
   let list = [...DB.jobs].sort((a, b) => a.date.localeCompare(b.date));
@@ -2034,6 +2128,15 @@ function editJob(id) {
   document.getElementById('j-no').value = j.no || '';
   document.getElementById('j-rec').value = j.rec || 'none';
   document.getElementById('j-rec-end-wrap').style.display = (j.rec && j.rec !== 'none') ? 'block' : 'none';
+  
+  // Load time tracking
+  document.getElementById('j-start-time').value = j.startTime || '';
+  document.getElementById('j-finish-time').value = j.finishTime || '';
+  document.getElementById('j-start-btn').style.display = 'inline-block';
+  document.getElementById('j-finish-btn').style.display = 'none';
+  clearInterval(timerInterval);
+  updateJobDuration();
+  
   openModal('m-job');
 }
 
@@ -2064,7 +2167,9 @@ function saveJob() {
     tot: parseFloat(document.getElementById('j-tot').value) || 0,
     status: document.getElementById('j-st').value,
     no: document.getElementById('j-no').value.trim(),
-    rec: rec
+    rec: rec,
+    startTime: document.getElementById('j-start-time').value || '',
+    finishTime: document.getElementById('j-finish-time').value || ''
   };
   
   const eid = parseInt(document.getElementById('j-id').value);
@@ -2185,9 +2290,20 @@ function renderClients() {
     list.map(c => {
       const balance = DB.invoices.filter(i => i.clientId === c.id && i.status !== 'Paid')
         .reduce((s, i) => s + i.total, 0);
+      const totalPaid = DB.invoices.filter(i => i.clientId === c.id && i.status === 'Paid')
+        .reduce((s, i) => s + i.total, 0);
+      const totalJobs = DB.jobs.filter(j => j.clientId === c.id)
+        .reduce((s, j) => s + j.tot, 0);
       return `<tr>
-        <td><strong>${(c.fn + ' ' + c.ln).trim()}</strong><br><span style="font-size: 11px; color: var(--text3);">${c.ph || 'No phone'}</span></td>
-        <td style="text-align: right; color: ${balance > 0 ? 'var(--red)' : 'var(--green)'};">$${balance.toFixed(2)}</td>
+        <td>
+          <strong>${(c.fn + ' ' + c.ln).trim()}</strong><br>
+          <span style="font-size: 11px; color: var(--text3);">${c.ph || 'No phone'}</span><br>
+          <span style="font-size: 10px; color: var(--text3);">Total Paid: <strong style="color: var(--green);">$${totalPaid.toFixed(2)}</strong></span>
+        </td>
+        <td style="text-align: right; color: ${balance > 0 ? 'var(--red)' : 'var(--green)'};">
+          <div style="font-size: 13px; font-weight: 700;">$${balance.toFixed(2)}</div>
+          <div style="font-size: 10px; color: var(--text3);">Outstanding</div>
+        </td>
         <td style="text-align: right;">
           <button class="btn btn-secondary btn-xs" onclick="editClient(${c.id})">Edit</button>
           <button class="btn btn-danger btn-xs" style="margin-left: 2px;" onclick="deleteClient(${c.id})">✕</button>
