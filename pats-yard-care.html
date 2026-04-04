@@ -864,6 +864,276 @@ nav {
   20%, 60% { transform: translateX(-8px); }
   40%, 80% { transform: translateX(8px); }
 }
+
+/* CALENDAR STYLES */
+.calendar-container {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.calendar-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.calendar-header button {
+  background: var(--green);
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+.calendar-header button:hover {
+  background: var(--green-mid);
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: var(--border);
+  padding: 1px;
+}
+
+.calendar-day-header {
+  background: var(--surface2);
+  padding: 12px 8px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+}
+
+.calendar-day {
+  background: var(--surface);
+  min-height: 100px;
+  padding: 8px;
+  position: relative;
+  overflow-y: auto;
+}
+
+.calendar-day.other-month {
+  background: var(--surface2);
+  opacity: 0.5;
+}
+
+.calendar-day.today {
+  background: var(--green-light);
+}
+
+.calendar-day-number {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.calendar-job {
+  background: var(--green);
+  color: white;
+  font-size: 10px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  margin-bottom: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.2s;
+}
+
+.calendar-job:hover {
+  background: var(--green-mid);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.calendar-job.completed {
+  background: #4caf50;
+  opacity: 0.6;
+}
+
+.calendar-job.in-progress {
+  background: #ff9800;
+}
+
+/* WEEKLY VIEW */
+.weekly-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: var(--border);
+  padding: 1px;
+  min-width: 900px;
+}
+
+.weekly-day-header {
+  background: var(--surface2);
+  padding: 12px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text2);
+}
+
+.weekly-day-header-date {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.weekly-day-cell {
+  background: var(--surface);
+  min-height: 300px;
+  padding: 8px;
+  position: relative;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+}
+
+.weekly-day-cell.today {
+  background: var(--green-light);
+}
+
+.weekly-job {
+  background: var(--green);
+  color: white;
+  font-size: 11px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  word-break: break-word;
+  transition: all 0.2s;
+}
+
+.weekly-job:hover {
+  background: var(--green-mid);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.weekly-job.completed {
+  background: #4caf50;
+  opacity: 0.6;
+}
+
+.weekly-job.in-progress {
+  background: #ff9800;
+}
+
+/* DAILY VIEW */
+.daily-header {
+  background: var(--surface2);
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+  border-radius: var(--radius);
+}
+
+.daily-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+
+.daily-job-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.daily-job-item:hover {
+  box-shadow: var(--shadow);
+  border-color: var(--green);
+}
+
+.daily-job-client {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.daily-job-service {
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 6px;
+}
+
+.daily-job-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.daily-job-total {
+  font-weight: 700;
+  color: var(--green);
+}
+
+@media (max-width: 800px) {
+  .calendar-grid {
+    gap: 0;
+  }
+  
+  .calendar-day {
+    min-height: 80px;
+  }
+  
+  .calendar-day-number {
+    font-size: 11px;
+  }
+  
+  .calendar-job {
+    font-size: 9px;
+    padding: 3px 4px;
+  }
+  
+  .weekly-grid {
+    min-width: 100%;
+  }
+  
+  .weekly-day-header {
+    padding: 8px 4px;
+    font-size: 10px;
+  }
+  
+  .weekly-day-header-date {
+    font-size: 11px;
+  }
+  
+  .weekly-day-cell {
+    min-height: 200px;
+    padding: 4px;
+  }
+  
+  .weekly-job {
+    font-size: 10px;
+    padding: 4px 6px;
+  }
+}
 </style>
 </head>
 <body>
@@ -902,6 +1172,7 @@ nav {
     <div class="nav-section">Overview</div>
     <div class="nav-item active" onclick="gotoPage('dashboard', this)">📊 Dashboard</div>
     <div class="nav-section">Work</div>
+    <div class="nav-item" onclick="gotoPage('schedule', this)">📅 Schedule</div>
     <div class="nav-item" onclick="gotoPage('jobs', this)">🔧 Jobs</div>
     <div class="nav-section">Finance</div>
     <div class="nav-item" onclick="gotoPage('invoices', this)">🧾 Invoices</div>
@@ -909,6 +1180,7 @@ nav {
     <div class="nav-item" onclick="gotoPage('clients', this)">👥 Clients</div>
     <div class="nav-section">Data</div>
     <div class="nav-item" onclick="gotoPage('backup', this)">💾 Backup</div>
+    <div class="nav-item" onclick="gotoPage('settings', this)">⚙️ Settings</div>
   </nav>
   <div class="sidebar-footer" style="display: flex; gap: 8px;">
     <button onclick="lockApp()" style="background: rgba(255,255,255,.12); border: none; color: rgba(255,255,255,.7); border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: inherit; flex: 1;">🔒 Lock</button>
@@ -923,6 +1195,46 @@ nav {
     <button class="btn btn-primary btn-sm desktop-btn" id="btn-new-invoice">+ Invoice</button>
   </div>
   <div class="content">
+
+    <!-- SCHEDULE PAGE -->
+    <div class="page" id="page-schedule">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 8px; flex-wrap: wrap;">
+        <div style="display: flex; gap: 4px;">
+          <button class="btn btn-secondary btn-sm" id="view-daily-btn" onclick="setScheduleView('daily')">Day</button>
+          <button class="btn btn-secondary btn-sm" id="view-weekly-btn" onclick="setScheduleView('weekly')">Week</button>
+          <button class="btn btn-secondary btn-sm" id="view-monthly-btn" onclick="setScheduleView('monthly')" style="background: var(--green); color: white;">Month</button>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button class="btn btn-secondary btn-sm" onclick="schedPrev()">← Prev</button>
+          <span style="font-weight: 700; font-size: 16px; min-width: 150px; text-align: center;" id="sched-label"></span>
+          <button class="btn btn-secondary btn-sm" onclick="schedNext()">Next →</button>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="schedToday()">Today</button>
+      </div>
+      
+      <!-- DAILY VIEW -->
+      <div id="daily-view" style="display: none;">
+        <div class="card">
+          <div id="daily-content" style="padding: 18px;"></div>
+        </div>
+      </div>
+      
+      <!-- WEEKLY VIEW -->
+      <div id="weekly-view" style="display: none;">
+        <div class="card">
+          <div style="overflow-x: auto;">
+            <div id="weekly-content"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- MONTHLY VIEW -->
+      <div id="monthly-view">
+        <div class="calendar-container">
+          <div class="calendar-grid" id="calendar-grid"></div>
+        </div>
+      </div>
+    </div>
 
     <!-- DASHBOARD PAGE -->
     <div class="page active" id="page-dashboard">
@@ -1009,6 +1321,98 @@ nav {
       </div>
     </div>
 
+    <!-- SETTINGS PAGE -->
+    <div class="page" id="page-settings">
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header">🏢 Business Info</div>
+        <div style="padding: 18px;">
+          <div style="display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-bottom: 18px;">
+            <div style="flex-shrink: 0;">
+              <div style="font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 8px;">Logo</div>
+              <div id="logo-preview" style="width: 110px; height: 110px; border: 2px dashed var(--border); border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--surface2); overflow: hidden; cursor: pointer;" onclick="document.getElementById('logo-upload').click()">
+                <span style="font-size: 11px; color: var(--text3); text-align: center; padding: 8px;">Tap to upload logo</span>
+              </div>
+              <input type="file" id="logo-upload" accept="image/*" style="display: none;" onchange="uploadLogo(event)">
+              <button class="btn btn-ghost btn-xs" style="margin-top: 6px; width: 110px;" onclick="removeLogo()">Remove</button>
+            </div>
+            <div style="flex: 1; min-width: 200px;">
+              <div class="form-group">
+                <label class="form-label">Business Name</label>
+                <input class="form-control" id="bp-name" placeholder="Pat's Yard Care">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Owner Name</label>
+                <input class="form-control" id="bp-owner" placeholder="Patrik Wiechmann">
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Phone</label>
+              <input class="form-control" id="bp-phone" placeholder="(580) 475-1561">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input class="form-control" id="bp-email" placeholder="patsyardcare@gmail.com">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Address</label>
+            <input class="form-control" id="bp-addr" placeholder="(optional)">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Website</label>
+            <input class="form-control" id="bp-web" placeholder="patsyardcare.com">
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header">🎨 Invoice Appearance</div>
+        <div style="padding: 18px;">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Invoice # Prefix</label>
+              <input class="form-control" id="bp-prefix" placeholder="INV-" value="INV-">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Accent Color</label>
+              <input class="form-control" id="bp-color" type="color" value="#2d7a3a" style="height: 40px;">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Payment Terms</label>
+            <select class="form-control" id="bp-terms">
+              <option>Due on receipt</option>
+              <option>Net 7</option>
+              <option>Net 14</option>
+              <option>Net 30</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Thank You Message</label>
+            <textarea class="form-control" id="bp-footer" rows="2" placeholder="Thank you for your business! Payment accepted via check, cash, Venmo, or Zelle."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tax Rate (%)</label>
+            <input class="form-control" id="bp-tax" type="number" min="0" max="100" step="0.1" placeholder="0" value="0">
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header">📄 Invoice Preview</div>
+        <div style="padding: 18px;">
+          <button class="btn btn-primary" onclick="updateInvoicePreview()">↻ Refresh Preview</button>
+          <div id="settings-inv-preview" style="margin-top: 16px; max-width: 100%; overflow-x: auto;"></div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button class="btn btn-primary" onclick="saveBizProfile()">💾 Save Settings</button>
+      </div>
+    </div>
+
     <!-- BACKUP PAGE -->
     <div class="page" id="page-backup">
       <div class="card" style="margin-bottom: 20px;">
@@ -1039,10 +1443,10 @@ nav {
 <nav class="bottom-tabs">
   <div class="bottom-tabs-inner">
     <button class="tab-btn active" onclick="gotoMobile('dashboard', this)" data-p="dashboard"><span class="ti">📊</span>Home</button>
+    <button class="tab-btn" onclick="gotoMobile('schedule', this)" data-p="schedule"><span class="ti">📅</span>Schedule</button>
     <button class="tab-btn" onclick="gotoMobile('jobs', this)" data-p="jobs"><span class="ti">🔧</span>Jobs</button>
     <button class="tab-btn" onclick="gotoMobile('invoices', this)" data-p="invoices"><span class="ti">🧾</span>Invoices</button>
     <button class="tab-btn" onclick="gotoMobile('clients', this)" data-p="clients"><span class="ti">👥</span>Clients</button>
-    <button class="tab-btn" onclick="gotoMobile('backup', this)" data-p="backup"><span class="ti">💾</span>Backup</button>
   </div>
 </nav>
 
@@ -1279,7 +1683,7 @@ function gotoPage(p, el) {
   document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
   if (el) el.classList.add('active');
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.p === p));
-  const titles = {dashboard: 'Dashboard', jobs: 'Jobs', invoices: 'Invoices', clients: 'Clients', backup: 'Backup'};
+  const titles = {dashboard: 'Dashboard', schedule: 'Schedule', jobs: 'Jobs', invoices: 'Invoices', clients: 'Clients', backup: 'Backup', settings: 'Invoice Settings'};
   document.getElementById('page-title').textContent = titles[p] || p;
   renderPage(p);
 }
@@ -1290,9 +1694,174 @@ function gotoMobile(p, el) {
 
 function renderPage(p) {
   if (p === 'dashboard') renderDash();
+  else if (p === 'schedule') renderSchedule();
   else if (p === 'jobs') renderJobs();
   else if (p === 'invoices') renderInvoices();
   else if (p === 'clients') renderClients();
+  else if (p === 'settings') { loadBizProfile(); updateInvoicePreview(); }
+}
+
+let currentMonth = new Date();
+let scheduleView = 'monthly';
+
+function setScheduleView(view) {
+  scheduleView = view;
+  document.getElementById('view-daily-btn').style.background = view === 'daily' ? 'var(--green)' : '';
+  document.getElementById('view-daily-btn').style.color = view === 'daily' ? 'white' : '';
+  document.getElementById('view-weekly-btn').style.background = view === 'weekly' ? 'var(--green)' : '';
+  document.getElementById('view-weekly-btn').style.color = view === 'weekly' ? 'white' : '';
+  document.getElementById('view-monthly-btn').style.background = view === 'monthly' ? 'var(--green)' : '';
+  document.getElementById('view-monthly-btn').style.color = view === 'monthly' ? 'white' : '';
+  
+  document.getElementById('daily-view').style.display = view === 'daily' ? 'block' : 'none';
+  document.getElementById('weekly-view').style.display = view === 'weekly' ? 'block' : 'none';
+  document.getElementById('monthly-view').style.display = view === 'monthly' ? 'block' : 'none';
+  
+  renderSchedule();
+}
+
+function renderSchedule() {
+  if (scheduleView === 'daily') renderDailyView();
+  else if (scheduleView === 'weekly') renderWeeklyView();
+  else renderMonthlyView();
+}
+
+function renderDailyView() {
+  document.getElementById('sched-label').textContent = currentMonth.toLocaleDateString('en-US', {weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'});
+  const dateStr = currentMonth.toISOString().slice(0, 10);
+  const dayJobs = DB.jobs.filter(j => j.date === dateStr).sort((a, b) => a.sv.localeCompare(b.sv));
+  
+  let html = `<div class="daily-header"><h3>${currentMonth.toLocaleDateString('en-US', {weekday: 'long', month: 'long', day: 'numeric'})}</h3></div>`;
+  
+  if (!dayJobs.length) {
+    html += '<p style="color: var(--text3); text-align: center; padding: 40px 20px;">No jobs scheduled</p>';
+  } else {
+    html += dayJobs.map(j => `<div class="daily-job-item" onclick="editJob(${j.id})">
+      <div class="daily-job-client">${cname(j.clientId)}</div>
+      <div class="daily-job-service">${j.sv}</div>
+      <div class="daily-job-bottom">
+        <span class="badge badge-${j.status === 'Completed' ? 'green' : j.status === 'In Progress' ? 'gold' : 'gold'}">${j.status}</span>
+        <span class="daily-job-total">$${j.tot.toFixed(2)}</span>
+      </div>
+      ${j.no ? `<div style="font-size: 11px; color: var(--text3); margin-top: 6px;">📝 ${j.no}</div>` : ''}
+    </div>`).join('');
+  }
+  
+  document.getElementById('daily-content').innerHTML = html;
+}
+
+function renderWeeklyView() {
+  const weekStart = new Date(currentMonth);
+  weekStart.setDate(currentMonth.getDate() - currentMonth.getDay());
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  
+  document.getElementById('sched-label').textContent = `${weekStart.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})} - ${weekEnd.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}`;
+  
+  let html = '';
+  const today = new Date().toISOString().slice(0, 10);
+  
+  // Headers
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + i);
+    const dateStr = date.toISOString().slice(0, 10);
+    const isToday = dateStr === today;
+    html += `<div class="weekly-day-header ${isToday ? 'today' : ''}">
+      <span>${date.toLocaleDateString('en-US', {weekday: 'short'})}</span>
+      <span class="weekly-day-header-date">${date.getDate()}</span>
+    </div>`;
+  }
+  
+  // Jobs
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + i);
+    const dateStr = date.toISOString().slice(0, 10);
+    const isToday = dateStr === today;
+    const dayJobs = DB.jobs.filter(j => j.date === dateStr);
+    
+    html += `<div class="weekly-day-cell ${isToday ? 'today' : ''}">
+      ${dayJobs.map(j => `<div class="weekly-job ${j.status === 'Completed' ? 'completed' : j.status === 'In Progress' ? 'in-progress' : ''}" onclick="editJob(${j.id}); event.stopPropagation();" title="${cname(j.clientId)} - ${j.sv}">
+        <strong>${cname(j.clientId)}</strong><br>${j.sv}<br>$${j.tot.toFixed(2)}
+      </div>`).join('')}
+    </div>`;
+  }
+  
+  document.getElementById('weekly-content').innerHTML = `<div class="weekly-grid">${html}</div>`;
+}
+
+function renderMonthlyView() {
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  
+  document.getElementById('sched-label').textContent = currentMonth.toLocaleDateString('en-US', {month: 'long', year: 'numeric'});
+  
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const prevLastDay = new Date(year, month, 0);
+  
+  let html = '';
+  
+  // Day headers
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  dayNames.forEach(d => {
+    html += `<div class="calendar-day-header">${d}</div>`;
+  });
+  
+  // Previous month days
+  for (let i = prevLastDay.getDate() - firstDay.getDay() + 1; i <= prevLastDay.getDate(); i++) {
+    html += `<div class="calendar-day other-month"><div class="calendar-day-number">${i}</div></div>`;
+  }
+  
+  // Current month days
+  const today = new Date();
+  for (let i = 1; i <= lastDay.getDate(); i++) {
+    const date = new Date(year, month, i);
+    const dateStr = date.toISOString().slice(0, 10);
+    const isToday = dateStr === today.toISOString().slice(0, 10);
+    const dayJobs = DB.jobs.filter(j => j.date === dateStr);
+    
+    html += `<div class="calendar-day ${isToday ? 'today' : ''}">
+      <div class="calendar-day-number">${i}</div>
+      ${dayJobs.map(j => `<div class="calendar-job ${j.status === 'Completed' ? 'completed' : j.status === 'In Progress' ? 'in-progress' : ''}" onclick="editJob(${j.id}); event.stopPropagation();" title="${cname(j.clientId)} - ${j.sv}">${cname(j.clientId)}</div>`).join('')}
+    </div>`;
+  }
+  
+  // Next month days
+  const remainingDays = 42 - (firstDay.getDay() + lastDay.getDate());
+  for (let i = 1; i <= remainingDays; i++) {
+    html += `<div class="calendar-day other-month"><div class="calendar-day-number">${i}</div></div>`;
+  }
+  
+  document.getElementById('calendar-grid').innerHTML = html;
+}
+
+function schedPrev() {
+  if (scheduleView === 'daily') {
+    currentMonth.setDate(currentMonth.getDate() - 1);
+  } else if (scheduleView === 'weekly') {
+    currentMonth.setDate(currentMonth.getDate() - 7);
+  } else {
+    currentMonth.setMonth(currentMonth.getMonth() - 1);
+  }
+  renderSchedule();
+}
+
+function schedNext() {
+  if (scheduleView === 'daily') {
+    currentMonth.setDate(currentMonth.getDate() + 1);
+  } else if (scheduleView === 'weekly') {
+    currentMonth.setDate(currentMonth.getDate() + 7);
+  } else {
+    currentMonth.setMonth(currentMonth.getMonth() + 1);
+  }
+  renderSchedule();
+}
+
+function schedToday() {
+  currentMonth = new Date();
+  renderSchedule();
 }
 
 function renderDash() {
@@ -1756,19 +2325,27 @@ function viewInvoice(id) {
   const inv = DB.invoices.find(i => i.id === id);
   if (!inv) return;
   const c = cby(inv.clientId);
+  const bp = getBP();
   
   const rows = (inv.items || []).map(i => 
     `<tr><td>${i.d}</td><td style="text-align: center;">${i.q}</td><td style="text-align: right;">$${i.p.toFixed(2)}</td><td style="text-align: right;">$${(i.q * i.p).toFixed(2)}</td></tr>`
   ).join('');
   
-  document.getElementById('inv-prev-lbl').textContent = 'INV-' + String(inv.id).padStart(4, '0');
+  const subtotal = inv.total;
+  const taxAmt = subtotal * (bp.tax / 100);
+  const total = subtotal + taxAmt;
+  
+  const logoHTML = bp.logo ? `<img src="${bp.logo}" style="max-height: 80px; max-width: 160px; object-fit: contain;">` : `<strong style="font-size: 18px;">${bp.name}</strong>`;
+  
+  document.getElementById('inv-prev-lbl').textContent = bp.prefix + String(inv.id).padStart(4, '0');
   document.getElementById('inv-box').innerHTML = `
     <div class="inv-head">
-      <div><strong style="font-size: 18px;">Pat's Yard Care</strong><br><span style="font-size: 11px; color: var(--text3);">(580) 475-1561<br>patsyardcare@gmail.com</span></div>
+      <div>${logoHTML}<br><span style="font-size: 11px; color: var(--text3); margin-top: 6px;">${bp.phone}<br>${bp.email}${bp.addr ? '<br>' + bp.addr : ''}</span></div>
       <div style="text-align: right;">
-        <h2 style="font-size: 20px; color: var(--green);">INVOICE</h2>
-        <p style="font-size: 12px; color: var(--text2);">INV-${String(inv.id).padStart(4, '0')}</p>
+        <h2 style="font-size: 20px; color: ${bp.color};">INVOICE</h2>
+        <p style="font-size: 12px; color: var(--text2);">${bp.prefix}${String(inv.id).padStart(4, '0')}</p>
         <p style="font-size: 12px; color: var(--text2);">${fdate(inv.date)}</p>
+        <p style="font-size: 11px; color: var(--text3);">${bp.terms}</p>
       </div>
     </div>
     <div class="inv-parties">
@@ -1779,21 +2356,29 @@ function viewInvoice(id) {
       </div>
     </div>
     <table class="line-items" style="margin-bottom: 20px;">
-      <thead style="background: var(--green-light);">
-        <tr><th style="color: var(--green-dark);">Description</th><th style="color: var(--green-dark);">Qty</th><th style="color: var(--green-dark);">Price</th><th style="color: var(--green-dark);">Total</th></tr>
+      <thead style="background: ${bp.color}20;">
+        <tr><th style="color: ${bp.color};">Description</th><th style="color: ${bp.color};">Qty</th><th style="color: ${bp.color};">Price</th><th style="color: ${bp.color};">Total</th></tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
     <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
       <div style="min-width: 200px;">
-        <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; border-top: 2px solid var(--border); padding-top: 8px; font-weight: 700;">
+        <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px;">
+          <span>Subtotal</span>
+          <span>$${subtotal.toFixed(2)}</span>
+        </div>
+        ${bp.tax > 0 ? `<div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px;">
+          <span>Tax (${bp.tax}%)</span>
+          <span>$${taxAmt.toFixed(2)}</span>
+        </div>` : ''}
+        <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 15px; border-top: 2px solid var(--border); font-weight: 700; color: ${bp.color};">
           <span>Total Due</span>
-          <span style="color: var(--green);">$${inv.total.toFixed(2)}</span>
+          <span>$${total.toFixed(2)}</span>
         </div>
       </div>
     </div>
     <div style="font-size: 12px; color: var(--text3); border-top: 1px solid var(--border); padding-top: 12px;">
-      Thank you for your business! Payment accepted via check, cash, Venmo, or Zelle.
+      ${bp.footer}
     </div>
   `;
   
@@ -1863,6 +2448,173 @@ function importJSON(e) {
   };
   r.readAsText(file);
   e.target.value = '';
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// BUSINESS PROFILE & INVOICE SETTINGS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const BP_KEY = 'pyc_bp';
+
+function defaultBP() {
+  return {
+    name: "Pat's Yard Care",
+    owner: 'Patrik Wiechmann',
+    phone: '(580) 475-1561',
+    email: 'patsyardcare@gmail.com',
+    addr: '',
+    web: '',
+    prefix: 'INV-',
+    color: '#2d7a3a',
+    terms: 'Due on receipt',
+    footer: 'Thank you for your business! Payment accepted via check, cash, Venmo, or Zelle.',
+    tax: 0
+  };
+}
+
+function getBP() {
+  try {
+    const stored = localStorage.getItem(BP_KEY);
+    return stored ? {...defaultBP(), ...JSON.parse(stored)} : defaultBP();
+  } catch (e) {
+    return defaultBP();
+  }
+}
+
+function loadBizProfile() {
+  const bp = getBP();
+  document.getElementById('bp-name').value = bp.name;
+  document.getElementById('bp-owner').value = bp.owner;
+  document.getElementById('bp-phone').value = bp.phone;
+  document.getElementById('bp-email').value = bp.email;
+  document.getElementById('bp-addr').value = bp.addr;
+  document.getElementById('bp-web').value = bp.web || '';
+  document.getElementById('bp-prefix').value = bp.prefix;
+  document.getElementById('bp-color').value = bp.color;
+  document.getElementById('bp-terms').value = bp.terms;
+  document.getElementById('bp-footer').value = bp.footer;
+  document.getElementById('bp-tax').value = bp.tax;
+  
+  // Load logo
+  const prev = document.getElementById('logo-preview');
+  if (bp.logo) {
+    prev.innerHTML = `<img src="${bp.logo}" style="width: 100%; height: 100%; object-fit: contain;">`;
+    prev.dataset.src = bp.logo;
+  } else {
+    prev.innerHTML = '<span style="font-size: 11px; color: var(--text3); text-align: center; padding: 8px;">Tap to upload logo</span>';
+    prev.dataset.src = '';
+  }
+}
+
+function uploadLogo(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    const src = ev.target.result;
+    const prev = document.getElementById('logo-preview');
+    prev.innerHTML = `<img src="${src}" style="width: 100%; height: 100%; object-fit: contain;">`;
+    prev.dataset.src = src;
+    updateInvoicePreview();
+  };
+  r.readAsDataURL(file);
+}
+
+function removeLogo() {
+  const prev = document.getElementById('logo-preview');
+  prev.innerHTML = '<span style="font-size: 11px; color: var(--text3); text-align: center; padding: 8px;">Tap to upload logo</span>';
+  prev.dataset.src = '';
+  updateInvoicePreview();
+}
+
+function saveBizProfile() {
+  const bp = {
+    name: document.getElementById('bp-name').value || "Pat's Yard Care",
+    owner: document.getElementById('bp-owner').value || 'Patrik Wiechmann',
+    phone: document.getElementById('bp-phone').value,
+    email: document.getElementById('bp-email').value,
+    addr: document.getElementById('bp-addr').value,
+    web: document.getElementById('bp-web').value,
+    logo: document.getElementById('logo-preview').dataset.src || '',
+    prefix: document.getElementById('bp-prefix').value || 'INV-',
+    color: document.getElementById('bp-color').value,
+    terms: document.getElementById('bp-terms').value,
+    footer: document.getElementById('bp-footer').value,
+    tax: parseFloat(document.getElementById('bp-tax').value) || 0
+  };
+  localStorage.setItem(BP_KEY, JSON.stringify(bp));
+  toast('✅ Invoice settings saved!');
+  updateInvoicePreview();
+}
+
+function updateInvoicePreview() {
+  const bp = getBP();
+  const dummyInv = {
+    id: 1,
+    items: [{d: 'Lawn Mowing', q: 1, p: 75}, {d: 'Edging', q: 1, p: 25}],
+    total: 100,
+    date: today(),
+    status: 'Sent'
+  };
+  const dummyClient = {fn: 'Sample', ln: 'Client', ph: '(555) 123-4567', ad: '123 Main St'};
+  
+  const rows = dummyInv.items.map(i => 
+    `<tr><td>${i.d}</td><td style="text-align: center;">${i.q}</td><td style="text-align: right;">$${i.p.toFixed(2)}</td><td style="text-align: right;">$${(i.q * i.p).toFixed(2)}</td></tr>`
+  ).join('');
+  
+  const subtotal = dummyInv.total;
+  const taxAmt = subtotal * (bp.tax / 100);
+  const total = subtotal + taxAmt;
+  
+  const logoHTML = bp.logo ? `<img src="${bp.logo}" style="max-height: 80px; max-width: 160px; object-fit: contain;">` : `<strong style="font-size: 18px;">${bp.name}</strong>`;
+  
+  const html = `
+    <div class="invoice-box" style="max-width: 600px;">
+      <div class="inv-head">
+        <div>${logoHTML}<br><span style="font-size: 11px; color: var(--text3); margin-top: 6px;">${bp.phone}<br>${bp.email}${bp.addr ? '<br>' + bp.addr : ''}</span></div>
+        <div style="text-align: right;">
+          <h2 style="font-size: 20px; color: ${bp.color}; margin: 0;">INVOICE</h2>
+          <p style="font-size: 12px; color: var(--text2); margin: 4px 0;">${bp.prefix}0001</p>
+          <p style="font-size: 12px; color: var(--text2); margin: 4px 0;">${fdate(dummyInv.date)}</p>
+          <p style="font-size: 11px; color: var(--text3); margin: 4px 0;">${bp.terms}</p>
+        </div>
+      </div>
+      <div class="inv-parties">
+        <div>
+          <div class="party-label">Bill To</div>
+          <div style="font-weight: 700;">Sample Client</div>
+          <div style="font-size: 13px; color: var(--text2);">(555) 123-4567<br>123 Main St</div>
+        </div>
+      </div>
+      <table class="line-items" style="margin-bottom: 20px;">
+        <thead style="background: ${bp.color}20;">
+          <tr><th style="color: ${bp.color};">Description</th><th style="color: ${bp.color};">Qty</th><th style="color: ${bp.color};">Price</th><th style="color: ${bp.color};">Total</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+        <div style="min-width: 200px;">
+          <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px;">
+            <span>Subtotal</span>
+            <span>$${subtotal.toFixed(2)}</span>
+          </div>
+          ${bp.tax > 0 ? `<div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px;">
+            <span>Tax (${bp.tax}%)</span>
+            <span>$${taxAmt.toFixed(2)}</span>
+          </div>` : ''}
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 15px; border-top: 2px solid var(--border); font-weight: 700; color: ${bp.color};">
+            <span>Total Due</span>
+            <span>$${total.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: var(--text3); border-top: 1px solid var(--border); padding-top: 12px;">
+        ${bp.footer}
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('settings-inv-preview').innerHTML = html;
 }
 
 function toggleDarkMode() {
