@@ -1133,6 +1133,45 @@ nav {
     font-size: 10px;
     padding: 4px 6px;
   }
+
+  /* FLOATING ACTION MENU */
+  #fab-btn {
+    display: flex !important;
+  }
+
+  .fab-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .fab-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--green);
+    color: white;
+    border: none;
+    padding: 12px 16px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .fab-item:active {
+    transform: scale(0.95);
+  }
+
+  .fab-item span:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 </style>
 </head>
@@ -2623,6 +2662,27 @@ function toggleDarkMode() {
   localStorage.setItem(DARK_MODE_KEY, isDark ? '1' : '0');
 }
 
+function toggleFAB() {
+  const menu = document.getElementById('fab-menu');
+  const btn = document.getElementById('fab-btn');
+  const icon = document.getElementById('fab-icon');
+  
+  if (menu.style.display === 'none' || menu.style.display === '') {
+    menu.style.display = 'flex';
+    menu.style.flexDirection = 'column';
+    menu.style.gap = '8px';
+    icon.textContent = '✕';
+  } else {
+    menu.style.display = 'none';
+    icon.textContent = '+';
+  }
+}
+
+function closeFAB() {
+  document.getElementById('fab-menu').style.display = 'none';
+  document.getElementById('fab-icon').textContent = '+';
+}
+
 function initDarkMode() {
   const isDark = localStorage.getItem(DARK_MODE_KEY) === '1';
   if (isDark) {
@@ -2729,6 +2789,34 @@ document.addEventListener('DOMContentLoaded', () => {
   
   renderDash();
 });
-</script>
+</script>  <!-- FLOATING ACTION MENU (Mobile) -->
+  <div id="fab-menu" style="position: fixed; bottom: 100px; right: 20px; z-index: 999; display: none;">
+    <button class="fab-item" onclick="gotoMobile('jobs', document.querySelector('[data-p=jobs]')); closeFAB()" title="New Job">
+      <span style="font-size: 20px;">🔧</span>
+      <span>New Job</span>
+    </button>
+    <button class="fab-item" onclick="gotoMobile('invoices', document.querySelector('[data-p=invoices]')); closeFAB()" title="New Invoice">
+      <span style="font-size: 20px;">🧾</span>
+      <span>New Invoice</span>
+    </button>
+    <button class="fab-item" onclick="gotoMobile('clients', document.querySelector('[data-p=clients]')); closeFAB()" title="New Client">
+      <span style="font-size: 20px;">👥</span>
+      <span>New Client</span>
+    </button>
+    <button class="fab-item" onclick="gotoMobile('backup', document.querySelector('[data-p=backup]')); closeFAB()" title="Data & Backup">
+      <span style="font-size: 20px;">💾</span>
+      <span>Data & Backup</span>
+    </button>
+    <button class="fab-item" onclick="gotoMobile('settings', document.querySelector('[data-p=settings]')); closeFAB()" title="Invoice Settings">
+      <span style="font-size: 20px;">⚙️</span>
+      <span>Invoice Settings</span>
+    </button>
+  </div>
+
+  <!-- FAB TOGGLE BUTTON -->
+  <button id="fab-btn" class="fab-btn" onclick="toggleFAB()" style="position: fixed; bottom: 90px; right: 20px; z-index: 1000; width: 60px; height: 60px; border-radius: 50%; background: var(--green); color: white; border: none; font-size: 28px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: none; align-items: center; justify-content: center;">
+    <span id="fab-icon">+</span>
+  </button>
+
 </body>
 </html>
