@@ -2050,22 +2050,52 @@ function renderJobs() {
     return;
   }
   
-  el.innerHTML = '<table class="table"><tbody>' +
-    list.map(j => {
-      const recurNote = j.rec !== 'none' ? `<div class="recur-note">${j.rec === 'weekly' ? 'Weekly' : 'Biweekly'}</div>` : '';
-      return `<tr>
-        <td><strong>${cname(j.clientId)}</strong><br><span style="font-size: 11px; color: var(--text3);">${j.sv}</span>${recurNote}</td>
-        <td style="font-size: 12px; color: var(--text3);">${fdate(j.date)}</td>
-        <td><strong>$${j.tot.toFixed(2)}</strong></td>
-        <td style="text-align: right;">
-          <span class="badge ${j.status === 'Completed' ? 'badge-green' : 'badge-gold'}">${j.status}</span>
-          ${j.status !== 'Completed' ? `<button class="btn btn-primary btn-xs" style="margin-left: 4px;" onclick="completeJob(${j.id})">✓</button>` : ''}
-          <button class="btn btn-secondary btn-xs" style="margin-left: 2px;" onclick="editJob(${j.id})">Edit</button>
-          <button class="btn btn-danger btn-xs" style="margin-left: 2px;" onclick="deleteJob(${j.id})">✕</button>
-        </td>
-      </tr>`;
-    }).join('') +
-    '</tbody></table>';
+  const isMobile = window.innerWidth <= 800;
+  
+  if (isMobile) {
+    // Mobile card layout
+    el.innerHTML = list.map(j => {
+      const recurNote = j.rec !== 'none' ? `<div style="display: inline-block; background: var(--green-light); color: var(--green-dark); font-size: 9px; font-weight: 700; padding: 3px 6px; border-radius: 4px; margin-left: 6px;">${j.rec === 'weekly' ? 'Weekly' : 'Biweekly'}</div>` : '';
+      return `
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+            <div>
+              <div style="font-weight: 700; font-size: 14px;">${cname(j.clientId)}</div>
+              <div style="font-size: 11px; color: var(--text3); margin-top: 4px;">${j.sv}${recurNote}</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: 700; font-size: 14px;">$${j.tot.toFixed(2)}</div>
+              <div style="font-size: 10px; color: var(--text3);">${fdate(j.date)}</div>
+            </div>
+          </div>
+          <div style="border-top: 1px solid var(--border); padding-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span class="badge ${j.status === 'Completed' ? 'badge-green' : 'badge-gold'}">${j.status}</span>
+            ${j.status !== 'Completed' ? `<button class="btn btn-primary btn-xs" onclick="completeJob(${j.id})">✓ Done</button>` : ''}
+            <button class="btn btn-secondary btn-xs" onclick="editJob(${j.id})">Edit</button>
+            <button class="btn btn-danger btn-xs" onclick="deleteJob(${j.id})">✕</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } else {
+    // Desktop table layout
+    el.innerHTML = '<table class="table"><tbody>' +
+      list.map(j => {
+        const recurNote = j.rec !== 'none' ? `<div class="recur-note">${j.rec === 'weekly' ? 'Weekly' : 'Biweekly'}</div>` : '';
+        return `<tr>
+          <td><strong>${cname(j.clientId)}</strong><br><span style="font-size: 11px; color: var(--text3);">${j.sv}</span>${recurNote}</td>
+          <td style="font-size: 12px; color: var(--text3);">${fdate(j.date)}</td>
+          <td><strong>$${j.tot.toFixed(2)}</strong></td>
+          <td style="text-align: right;">
+            <span class="badge ${j.status === 'Completed' ? 'badge-green' : 'badge-gold'}">${j.status}</span>
+            ${j.status !== 'Completed' ? `<button class="btn btn-primary btn-xs" style="margin-left: 4px;" onclick="completeJob(${j.id})">✓</button>` : ''}
+            <button class="btn btn-secondary btn-xs" style="margin-left: 2px;" onclick="editJob(${j.id})">Edit</button>
+            <button class="btn btn-danger btn-xs" style="margin-left: 2px;" onclick="deleteJob(${j.id})">✕</button>
+          </td>
+        </tr>`;
+      }).join('') +
+      '</tbody></table>';
+  }
 }
 
 function completeJob(id) {
@@ -2286,31 +2316,69 @@ function renderClients() {
     el.innerHTML = '<p style="color: var(--text3); text-align: center;">No clients</p>';
     return;
   }
-  el.innerHTML = '<table class="table"><tbody>' +
-    list.map(c => {
+  
+  const isMobile = window.innerWidth <= 800;
+  
+  if (isMobile) {
+    // Mobile card layout
+    el.innerHTML = list.map(c => {
       const balance = DB.invoices.filter(i => i.clientId === c.id && i.status !== 'Paid')
         .reduce((s, i) => s + i.total, 0);
       const totalPaid = DB.invoices.filter(i => i.clientId === c.id && i.status === 'Paid')
         .reduce((s, i) => s + i.total, 0);
-      const totalJobs = DB.jobs.filter(j => j.clientId === c.id)
-        .reduce((s, j) => s + j.tot, 0);
-      return `<tr>
-        <td>
-          <strong>${(c.fn + ' ' + c.ln).trim()}</strong><br>
-          <span style="font-size: 11px; color: var(--text3);">${c.ph || 'No phone'}</span><br>
-          <span style="font-size: 10px; color: var(--text3);">Total Paid: <strong style="color: var(--green);">$${totalPaid.toFixed(2)}</strong></span>
-        </td>
-        <td style="text-align: right; color: ${balance > 0 ? 'var(--red)' : 'var(--green)'};">
-          <div style="font-size: 13px; font-weight: 700;">$${balance.toFixed(2)}</div>
-          <div style="font-size: 10px; color: var(--text3);">Outstanding</div>
-        </td>
-        <td style="text-align: right;">
-          <button class="btn btn-secondary btn-xs" onclick="editClient(${c.id})">Edit</button>
-          <button class="btn btn-danger btn-xs" style="margin-left: 2px;" onclick="deleteClient(${c.id})">✕</button>
-        </td>
-      </tr>`;
-    }).join('') +
-    '</tbody></table>';
+      return `
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+            <div>
+              <div style="font-weight: 700; font-size: 14px;">${(c.fn + ' ' + c.ln).trim()}</div>
+              <div style="font-size: 11px; color: var(--text3); margin-top: 4px;">${c.ph || 'No phone'}</div>
+            </div>
+            <div style="text-align: right;">
+              <button class="btn btn-secondary btn-xs" onclick="editClient(${c.id})">Edit</button>
+              <button class="btn btn-danger btn-xs" style="margin-top: 4px; width: 100%;" onclick="deleteClient(${c.id})">✕</button>
+            </div>
+          </div>
+          <div style="border-top: 1px solid var(--border); padding-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <div style="font-size: 10px; color: var(--text3); margin-bottom: 4px;">Total Paid</div>
+              <div style="font-weight: 700; color: var(--green); font-size: 14px;">$${totalPaid.toFixed(2)}</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 10px; color: var(--text3); margin-bottom: 4px;">Outstanding</div>
+              <div style="font-weight: 700; color: ${balance > 0 ? 'var(--red)' : 'var(--green)'}; font-size: 14px;">$${balance.toFixed(2)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } else {
+    // Desktop table layout
+    el.innerHTML = '<table class="table"><tbody>' +
+      list.map(c => {
+        const balance = DB.invoices.filter(i => i.clientId === c.id && i.status !== 'Paid')
+          .reduce((s, i) => s + i.total, 0);
+        const totalPaid = DB.invoices.filter(i => i.clientId === c.id && i.status === 'Paid')
+          .reduce((s, i) => s + i.total, 0);
+        const totalJobs = DB.jobs.filter(j => j.clientId === c.id)
+          .reduce((s, j) => s + j.tot, 0);
+        return `<tr>
+          <td>
+            <strong>${(c.fn + ' ' + c.ln).trim()}</strong><br>
+            <span style="font-size: 11px; color: var(--text3);">${c.ph || 'No phone'}</span><br>
+            <span style="font-size: 10px; color: var(--text3);">Total Paid: <strong style="color: var(--green);">$${totalPaid.toFixed(2)}</strong></span>
+          </td>
+          <td style="text-align: right; color: ${balance > 0 ? 'var(--red)' : 'var(--green)'};">
+            <div style="font-size: 13px; font-weight: 700;">$${balance.toFixed(2)}</div>
+            <div style="font-size: 10px; color: var(--text3);">Outstanding</div>
+          </td>
+          <td style="text-align: right;">
+            <button class="btn btn-secondary btn-xs" onclick="editClient(${c.id})">Edit</button>
+            <button class="btn btn-danger btn-xs" style="margin-left: 2px;" onclick="deleteClient(${c.id})">✕</button>
+          </td>
+        </tr>`;
+      }).join('') +
+      '</tbody></table>';
+  }
 }
 
 function addLine(id) {
@@ -2442,28 +2510,62 @@ function renderInvoices() {
     return;
   }
   
-  el.innerHTML = '<table class="table"><tbody>' +
-    list.map(inv => `<tr>
-      <td>
-        <strong>#${String(inv.id).padStart(4, '0')}</strong><br>
-        <span style="font-size: 11px; color: var(--text3);">${cname(inv.clientId)}</span>
-      </td>
-      <td style="font-size: 12px; color: var(--text3);">${fdate(inv.date)}</td>
-      <td><strong>$${inv.total.toFixed(2)}</strong></td>
-      <td>
-        <select class="form-control" style="padding: 4px 8px; font-size: 12px;" onchange="setInvStatus(${inv.id}, this.value)">
-          <option ${inv.status === 'Sent' ? 'selected' : ''}>Sent</option>
-          <option ${inv.status === 'Paid' ? 'selected' : ''}>Paid</option>
-          <option ${inv.status === 'Overdue' ? 'selected' : ''}>Overdue</option>
-        </select>
-      </td>
-      <td style="text-align: right;">
-        <button class="btn btn-secondary btn-xs" onclick="viewInvoice(${inv.id})">View</button>
-        <button class="btn btn-secondary btn-xs" style="margin-left: 2px;" onclick="editInvoice(${inv.id})">Edit</button>
-        <button class="btn btn-danger btn-xs" style="margin-left: 2px;" onclick="deleteInvoice(${inv.id})">✕</button>
-      </td>
-    </tr>`).join('') +
-    '</tbody></table>';
+  const isMobile = window.innerWidth <= 800;
+  
+  if (isMobile) {
+    // Mobile card layout
+    el.innerHTML = list.map(inv => {
+      const statusColor = inv.status === 'Paid' ? 'var(--green)' : inv.status === 'Overdue' ? 'var(--red)' : 'var(--gold)';
+      return `
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+            <div>
+              <div style="font-weight: 700; font-size: 14px;">#${String(inv.id).padStart(4, '0')}</div>
+              <div style="font-size: 11px; color: var(--text3); margin-top: 4px;">${cname(inv.clientId)}</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: 700; font-size: 14px;">$${inv.total.toFixed(2)}</div>
+              <div style="font-size: 10px; color: var(--text3);">${fdate(inv.date)}</div>
+            </div>
+          </div>
+          <div style="border-top: 1px solid var(--border); padding-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <select class="form-control" style="padding: 6px 8px; font-size: 12px; flex: 1; min-width: 100px;" onchange="setInvStatus(${inv.id}, this.value)">
+              <option ${inv.status === 'Sent' ? 'selected' : ''}>Sent</option>
+              <option ${inv.status === 'Paid' ? 'selected' : ''}>Paid</option>
+              <option ${inv.status === 'Overdue' ? 'selected' : ''}>Overdue</option>
+            </select>
+            <button class="btn btn-secondary btn-xs" onclick="viewInvoice(${inv.id})">View</button>
+            <button class="btn btn-secondary btn-xs" onclick="editInvoice(${inv.id})">Edit</button>
+            <button class="btn btn-danger btn-xs" onclick="deleteInvoice(${inv.id})">✕</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } else {
+    // Desktop table layout
+    el.innerHTML = '<table class="table"><tbody>' +
+      list.map(inv => `<tr>
+        <td>
+          <strong>#${String(inv.id).padStart(4, '0')}</strong><br>
+          <span style="font-size: 11px; color: var(--text3);">${cname(inv.clientId)}</span>
+        </td>
+        <td style="font-size: 12px; color: var(--text3);">${fdate(inv.date)}</td>
+        <td><strong>$${inv.total.toFixed(2)}</strong></td>
+        <td>
+          <select class="form-control" style="padding: 4px 8px; font-size: 12px;" onchange="setInvStatus(${inv.id}, this.value)">
+            <option ${inv.status === 'Sent' ? 'selected' : ''}>Sent</option>
+            <option ${inv.status === 'Paid' ? 'selected' : ''}>Paid</option>
+            <option ${inv.status === 'Overdue' ? 'selected' : ''}>Overdue</option>
+          </select>
+        </td>
+        <td style="text-align: right;">
+          <button class="btn btn-secondary btn-xs" onclick="viewInvoice(${inv.id})">View</button>
+          <button class="btn btn-secondary btn-xs" style="margin-left: 2px;" onclick="editInvoice(${inv.id})">Edit</button>
+          <button class="btn btn-danger btn-xs" style="margin-left: 2px;" onclick="deleteInvoice(${inv.id})">✕</button>
+        </td>
+      </tr>`).join('') +
+      '</tbody></table>';
+  }
 }
 
 function setInvStatus(id, status) {
