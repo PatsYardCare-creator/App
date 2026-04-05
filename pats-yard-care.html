@@ -1277,6 +1277,10 @@ nav {
 
     <!-- DASHBOARD PAGE -->
     <div class="page active" id="page-dashboard">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px;">
+        <span style="font-weight: 700;">Dashboard</span>
+        <button class="btn btn-secondary btn-sm" onclick="refreshFromGithub()" title="Pull latest data from GitHub">🔄 Sync</button>
+      </div>
       <div class="stat-grid">
         <div class="stat-card">
           <div class="stat-label">This Month</div>
@@ -3034,6 +3038,48 @@ async function pullDataFromGithub() {
     }
   } catch (e) {
     console.error('GitHub pull error:', e);
+  }
+}
+
+async function refreshFromGithub() {
+  const token = getGithubToken();
+  if (!token) {
+    toast('⚠️ GitHub sync not configured. Go to Settings.');
+    return;
+  }
+  
+  toast('🔄 Syncing from GitHub...');
+  
+  try {
+    const url = `https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_DATA_FILE}`;
+    
+    const resp = await fetch(url, {
+      headers: {'Authorization': `token ${token}`}
+    });
+    
+    if (!resp.ok) {
+      toast('❌ Sync failed');
+      return;
+    }
+    
+    const fileData = await resp.json();
+    const content = JSON.parse(atob(fileData.content));
+    
+    DB = content;
+    save();
+    localStorage.setItem('pyc_last_gh_sync', new Date().toISOString());
+    
+    // Re-render pages
+    renderDash();
+    renderJobs();
+    renderInvoices();
+    renderClients();
+    renderSchedule();
+    
+    toast('✅ Data synced from GitHub!');
+  } catch (e) {
+    console.error('Refresh error:', e);
+    toast('❌ Sync error: ' + e.message);
   }
 }
 
