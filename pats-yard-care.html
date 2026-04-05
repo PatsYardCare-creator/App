@@ -1452,6 +1452,33 @@ nav {
       </div>
     </div>
 
+    <!-- GITHUB SYNC SECTION -->
+    <div class="card" style="margin-bottom: 20px; margin-top: 20px; border: 2px solid var(--green-light);">
+      <div class="card-header">☁️ GitHub Data Sync</div>
+      <div style="padding: 18px;">
+        <div style="background: var(--green-light); color: var(--green-dark); padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 12px; line-height: 1.5;">
+          <strong>Auto-sync all your data across devices</strong><br>
+          Your clients, jobs, and invoices will sync instantly to GitHub and appear on any device.
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">GitHub Personal Access Token</label>
+          <input class="form-control" id="gh-token" type="password" placeholder="ghp_..." style="font-family: monospace;">
+          <div style="font-size: 11px; color: var(--text3); margin-top: 8px;">
+            Don't have a token? <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--green); text-decoration: none; font-weight: 600;">Create one here</a>
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn btn-primary" onclick="saveGithubToken()">💾 Save Token</button>
+          <button class="btn btn-secondary" onclick="testGithubConnection()">🧪 Test Connection</button>
+          <button class="btn btn-ghost" onclick="clearGithubToken()">🗑️ Remove Token</button>
+        </div>
+        
+        <div id="gh-status" style="margin-top: 12px; font-size: 12px; color: var(--text3);"></div>
+      </div>
+    </div>
+
     <!-- BACKUP PAGE -->
     <div class="page" id="page-backup">
       <div class="card" style="margin-bottom: 20px;">
@@ -1641,37 +1668,8 @@ const PIN_KEY = 'pyc_pin';
 const DEFAULT_PIN = '2606';
 const DARK_MODE_KEY = 'pyc_dark';
 
-let DB = {
-  clients: [
-    {id:1,fn:'Debbie',ln:'Hopkins',ph:'(580) 467-3587',ad:''},
-    {id:2,fn:'Stacy',ln:'Brown',ph:'(580) 606-1257',ad:'2012 Redbud ave Duncan, OK 73533'},
-    {id:3,fn:'Sam',ln:'Porter',ph:'(580) 512-4897',ad:''},
-    {id:4,fn:'Rebecca',ln:'Whatler',ph:'(479) 259-8265',ad:'1434 N 5th St Duncan OK 73533'},
-    {id:5,fn:'Josh',ln:'Gruver',ph:'(314) 685-4032',ad:''},
-    {id:6,fn:'Eulice',ln:'Mcroy',ph:'(580) 467-7266',ad:''},
-    {id:7,fn:'Betty',ln:'Jefferies',ph:'(580) 656-5181',ad:'7521 Pleasant View LN Duncan'},
-    {id:8,fn:'Autumn',ln:'Jackson',ph:'(580) 467-7112',ad:'2011 W Walnut Duncan OK'},
-    {id:9,fn:'Bruce',ln:'Jones',ph:'(580) 277-4235',ad:'281743 Bell Road Comanche OK'},
-    {id:10,fn:'Bill',ln:'Parson',ph:'(254) 485-4220',ad:''},
-    {id:11,fn:'Pam',ln:'',ph:'(979) 864-7214',ad:''},
-    {id:12,fn:'Cheryl',ln:'Wilkinson',ph:'(405) 550-5375',ad:'3305 Spencer Road Duncan'},
-    {id:13,fn:'Paul',ln:'',ph:'(405) 403-5591',ad:'1201 North Harville Rd Duncan'},
-    {id:14,fn:'Tony',ln:'Brittain',ph:'(580) 475-2399',ad:'3747 S Ridgeback Rd Marlow'},
-    {id:15,fn:'Patrick',ln:'',ph:'(805) 705-4643',ad:'1030 E Plato Rd Duncan'},
-    {id:16,fn:'Cindy',ln:'',ph:'(580) 470-6396',ad:'1324 Normandy Duncan OK'}
-  ],
-  jobs: [
-    {id:1,clientId:14,sv:'Full Yard Cleanup',date:'2026-03-30',dur:1,tot:200,status:'Upcoming',no:'',rec:'none'},
-    {id:2,clientId:1,sv:'Full Yard Cleanup',date:'2026-04-03',dur:1,tot:50,status:'Upcoming',no:'',rec:'none'},
-    {id:3,clientId:2,sv:'Full Yard Cleanup',date:'2026-04-03',dur:1,tot:50,status:'Upcoming',no:'',rec:'none'},
-    {id:4,clientId:5,sv:'Lawn Mowing',date:'2026-04-03',dur:1,tot:55,status:'Upcoming',no:'',rec:'none'},
-    {id:5,clientId:11,sv:'Lawn Mowing',date:'2026-04-03',dur:1,tot:50,status:'Upcoming',no:'',rec:'none'},
-    {id:6,clientId:16,sv:'Other',date:'2026-03-30',dur:1,tot:65,status:'Upcoming',no:'',rec:'none'},
-    {id:7,clientId:6,sv:'Lawn Mowing',date:'2026-04-02',dur:1,tot:120,status:'Upcoming',no:'',rec:'none'}
-  ],
-  invoices: [],
-  nxt: {c: 17, j: 8, i: 1}
-};
+let DB = {"clients":[{"id":1,"fn":"Debbie","ln":"Hopkins","em":"","ph":"580) 467-3587","ad":"","no":""},{"id":2,"fn":"Stacy","ln":"Brown","em":"","ph":"(580) 606-1257","ad":"2012 Redbud ave Duncan, OK 73533","no":""},{"id":3,"fn":"Sam","ln":"Porter","em":"","ph":"(580) 512-4897","ad":"","no":""},{"id":4,"fn":"Rebecca","ln":"Whatler","em":"","ph":"(479) 259-8265","ad":"1434 N 5th St Duncan OK 73533","no":""},{"id":5,"fn":"Josh","ln":"Gruver","em":"","ph":"+1 (314) 685-4032","ad":"","no":""},{"id":6,"fn":"Eulice","ln":"Mcroy","em":"","ph":"(580) 467-7266","ad":"","no":""},{"id":7,"fn":"Betty","ln":"Jefferies","em":"","ph":"(580) 656-5181","ad":"7521 pleasant view LN Duncan, Oklahoma","no":""},{"id":8,"fn":"Autumn","ln":"Jackson","em":"","ph":"(580) 467-7112","ad":"2011 W Walnut Duncan OK 73533","no":""},{"id":9,"fn":"Bruce","ln":"Jones","em":"","ph":"(580) 277-4235","ad":"281743 Bell Road Comanche OK 73529","no":""},{"id":10,"fn":"Bill","ln":"Parson","em":"","ph":"1 (254) 485-4220","ad":"","no":""},{"id":11,"fn":"Pam","ln":"","em":"","ph":"+1 (979) 864-7214","ad":"","no":""},{"id":12,"fn":"Cheryl","ln":"Wilkinson","em":"","ph":"+1 (405) 550-5375","ad":"3305 Spencer Road Duncan OK 73533","no":""},{"id":13,"fn":"Paul","ln":"","em":"","ph":"+1 (405) 403-5591","ad":"1201 North Harville Rd. in Duncan","no":""},{"id":14,"fn":"Tony","ln":"Brittain","em":"","ph":"(580) 475-2399","ad":"3747 S Ridgeback Rd Marlow OK 73055","no":""},{"id":15,"fn":"Patrick","ln":"","em":"","ph":"+1 (805) 705-4643","ad":"1030 E Plato Rd, Duncan, OK","no":""},{"id":16,"fn":"Cindy","ln":"","em":"","ph":"+1 (580) 470-6396","ad":"1324 Normandy Duncan OK 73533","no":""},{"id":17,"fn":"Chasity","ln":"Fazendin","em":"mailto:chasityfazendin@gmail.com","ph":"9319808057","ad":"2 South 28th street Duncan,OK","no":""},{"id":18,"fn":"4825 country club","ln":"","em":"","ph":"+1 (580) 252-2782","ad":"4825 country club Duncan, ok","no":""},{"id":19,"fn":"Amber","ln":"Skinner","em":"","ph":"+1 (580) 736-8421","ad":"503 N K Street. Duncan OK 73533","no":""},{"id":20,"fn":"Glenn","ln":"","ph":"(254) 644-3947","ad":""},{"id":21,"fn":"Dani","ln":"Green","ph":"+1 (580) 736-5969","ad":""},{"id":22,"fn":"Lucas's mom","ln":"","ph":"+1 (580) 786-8461","ad":""},{"id":23,"fn":"Cody","ln":"","ph":"","ad":"Lester"},{"id":24,"fn":"Ann","ln":"Cochran","ph":"+1 (580) 467-0016","ad":"Spruce"}],"jobs":[{"id":1,"clientId":14,"sv":"Full Yard Cleanup","date":"2026-03-30","dur":1,"tot":200,"status":"Completed","no":"","rec":"none"},{"id":2,"clientId":1,"sv":"Full Yard Cleanup","date":"2026-04-03","dur":1,"tot":50,"status":"Completed","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":false},{"id":3,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-04-03","dur":1,"tot":50,"status":"Completed","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":false},{"id":4,"clientId":5,"sv":"Lawn Mowing","date":"2026-04-07","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-11-27","isRecInstance":false,"startTime":"","finishTime":""},{"id":5,"clientId":11,"sv":"Lawn Mowing","date":"2026-04-09","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"biweekly","recEnd":null,"isRecInstance":false,"startTime":"","finishTime":""},{"id":6,"clientId":16,"sv":"Other","date":"2026-03-31","dur":1,"tot":65,"status":"Completed","no":"","rec":"none"},{"id":7,"clientId":6,"sv":"Lawn Mowing","date":"2026-04-02","dur":1,"tot":120,"status":"Completed","no":"","rec":"biweekly","recEnd":"","isRecInstance":false},{"id":8,"clientId":15,"sv":"Full Yard Cleanup","date":"2026-03-31","dur":1,"tot":1000,"status":"Completed","no":"Plus reseeding and fertilizer.","rec":"none"},{"id":9,"clientId":17,"sv":"Lawn Mowing","date":"2026-04-07","dur":1,"tot":125,"status":"Upcoming","no":"Yard cleanup and trimming bushes","rec":"none","startTime":"","finishTime":""},{"id":10,"clientId":18,"sv":"Lawn Mowing","date":"2026-04-02","dur":1,"tot":300,"status":"Completed","no":"Yard cleanup","rec":"none"},{"id":11,"clientId":6,"sv":"Lawn Mowing","date":"2026-04-16","dur":1,"tot":120,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-05-14","isRecInstance":true,"parentId":7},{"id":12,"clientId":6,"sv":"Lawn Mowing","date":"2026-04-30","dur":1,"tot":120,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-05-14","isRecInstance":true,"parentId":7},{"id":13,"clientId":6,"sv":"Lawn Mowing","date":"2026-05-14","dur":1,"tot":120,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-05-14","isRecInstance":true,"parentId":7},{"id":14,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-04-10","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":15,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-04-17","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":16,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-04-24","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":17,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-05-01","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":18,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-05-08","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":19,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-05-15","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":20,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-05-22","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":21,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-05-29","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":22,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-06-05","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":23,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-06-12","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":24,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-06-19","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":25,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-06-26","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":26,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-07-03","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":27,"clientId":5,"sv":"Lawn Mowing","date":"2026-04-17","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":4},{"id":28,"clientId":5,"sv":"Lawn Mowing","date":"2026-05-01","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":4},{"id":29,"clientId":5,"sv":"Lawn Mowing","date":"2026-05-15","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":4},{"id":30,"clientId":5,"sv":"Lawn Mowing","date":"2026-05-29","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":4},{"id":31,"clientId":5,"sv":"Lawn Mowing","date":"2026-06-12","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":4},{"id":32,"clientId":5,"sv":"Lawn Mowing","date":"2026-06-26","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":4},{"id":33,"clientId":5,"sv":"Lawn Mowing","date":"2026-07-10","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":4},{"id":34,"clientId":1,"sv":"Full Yard Cleanup","date":"2026-04-10","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":2},{"id":35,"clientId":1,"sv":"Full Yard Cleanup","date":"2026-04-17","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":2},{"id":36,"clientId":1,"sv":"Full Yard Cleanup","date":"2026-04-24","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":2},{"id":37,"clientId":1,"sv":"Full Yard Cleanup","date":"2026-05-01","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":2},{"id":38,"clientId":1,"sv":"Full Yard Cleanup","date":"2026-05-08","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":2},{"id":39,"clientId":1,"sv":"Full Yard Cleanup","date":"2026-05-15","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":2},{"id":40,"clientId":1,"sv":"Full Yard Cleanup","date":"2026-05-22","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":2},{"id":41,"clientId":1,"sv":"Full Yard Cleanup","date":"2026-05-29","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":2},{"id":42,"clientId":1,"sv":"Full Yard Cleanup","date":"2026-06-05","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":2},{"id":43,"clientId":1,"sv":"Full Yard Cleanup","date":"2026-06-12","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":2},{"id":44,"clientId":1,"sv":"Full Yard Cleanup","date":"2026-06-19","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":2},{"id":45,"clientId":1,"sv":"Full Yard Cleanup","date":"2026-06-26","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":2},{"id":46,"clientId":1,"sv":"Full Yard Cleanup","date":"2026-07-03","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":2},{"id":47,"clientId":15,"sv":"Other","date":"2026-04-07","dur":1,"tot":0,"status":"Upcoming","no":"Check sprinkler system. Possible fix","rec":"none","recEnd":null,"isRecInstance":false,"startTime":"","finishTime":""},{"id":48,"clientId":19,"sv":"Lawn Mowing","date":"2026-04-02","dur":1,"tot":60,"status":"Completed","no":"","rec":"none","recEnd":null,"isRecInstance":false},{"id":49,"clientId":13,"sv":"Full Yard Cleanup","date":"2026-04-03","dur":1,"tot":150,"status":"Completed","no":"","rec":"none"},{"id":51,"clientId":9,"sv":"Lawn Mowing","date":"2026-04-08","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"biweekly"},{"id":52,"clientId":9,"sv":"Lawn Mowing","date":"2026-04-22","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none"},{"id":53,"clientId":9,"sv":"Lawn Mowing","date":"2026-05-06","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none"},{"id":54,"clientId":9,"sv":"Lawn Mowing","date":"2026-05-20","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none"},{"id":55,"clientId":9,"sv":"Lawn Mowing","date":"2026-06-03","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none"},{"id":56,"clientId":9,"sv":"Lawn Mowing","date":"2026-06-17","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none"},{"id":57,"clientId":9,"sv":"Lawn Mowing","date":"2026-07-01","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none"},{"id":58,"clientId":9,"sv":"Lawn Mowing","date":"2026-07-15","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none"},{"id":59,"clientId":9,"sv":"Lawn Mowing","date":"2026-07-29","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none"},{"id":60,"clientId":9,"sv":"Lawn Mowing","date":"2026-08-12","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none"},{"id":61,"clientId":9,"sv":"Lawn Mowing","date":"2026-08-26","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none"},{"id":62,"clientId":20,"sv":"Lawn Mowing","date":"2026-04-08","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"biweekly"},{"id":63,"clientId":20,"sv":"Lawn Mowing","date":"2026-04-22","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"none"},{"id":64,"clientId":20,"sv":"Lawn Mowing","date":"2026-05-06","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"none"},{"id":65,"clientId":20,"sv":"Lawn Mowing","date":"2026-05-20","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"none"},{"id":66,"clientId":20,"sv":"Lawn Mowing","date":"2026-06-03","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"none"},{"id":67,"clientId":20,"sv":"Lawn Mowing","date":"2026-06-17","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"none"},{"id":68,"clientId":20,"sv":"Lawn Mowing","date":"2026-07-01","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"none"},{"id":69,"clientId":20,"sv":"Lawn Mowing","date":"2026-07-15","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"none"},{"id":70,"clientId":20,"sv":"Lawn Mowing","date":"2026-07-29","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"none"},{"id":71,"clientId":20,"sv":"Lawn Mowing","date":"2026-08-12","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"none"},{"id":72,"clientId":20,"sv":"Lawn Mowing","date":"2026-08-26","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"none"},{"id":73,"clientId":21,"sv":"Lawn Mowing","date":"2026-04-08","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none"},{"id":74,"clientId":22,"sv":"Lawn Mowing","date":"2026-04-08","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"biweekly","startTime":"","finishTime":""},{"id":75,"clientId":22,"sv":"Lawn Mowing","date":"2026-04-22","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":76,"clientId":22,"sv":"Lawn Mowing","date":"2026-05-06","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":77,"clientId":22,"sv":"Lawn Mowing","date":"2026-05-20","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":78,"clientId":22,"sv":"Lawn Mowing","date":"2026-06-03","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":79,"clientId":22,"sv":"Lawn Mowing","date":"2026-06-17","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":80,"clientId":22,"sv":"Lawn Mowing","date":"2026-07-01","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":81,"clientId":22,"sv":"Lawn Mowing","date":"2026-07-15","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":82,"clientId":22,"sv":"Lawn Mowing","date":"2026-07-29","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":83,"clientId":22,"sv":"Lawn Mowing","date":"2026-08-12","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":84,"clientId":22,"sv":"Lawn Mowing","date":"2026-08-26","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":85,"clientId":23,"sv":"Lawn Mowing","date":"2026-04-10","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"biweekly","startTime":"","finishTime":""},{"id":86,"clientId":23,"sv":"Lawn Mowing","date":"2026-04-24","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":87,"clientId":23,"sv":"Lawn Mowing","date":"2026-05-08","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":88,"clientId":23,"sv":"Lawn Mowing","date":"2026-05-22","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":89,"clientId":23,"sv":"Lawn Mowing","date":"2026-06-05","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":90,"clientId":23,"sv":"Lawn Mowing","date":"2026-06-19","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":91,"clientId":23,"sv":"Lawn Mowing","date":"2026-07-03","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":92,"clientId":23,"sv":"Lawn Mowing","date":"2026-07-17","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":93,"clientId":23,"sv":"Lawn Mowing","date":"2026-07-31","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":94,"clientId":23,"sv":"Lawn Mowing","date":"2026-08-14","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":95,"clientId":23,"sv":"Lawn Mowing","date":"2026-08-28","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":96,"clientId":8,"sv":"Lawn Mowing","date":"2026-04-10","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"biweekly","startTime":"","finishTime":""},{"id":97,"clientId":8,"sv":"Lawn Mowing","date":"2026-04-24","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":98,"clientId":8,"sv":"Lawn Mowing","date":"2026-05-08","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":99,"clientId":8,"sv":"Lawn Mowing","date":"2026-05-22","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":100,"clientId":8,"sv":"Lawn Mowing","date":"2026-06-05","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":101,"clientId":8,"sv":"Lawn Mowing","date":"2026-06-19","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":102,"clientId":8,"sv":"Lawn Mowing","date":"2026-07-03","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":103,"clientId":8,"sv":"Lawn Mowing","date":"2026-07-17","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":104,"clientId":8,"sv":"Lawn Mowing","date":"2026-07-31","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":105,"clientId":8,"sv":"Lawn Mowing","date":"2026-08-14","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":106,"clientId":8,"sv":"Lawn Mowing","date":"2026-08-28","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":113,"clientId":12,"sv":"Lawn Mowing","date":"2026-05-21","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":128,"clientId":11,"sv":"Lawn Mowing","date":"2026-04-23","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"biweekly","startTime":"","finishTime":""},{"id":129,"clientId":11,"sv":"Lawn Mowing","date":"2026-05-07","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":130,"clientId":11,"sv":"Lawn Mowing","date":"2026-05-21","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":131,"clientId":11,"sv":"Lawn Mowing","date":"2026-06-04","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":132,"clientId":11,"sv":"Lawn Mowing","date":"2026-06-18","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":133,"clientId":11,"sv":"Lawn Mowing","date":"2026-07-02","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":134,"clientId":11,"sv":"Lawn Mowing","date":"2026-07-16","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":135,"clientId":11,"sv":"Lawn Mowing","date":"2026-07-30","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":136,"clientId":11,"sv":"Lawn Mowing","date":"2026-08-13","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":137,"clientId":11,"sv":"Lawn Mowing","date":"2026-08-27","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":138,"clientId":12,"sv":"Lawn Mowing","date":"2026-04-09","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","startTime":"","finishTime":""},{"id":139,"clientId":12,"sv":"Lawn Mowing","date":"2026-04-16","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":140,"clientId":12,"sv":"Lawn Mowing","date":"2026-04-23","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":141,"clientId":12,"sv":"Lawn Mowing","date":"2026-04-30","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":142,"clientId":12,"sv":"Lawn Mowing","date":"2026-05-07","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":143,"clientId":12,"sv":"Lawn Mowing","date":"2026-05-14","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":145,"clientId":12,"sv":"Lawn Mowing","date":"2026-05-28","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":146,"clientId":12,"sv":"Lawn Mowing","date":"2026-06-04","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":147,"clientId":12,"sv":"Lawn Mowing","date":"2026-06-11","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":148,"clientId":12,"sv":"Lawn Mowing","date":"2026-06-18","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":149,"clientId":12,"sv":"Lawn Mowing","date":"2026-06-25","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":150,"clientId":12,"sv":"Lawn Mowing","date":"2026-07-02","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":151,"clientId":12,"sv":"Lawn Mowing","date":"2026-07-09","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":152,"clientId":12,"sv":"Lawn Mowing","date":"2026-07-16","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":153,"clientId":12,"sv":"Lawn Mowing","date":"2026-07-23","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":154,"clientId":12,"sv":"Lawn Mowing","date":"2026-07-30","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":155,"clientId":12,"sv":"Lawn Mowing","date":"2026-08-06","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":156,"clientId":12,"sv":"Lawn Mowing","date":"2026-08-13","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":157,"clientId":12,"sv":"Lawn Mowing","date":"2026-08-20","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":158,"clientId":12,"sv":"Lawn Mowing","date":"2026-08-27","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":159,"clientId":18,"sv":"Full Yard Cleanup","date":"2026-04-09","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":160,"clientId":24,"sv":"Full Yard Cleanup","date":"2026-04-07","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":161,"clientId":5,"sv":"Full Yard Cleanup","date":"2026-04-17","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"biweekly","startTime":"","finishTime":""},{"id":162,"clientId":5,"sv":"Full Yard Cleanup","date":"2026-05-01","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":163,"clientId":5,"sv":"Full Yard Cleanup","date":"2026-05-15","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":164,"clientId":5,"sv":"Full Yard Cleanup","date":"2026-05-29","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":165,"clientId":5,"sv":"Full Yard Cleanup","date":"2026-06-12","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":166,"clientId":5,"sv":"Full Yard Cleanup","date":"2026-06-26","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":167,"clientId":5,"sv":"Full Yard Cleanup","date":"2026-07-10","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":168,"clientId":5,"sv":"Full Yard Cleanup","date":"2026-07-24","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":169,"clientId":5,"sv":"Full Yard Cleanup","date":"2026-08-07","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":170,"clientId":5,"sv":"Full Yard Cleanup","date":"2026-08-21","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""}],"invoices":[{"id":1,"clientId":14,"de":"Full Yard Cleanup — Mar 30, 2026","items":[{"d":"Full Yard Cleanup","q":1,"p":200}],"total":200,"date":"2026-03-30","status":"Paid","at":"2026-03-30T18:54:58.998Z"},{"id":2,"clientId":16,"de":"Other — Mar 31, 2026","items":[{"d":"Other","q":1,"p":65}],"total":65,"date":"2026-03-31","status":"Paid","at":"2026-03-31T20:11:33.059Z"},{"id":3,"clientId":15,"de":"Full Yard Cleanup — Mar 31, 2026","items":[{"d":"Full Yard Cleanup","q":1,"p":1000}],"total":1000,"date":"2026-03-31","status":"Paid","at":"2026-03-31T20:11:40.137Z"},{"id":4,"clientId":18,"de":"","items":[{"d":"Yard cleanup","q":1,"p":320}],"total":320,"date":"2026-04-02","status":"Paid"},{"id":5,"clientId":6,"de":"Mowing","items":[{"d":"Mowing","q":1,"p":120}],"total":120,"date":"2026-04-02","status":"Paid"},{"id":6,"clientId":19,"de":"","items":[{"d":"Mowing","q":1,"p":60}],"total":60,"date":"2026-04-02","status":"Paid"},{"id":7,"clientId":12,"de":"Lawn Mowing - Apr 3, 2026","items":[{"d":"Lawn Mowing","q":1,"p":50}],"total":50,"date":"2026-04-03","status":"Paid"},{"id":8,"clientId":13,"de":"Full Yard Cleanup - Apr 3, 2026","items":[{"d":"Full Yard Cleanup","q":1,"p":170}],"total":170,"date":"2026-04-03","status":"Paid"},{"id":9,"clientId":2,"de":"Full Yard Cleanup - Apr 3, 2026","items":[{"d":"Full Yard Cleanup","q":1,"p":50}],"total":50,"date":"2026-04-03","status":"Paid"},{"id":10,"clientId":1,"de":"Full Yard Cleanup - Apr 3, 2026","items":[{"d":"Full Yard Cleanup","q":1,"p":50}],"total":50,"date":"2026-04-03","status":"Paid"}],"nxt":{c:25,j:171,i:11},"activity":[]};
+
 
 function loadDB() {
   try {
@@ -2761,6 +2759,70 @@ function loadBizProfile() {
     prev.innerHTML = '<span style="font-size: 11px; color: var(--text3); text-align: center; padding: 8px;">Tap to upload logo</span>';
     prev.dataset.src = '';
   }
+  
+  // Load GitHub token
+  const token = getGithubToken();
+  document.getElementById('gh-token').value = token ? '••••••••••' : '';
+  updateGithubStatus();
+}
+
+function saveGithubToken() {
+  const token = document.getElementById('gh-token').value.trim();
+  if (!token || token === '••••••••••') {
+    toast('⚠️ Please enter a valid token');
+    return;
+  }
+  setGithubToken(token);
+  document.getElementById('gh-token').value = '••••••••••';
+  updateGithubStatus();
+}
+
+function clearGithubToken() {
+  if (confirm('Remove GitHub sync token?')) {
+    setGithubToken('');
+    document.getElementById('gh-token').value = '';
+    updateGithubStatus();
+  }
+}
+
+async function testGithubConnection() {
+  const token = getGithubToken();
+  if (!token) {
+    toast('⚠️ Token not set');
+    return;
+  }
+  
+  document.getElementById('gh-status').textContent = '🔄 Testing...';
+  
+  try {
+    const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}`, {
+      headers: {'Authorization': `token ${token}`}
+    });
+    
+    if (resp.ok) {
+      document.getElementById('gh-status').innerHTML = '✅ <strong>Connected!</strong> Your data will auto-sync to GitHub.';
+      document.getElementById('gh-status').style.color = 'var(--green)';
+      await pushDataToGithub();
+    } else {
+      document.getElementById('gh-status').innerHTML = '❌ <strong>Connection failed</strong> - Check token or repo access';
+      document.getElementById('gh-status').style.color = 'var(--red)';
+    }
+  } catch (e) {
+    document.getElementById('gh-status').innerHTML = '❌ <strong>Error</strong> - ' + e.message;
+    document.getElementById('gh-status').style.color = 'var(--red)';
+  }
+}
+
+function updateGithubStatus() {
+  const token = getGithubToken();
+  const el = document.getElementById('gh-status');
+  if (token) {
+    el.innerHTML = '✅ Token saved. Data will sync automatically.';
+    el.style.color = 'var(--green)';
+  } else {
+    el.innerHTML = '⚠️ No token set. Add one to enable auto-sync.';
+    el.style.color = 'var(--text3)';
+  }
 }
 
 function uploadLogo(e) {
@@ -2872,6 +2934,122 @@ function updateInvoicePreview() {
   `;
   
   document.getElementById('settings-inv-preview').innerHTML = html;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// GITHUB DATA SYNC
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const GITHUB_SYNC_KEY = 'pyc_gh_token';
+const GITHUB_DATA_FILE = 'pyc_data.json';
+const GITHUB_REPO_OWNER = 'PatsYardCare-creator';
+const GITHUB_REPO_NAME = 'App';
+
+function getGithubToken() {
+  return localStorage.getItem(GITHUB_SYNC_KEY) || '';
+}
+
+function setGithubToken(token) {
+  if (token) {
+    localStorage.setItem(GITHUB_SYNC_KEY, token);
+    toast('✅ GitHub token saved!');
+  } else {
+    localStorage.removeItem(GITHUB_SYNC_KEY);
+    toast('GitHub token removed');
+  }
+}
+
+async function pushDataToGithub() {
+  const token = getGithubToken();
+  if (!token) {
+    toast('⚠️ GitHub token not set. Go to Settings > GitHub Sync');
+    return;
+  }
+  
+  try {
+    const data = JSON.stringify(DB);
+    const url = `https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_DATA_FILE}`;
+    
+    // Get current file SHA
+    const getResp = await fetch(url, {
+      headers: {'Authorization': `token ${token}`}
+    });
+    
+    let sha = '';
+    if (getResp.ok) {
+      const fileData = await getResp.json();
+      sha = fileData.sha;
+    }
+    
+    // Push updated file
+    const pushResp = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: `Auto-sync: ${new Date().toLocaleString()}`,
+        content: btoa(data),
+        sha: sha || undefined
+      })
+    });
+    
+    if (pushResp.ok) {
+      localStorage.setItem('pyc_last_gh_sync', new Date().toISOString());
+      console.log('✅ Data synced to GitHub');
+    } else {
+      console.error('GitHub push failed:', await pushResp.json());
+    }
+  } catch (e) {
+    console.error('GitHub sync error:', e);
+  }
+}
+
+async function pullDataFromGithub() {
+  const token = getGithubToken();
+  if (!token) return;
+  
+  try {
+    const url = `https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_DATA_FILE}`;
+    
+    const resp = await fetch(url, {
+      headers: {'Authorization': `token ${token}`}
+    });
+    
+    if (!resp.ok) return;
+    
+    const fileData = await resp.json();
+    const content = JSON.parse(atob(fileData.content));
+    
+    // Merge remote data (remote takes precedence for older timestamps)
+    const localTime = new Date(localStorage.getItem('pyc_last_gh_sync') || 0).getTime();
+    const remoteTime = new Date(fileData.updated_at).getTime();
+    
+    if (remoteTime > localTime) {
+      DB = content;
+      save();
+      toast('✅ Data synced from GitHub');
+      location.reload();
+    }
+  } catch (e) {
+    console.error('GitHub pull error:', e);
+  }
+}
+
+function initGithubSync() {
+  const token = getGithubToken();
+  if (!token) return;
+  
+  // Pull on startup
+  pullDataFromGithub();
+  
+  // Push after every save
+  const originalSave = window.save;
+  window.save = function() {
+    originalSave();
+    setTimeout(pushDataToGithub, 500);
+  };
 }
 
 function toggleDarkMode() {
@@ -3001,6 +3179,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadDB();
   initDarkMode();
   initPIN();
+  initGithubSync();
   
   document.getElementById('btn-new-job').onclick = newJob;
   document.getElementById('btn-new-invoice').onclick = newInvoice;
