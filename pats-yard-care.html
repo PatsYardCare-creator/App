@@ -11,6 +11,8 @@
 <meta name="apple-mobile-web-app-title" content="Yard Care">
 <link rel="manifest" href="/App/manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 :root {
   --green: #2d7a3a;
@@ -1386,9 +1388,9 @@ nav {
       </div>
       
       <!-- Map -->
-      <div id="measure-map" style="width: 100%; height: 400px; border: 2px solid var(--border); border-radius: var(--radius); margin-bottom: 14px; background: var(--surface2); position: relative; cursor: crosshair; overflow: hidden;">
-        <iframe id="measure-iframe" style="width: 100%; height: 100%; border: none; display: none;"></iframe>
-        <canvas id="measure-canvas" style="display: block;"></canvas>
+      <div id="measure-map" style="width: 100%; height: 400px; border: 2px solid var(--border); border-radius: var(--radius); margin-bottom: 14px; background: var(--surface2); position: relative; overflow: hidden;">
+        <div id="measure-leaflet" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1;"></div>
+        <canvas id="measure-canvas" style="position: absolute; top: 0; left: 0; z-index: 2; pointer-events: none; display: block;"></canvas>
       </div>
       
       <!-- Results -->
@@ -1830,124 +1832,134 @@ let measureMode = false;
 let measureCanvas = null;
 let measureCtx = null;
 let currentMapCenter = {lat: 35.2642, lng: -97.4867}; // Duncan, OK default
-let mapZoom = 17;
-let mapScale = 1; // pixels per meter at current zoom
+let mapZoom = 20;
+let mapScale = 1;
+let leafletMap = null;
+let leafletPolyline = null;
+let leafletMarkers = [];
+let leafletPolygon = null;
 
 function initMeasureTool() {
   const mapEl = document.getElementById('measure-map');
   if (!mapEl) return;
-  
-  // Get or create canvas
-  let measureCanvas = document.getElementById('measure-canvas');
-  if (!measureCanvas) {
-    measureCanvas = document.createElement('canvas');
-    measureCanvas.id = 'measure-canvas';
-    measureCanvas.style.cssText = 'position: absolute; top: 0; left: 0; cursor: crosshair; display: block;';
-    mapEl.innerHTML = ''; // Clear any old content
-    mapEl.appendChild(measureCanvas);
+
+  // Init Leaflet map
+  if (!leafletMap) {
+    leafletMap = L.map('measure-leaflet', {
+      center: [currentMapCenter.lat, currentMapCenter.lng],
+      zoom: mapZoom,
+      zoomControl: true,
+      attributionControl: true
+    });
+
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 21,
+      attribution: 'Tiles © Esri — Source: Esri, Maxar, GeoEye, Earthstar Geographics'
+    }).addTo(leafletMap);
+
+    leafletMap.on('click', function(e) {
+      if (!measureMode) return;
+      const latlng = e.latlng;
+      addMeasurePointLatLng(latlng.lat, latlng.lng);
+    });
+  } else {
+    leafletMap.setView([currentMapCenter.lat, currentMapCenter.lng], mapZoom);
+    setTimeout(() => leafletMap.invalidateSize(), 100);
   }
-  
-  measureCanvas.width = mapEl.offsetWidth;
-  measureCanvas.height = mapEl.offsetHeight;
-  
-  window.measureCanvas = measureCanvas; // Store globally
-  window.measureCtx = measureCanvas.getContext('2d');
-  
-  drawMeasureMap();
-  measureCanvas.addEventListener('click', addMeasurePoint);
-  
+
+  // Sync canvas size to map
+  const canvas = document.getElementById('measure-canvas');
+  canvas.width = mapEl.offsetWidth;
+  canvas.height = mapEl.offsetHeight;
+  window.measureCanvas = canvas;
+  window.measureCtx = canvas.getContext('2d');
+
+  setTimeout(() => { leafletMap.invalidateSize(); }, 200);
   toast('✅ Map ready! Search an address or use GPS.');
 }
 
+function addMeasurePointLatLng(lat, lng) {
+  if (!measureMode) return;
+
+  // Check if closing polygon
+  if (measurePoints.length > 2) {
+    const first = measurePoints[0];
+    const firstPx = leafletMap.latLngToContainerPoint([first.lat, first.lng]);
+    const thisPx = leafletMap.latLngToContainerPoint([lat, lng]);
+    const dist = Math.hypot(thisPx.x - firstPx.x, thisPx.y - firstPx.y);
+    if (dist < 20) {
+      measureMode = false;
+      document.getElementById('measure-mode').textContent = '🖍️ Draw';
+      document.getElementById('measure-mode').style.background = '';
+      updateLeafletShape();
+      calcMeasurement();
+      return;
+    }
+  }
+
+  measurePoints.push({lat, lng});
+  updateLeafletShape();
+  calcMeasurement();
+}
+
+function updateLeafletShape() {
+  if (!leafletMap) return;
+
+  // Clear old overlays
+  leafletMarkers.forEach(m => leafletMap.removeLayer(m));
+  leafletMarkers = [];
+  if (leafletPolyline) { leafletMap.removeLayer(leafletPolyline); leafletPolyline = null; }
+  if (leafletPolygon) { leafletMap.removeLayer(leafletPolygon); leafletPolygon = null; }
+
+  if (measurePoints.length === 0) return;
+
+  const latlngs = measurePoints.map(p => [p.lat, p.lng]);
+
+  // Draw filled polygon if 3+ points
+  if (measurePoints.length >= 3) {
+    leafletPolygon = L.polygon(latlngs, {
+      color: '#2d7a3a',
+      weight: 2,
+      fillColor: '#2d7a3a',
+      fillOpacity: 0.15
+    }).addTo(leafletMap);
+  }
+
+  // Draw polyline
+  leafletPolyline = L.polyline(latlngs, {color: '#2d7a3a', weight: 2}).addTo(leafletMap);
+
+  // Draw markers with numbers
+  measurePoints.forEach((p, i) => {
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="width:22px;height:22px;border-radius:50%;background:#2d7a3a;border:2px solid white;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.4)">${i+1}</div>`,
+      iconSize: [22, 22],
+      iconAnchor: [11, 11]
+    });
+    const marker = L.marker([p.lat, p.lng], {icon}).addTo(leafletMap);
+    leafletMarkers.push(marker);
+  });
+}
+
 function drawMeasureMap() {
-  const ctx = window.measureCtx;
-  const canvas = window.measureCanvas;
-  
-  if (!ctx || !canvas) return;
-  
-  // Background (light map-like color)
-  ctx.fillStyle = '#e8f4f8';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
-  // Grid
-  ctx.strokeStyle = '#d0d0d0';
-  ctx.lineWidth = 1;
-  const gridSize = 40;
-  for (let x = 0; x < canvas.width; x += gridSize) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, canvas.height);
-    ctx.stroke();
-  }
-  for (let y = 0; y < canvas.height; y += gridSize) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(canvas.width, y);
-    ctx.stroke();
-  }
-  
-  // Center crosshair
-  const cx = canvas.width / 2;
-  const cy = canvas.height / 2;
-  ctx.strokeStyle = '#2d7a3a';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(cx - 20, cy);
-  ctx.lineTo(cx + 20, cy);
-  ctx.moveTo(cx, cy - 20);
-  ctx.lineTo(cx, cy + 20);
-  ctx.stroke();
-  
-  // Draw existing shape
-  if (measurePoints.length > 0) {
-    // Draw lines
-    ctx.strokeStyle = '#2d7a3a';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(measurePoints[0].x, measurePoints[0].y);
-    for (let i = 1; i < measurePoints.length; i++) {
-      ctx.lineTo(measurePoints[i].x, measurePoints[i].y);
-    }
-    if (measurePoints.length > 2) {
-      ctx.lineTo(measurePoints[0].x, measurePoints[0].y);
-    }
-    ctx.stroke();
-    
-    // Draw points
-    ctx.fillStyle = '#2d7a3a';
-    for (let p of measurePoints) {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = 'white';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-    
-    // Draw labels
-    ctx.fillStyle = '#2d7a3a';
-    ctx.font = 'bold 12px DM Sans';
-    for (let i = 0; i < measurePoints.length; i++) {
-      ctx.fillText(i + 1, measurePoints[i].x + 10, measurePoints[i].y - 10);
-    }
+  // Legacy stub — Leaflet handles rendering now
+  if (leafletMap) {
+    leafletMap.setView([currentMapCenter.lat, currentMapCenter.lng], mapZoom);
+    setTimeout(() => leafletMap.invalidateSize(), 100);
   }
 }
 
 function useGPS() {
   toast('📍 Getting your location...');
-  
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        currentMapCenter = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude
-        };
-        
-        // Reverse geocode to get address
+        currentMapCenter = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         reverseGeocode(currentMapCenter.lat, currentMapCenter.lng);
         resetMeasurement();
-        drawMeasureMap();
+        if (leafletMap) {
+          leafletMap.setView([currentMapCenter.lat, currentMapCenter.lng], mapZoom);
+        }
         toast('✅ Location loaded!');
       },
       (err) => {
@@ -1970,7 +1982,6 @@ async function searchMeasureAddress() {
   toast('🔍 Searching...');
   
   try {
-    // Use Nominatim (free, open-source geocoding)
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
     const resp = await fetch(url);
     const data = await resp.json();
@@ -1988,7 +1999,10 @@ async function searchMeasureAddress() {
     
     document.getElementById('measure-location').textContent = result.display_name;
     resetMeasurement();
-    drawMeasureMap();
+    if (leafletMap) {
+      leafletMap.setView([currentMapCenter.lat, currentMapCenter.lng], mapZoom);
+      setTimeout(() => leafletMap.invalidateSize(), 100);
+    }
     toast('✅ Address loaded!');
   } catch (e) {
     console.error('Geocoding error:', e);
@@ -2011,39 +2025,20 @@ async function reverseGeocode(lat, lng) {
 }
 
 function addMeasurePoint(e) {
-  if (!measureMode || !window.measureCanvas) return;
-  
-  const rect = window.measureCanvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  
-  // Check if closing shape (near first point)
-  if (measurePoints.length > 2) {
-    const dist = Math.hypot(x - measurePoints[0].x, y - measurePoints[0].y);
-    if (dist < 15) {
-      measureMode = false;
-      document.getElementById('measure-mode').textContent = '🖍️ Draw';
-      document.getElementById('measure-mode').style.background = '';
-      updateMeasurement();
-      return;
-    }
-  }
-  
-  measurePoints.push({x, y});
-  drawMeasureMap();
+  // Legacy stub — Leaflet map click handler now calls addMeasurePointLatLng
 }
 
 function undoMeasurePoint() {
   if (measurePoints.length > 0) {
     measurePoints.pop();
-    drawMeasureMap();
-    updateMeasurement();
+    updateLeafletShape();
+    calcMeasurement();
   }
 }
 
 function toggleMeasureMode() {
-  if (!currentMapCenter || !document.getElementById('measure-location').textContent) {
-    toast('⚠️ Select a location first (GPS or search)');
+  if (!leafletMap) {
+    toast('⚠️ Open the Measurement Tool first');
     return;
   }
   
@@ -2053,13 +2048,28 @@ function toggleMeasureMode() {
     btn.textContent = '✓ Done';
     btn.style.background = '#2d7a3a';
     btn.style.color = 'white';
-    toast('👆 Tap on the map to mark corners');
+    leafletMap.getContainer().style.cursor = 'crosshair';
+    toast('👆 Tap on the map to mark corners. Tap near point 1 to close.');
   } else {
     btn.textContent = '🖍️ Draw';
     btn.style.background = '';
     btn.style.color = '';
-    updateMeasurement();
+    leafletMap.getContainer().style.cursor = '';
+    calcMeasurement();
   }
+}
+
+// Haversine distance in meters between two lat/lng points
+function haversineMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function calcMeasurement() {
+  updateMeasurement();
 }
 
 function updateMeasurement() {
@@ -2068,35 +2078,35 @@ function updateMeasurement() {
     document.getElementById('measure-perim').textContent = '0 ft';
     return;
   }
-  
-  // Calculate area (shoelace formula)
-  // 1 pixel ≈ 0.3 meters at zoom 17 (adjust based on actual zoom)
-  const pxToMeter = 0.3 / mapZoom;
-  
+
+  // Shoelace formula using projected meters (equirectangular approximation)
+  const avgLat = measurePoints.reduce((s, p) => s + p.lat, 0) / measurePoints.length * Math.PI / 180;
+  const mPerDegLat = 111320;
+  const mPerDegLng = 111320 * Math.cos(avgLat);
+
   let area = 0;
-  for (let i = 0; i < measurePoints.length; i++) {
-    const j = (i + 1) % measurePoints.length;
-    area += measurePoints[i].x * measurePoints[j].y;
-    area -= measurePoints[j].x * measurePoints[i].y;
+  const n = measurePoints.length;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const xi = measurePoints[i].lng * mPerDegLng;
+    const yi = measurePoints[i].lat * mPerDegLat;
+    const xj = measurePoints[j].lng * mPerDegLng;
+    const yj = measurePoints[j].lat * mPerDegLat;
+    area += xi * yj - xj * yi;
   }
-  area = Math.abs(area) / 2;
-  const sqMeters = area * (pxToMeter * pxToMeter);
-  const sqFeet = sqMeters * 10.764; // sq meters to sq feet
-  
-  // Calculate perimeter
-  let perim = 0;
-  for (let i = 0; i < measurePoints.length; i++) {
-    const j = (i + 1) % measurePoints.length;
-    const dist = Math.hypot(
-      measurePoints[j].x - measurePoints[i].x,
-      measurePoints[j].y - measurePoints[i].y
-    );
-    perim += dist;
+  const sqMeters = Math.abs(area) / 2;
+  const sqFeet = sqMeters * 10.764;
+
+  // Perimeter using Haversine
+  let perimMeters = 0;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    perimMeters += haversineMeters(measurePoints[i].lat, measurePoints[i].lng, measurePoints[j].lat, measurePoints[j].lng);
   }
-  const perimFeet = perim * pxToMeter * 3.281; // meters to feet
-  
-  document.getElementById('measure-area').textContent = Math.round(sqFeet) + ' sq ft';
-  document.getElementById('measure-perim').textContent = Math.round(perimFeet) + ' ft';
+  const perimFeet = perimMeters * 3.28084;
+
+  document.getElementById('measure-area').textContent = Math.round(sqFeet).toLocaleString() + ' sq ft';
+  document.getElementById('measure-perim').textContent = Math.round(perimFeet).toLocaleString() + ' ft';
 }
 
 function resetMeasurement() {
@@ -2107,7 +2117,8 @@ function resetMeasurement() {
   document.getElementById('measure-mode').style.color = '';
   document.getElementById('measure-area').textContent = '0 sq ft';
   document.getElementById('measure-perim').textContent = '0 ft';
-  if (window.measureCanvas) drawMeasureMap();
+  updateLeafletShape();
+  if (leafletMap) leafletMap.getContainer().style.cursor = '';
 }
 
 function copyMeasurement() {
