@@ -1837,90 +1837,98 @@ function initMeasureTool() {
   const mapEl = document.getElementById('measure-map');
   if (!mapEl) return;
   
-  // Create canvas
-  measureCanvas = document.getElementById('measure-canvas');
+  // Get or create canvas
+  let measureCanvas = document.getElementById('measure-canvas');
   if (!measureCanvas) {
     measureCanvas = document.createElement('canvas');
     measureCanvas.id = 'measure-canvas';
     measureCanvas.style.cssText = 'position: absolute; top: 0; left: 0; cursor: crosshair; display: block;';
+    mapEl.innerHTML = ''; // Clear any old content
     mapEl.appendChild(measureCanvas);
   }
   
   measureCanvas.width = mapEl.offsetWidth;
   measureCanvas.height = mapEl.offsetHeight;
-  measureCtx = measureCanvas.getContext('2d');
+  
+  window.measureCanvas = measureCanvas; // Store globally
+  window.measureCtx = measureCanvas.getContext('2d');
   
   drawMeasureMap();
   measureCanvas.addEventListener('click', addMeasurePoint);
+  
+  toast('✅ Map ready! Search an address or use GPS.');
 }
 
 function drawMeasureMap() {
-  if (!measureCtx) return;
+  const ctx = window.measureCtx;
+  const canvas = window.measureCanvas;
+  
+  if (!ctx || !canvas) return;
   
   // Background (light map-like color)
-  measureCtx.fillStyle = '#e8f4f8';
-  measureCtx.fillRect(0, 0, measureCanvas.width, measureCanvas.height);
+  ctx.fillStyle = '#e8f4f8';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   
   // Grid
-  measureCtx.strokeStyle = '#d0d0d0';
-  measureCtx.lineWidth = 1;
+  ctx.strokeStyle = '#d0d0d0';
+  ctx.lineWidth = 1;
   const gridSize = 40;
-  for (let x = 0; x < measureCanvas.width; x += gridSize) {
-    measureCtx.beginPath();
-    measureCtx.moveTo(x, 0);
-    measureCtx.lineTo(x, measureCanvas.height);
-    measureCtx.stroke();
+  for (let x = 0; x < canvas.width; x += gridSize) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, canvas.height);
+    ctx.stroke();
   }
-  for (let y = 0; y < measureCanvas.height; y += gridSize) {
-    measureCtx.beginPath();
-    measureCtx.moveTo(0, y);
-    measureCtx.lineTo(measureCanvas.width, y);
-    measureCtx.stroke();
+  for (let y = 0; y < canvas.height; y += gridSize) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(canvas.width, y);
+    ctx.stroke();
   }
   
   // Center crosshair
-  const cx = measureCanvas.width / 2;
-  const cy = measureCanvas.height / 2;
-  measureCtx.strokeStyle = '#2d7a3a';
-  measureCtx.lineWidth = 2;
-  measureCtx.beginPath();
-  measureCtx.moveTo(cx - 20, cy);
-  measureCtx.lineTo(cx + 20, cy);
-  measureCtx.moveTo(cx, cy - 20);
-  measureCtx.lineTo(cx, cy + 20);
-  measureCtx.stroke();
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  ctx.strokeStyle = '#2d7a3a';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx - 20, cy);
+  ctx.lineTo(cx + 20, cy);
+  ctx.moveTo(cx, cy - 20);
+  ctx.lineTo(cx, cy + 20);
+  ctx.stroke();
   
   // Draw existing shape
   if (measurePoints.length > 0) {
     // Draw lines
-    measureCtx.strokeStyle = '#2d7a3a';
-    measureCtx.lineWidth = 2;
-    measureCtx.beginPath();
-    measureCtx.moveTo(measurePoints[0].x, measurePoints[0].y);
+    ctx.strokeStyle = '#2d7a3a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(measurePoints[0].x, measurePoints[0].y);
     for (let i = 1; i < measurePoints.length; i++) {
-      measureCtx.lineTo(measurePoints[i].x, measurePoints[i].y);
+      ctx.lineTo(measurePoints[i].x, measurePoints[i].y);
     }
     if (measurePoints.length > 2) {
-      measureCtx.lineTo(measurePoints[0].x, measurePoints[0].y);
+      ctx.lineTo(measurePoints[0].x, measurePoints[0].y);
     }
-    measureCtx.stroke();
+    ctx.stroke();
     
     // Draw points
-    measureCtx.fillStyle = '#2d7a3a';
+    ctx.fillStyle = '#2d7a3a';
     for (let p of measurePoints) {
-      measureCtx.beginPath();
-      measureCtx.arc(p.x, p.y, 6, 0, Math.PI * 2);
-      measureCtx.fill();
-      measureCtx.strokeStyle = 'white';
-      measureCtx.lineWidth = 2;
-      measureCtx.stroke();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 2;
+      ctx.stroke();
     }
     
     // Draw labels
-    measureCtx.fillStyle = '#2d7a3a';
-    measureCtx.font = 'bold 12px DM Sans';
+    ctx.fillStyle = '#2d7a3a';
+    ctx.font = 'bold 12px DM Sans';
     for (let i = 0; i < measurePoints.length; i++) {
-      measureCtx.fillText(i + 1, measurePoints[i].x + 10, measurePoints[i].y - 10);
+      ctx.fillText(i + 1, measurePoints[i].x + 10, measurePoints[i].y - 10);
     }
   }
 }
@@ -2003,9 +2011,9 @@ async function reverseGeocode(lat, lng) {
 }
 
 function addMeasurePoint(e) {
-  if (!measureMode || !measureCanvas) return;
+  if (!measureMode || !window.measureCanvas) return;
   
-  const rect = measureCanvas.getBoundingClientRect();
+  const rect = window.measureCanvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
   
@@ -2099,7 +2107,7 @@ function resetMeasurement() {
   document.getElementById('measure-mode').style.color = '';
   document.getElementById('measure-area').textContent = '0 sq ft';
   document.getElementById('measure-perim').textContent = '0 ft';
-  if (measureCanvas) drawMeasureMap();
+  if (window.measureCanvas) drawMeasureMap();
 }
 
 function copyMeasurement() {
