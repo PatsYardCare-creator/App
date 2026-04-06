@@ -1832,7 +1832,7 @@ let measureMode = false;
 let measureCanvas = null;
 let measureCtx = null;
 let currentMapCenter = {lat: 35.2642, lng: -97.4867}; // Duncan, OK default
-let mapZoom = 20;
+let mapZoom = 19;
 let mapScale = 1;
 let leafletMap = null;
 let leafletPolyline = null;
@@ -1852,9 +1852,9 @@ function initMeasureTool() {
       attributionControl: true
     });
 
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
       maxZoom: 21,
-      attribution: 'Tiles © Esri — Source: Esri, Maxar, GeoEye, Earthstar Geographics'
+      attribution: '© Google Satellite'
     }).addTo(leafletMap);
 
     leafletMap.on('click', function(e) {
