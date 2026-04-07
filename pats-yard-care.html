@@ -11,8 +11,6 @@
 <meta name="apple-mobile-web-app-title" content="Yard Care">
 <link rel="manifest" href="/App/manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 :root {
   --green: #2d7a3a;
@@ -1217,6 +1215,7 @@ nav {
     <div class="nav-item" onclick="gotoPage('jobs', this)">🔧 Jobs</div>
     <div class="nav-section">Finance</div>
     <div class="nav-item" onclick="gotoPage('invoices', this)">🧾 Invoices</div>
+    <div class="nav-item" onclick="gotoPage('quotes', this)">💬 Quotes</div>
     <div class="nav-section">Clients</div>
     <div class="nav-item" onclick="gotoPage('clients', this)">👥 Clients</div>
     <div class="nav-section">Tools</div>
@@ -1379,18 +1378,18 @@ nav {
       <div class="card" style="margin-bottom: 14px;">
         <div style="padding: 16px;">
           <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-            <input class="form-control" id="measure-address" type="text" placeholder="Enter address or search..." style="flex: 1; min-width: 200px;">
+            <input class="form-control" id="measure-address" type="text" placeholder="Enter address..." style="flex: 1; min-width: 150px;">
             <button class="btn btn-primary btn-sm" onclick="searchMeasureAddress()">🔍 Search</button>
-            <button class="btn btn-secondary btn-sm" onclick="useGPS()">📍 GPS</button>
           </div>
           <div id="measure-location" style="font-size: 12px; color: var(--text3);">No location selected</div>
         </div>
       </div>
       
-      <!-- Map -->
-      <div id="measure-map" style="width: 100%; height: 400px; border: 2px solid var(--border); border-radius: var(--radius); margin-bottom: 14px; background: var(--surface2); position: relative; overflow: hidden;">
-        <div id="measure-leaflet" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1;"></div>
-        <canvas id="measure-canvas" style="position: absolute; top: 0; left: 0; z-index: 2; pointer-events: none; display: block;"></canvas>
+      <!-- Drawing Area with SVG -->
+      <div id="measure-map" style="width: 100%; height: 400px; border: 2px solid var(--border); border-radius: var(--radius); margin-bottom: 14px; background: #f5f5f5; position: relative; overflow: hidden;">
+        <svg id="measure-svg" style="width: 100%; height: 100%; background: linear-gradient(45deg, #fff 25%, transparent 25%, transparent 75%, #fff 75%, #fff), linear-gradient(45deg, #fff 25%, transparent 25%, transparent 75%, #fff 75%, #fff); background-size: 40px 40px; background-position: 0 0, 20px 20px; background-color: #f5f5f5;">
+          <rect width="100%" height="100%" fill="none" id="svg-rect"></rect>
+        </svg>
       </div>
       
       <!-- Results -->
@@ -1418,12 +1417,72 @@ nav {
         <div style="padding: 16px;">
           <div style="font-size: 12px; color: var(--text3); margin-bottom: 8px;">How to use:</div>
           <div style="font-size: 12px; color: var(--text2); line-height: 1.6;">
-            1. Search an address or use GPS<br>
-            2. Click <strong>Draw</strong> to start<br>
-            3. Mark corners on the map<br>
-            4. Close shape to calculate<br>
+            1. Enter address and search<br>
+            2. Click <strong>Draw</strong><br>
+            3. Tap corners on the grid<br>
+            4. Click near start to close<br>
             5. View area & perimeter
           </div>
+        </div>
+      </div>
+
+      <!-- FLOWER BED CALCULATOR -->
+      <div class="card" style="margin-top: 20px;">
+        <div class="card-header">🌸 Flower Bed Calculator</div>
+        <div style="padding: 16px;">
+          <div style="background: var(--green-light); color: var(--green-dark); padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 12px; line-height: 1.5;">
+            <strong>Calculate mulch, soil, or plantings needed</strong><br>
+            Enter dimensions to get square footage and cubic yardage
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Length (feet)</label>
+              <input class="form-control" id="fb-length" type="number" placeholder="20" min="0" step="0.1" oninput="calcFlowerBed()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Width (feet)</label>
+              <input class="form-control" id="fb-width" type="number" placeholder="10" min="0" step="0.1" oninput="calcFlowerBed()">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Depth (inches)</label>
+              <input class="form-control" id="fb-depth" type="number" placeholder="4" min="0" step="0.5" value="4" oninput="calcFlowerBed()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Depth Type</label>
+              <select class="form-control" id="fb-depth-type" onchange="calcFlowerBed()">
+                <option value="mulch">Mulch (2-4")</option>
+                <option value="soil">Garden Soil (6-12")</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; padding: 14px; background: var(--surface2); border-radius: 8px;">
+            <div>
+              <div style="font-size: 11px; color: var(--text3); margin-bottom: 6px;">SQUARE FOOTAGE</div>
+              <div id="fb-sqft" style="font-size: 24px; font-weight: 700; color: var(--green);">0 sq ft</div>
+            </div>
+            <div>
+              <div style="font-size: 11px; color: var(--text3); margin-bottom: 6px;">CUBIC YARDAGE</div>
+              <div id="fb-cubic" style="font-size: 24px; font-weight: 700; color: var(--green);">0 cu yd</div>
+            </div>
+          </div>
+
+          <div style="background: var(--surface2); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+            <div style="font-size: 12px; color: var(--text2); margin-bottom: 8px;">📋 <strong>Shopping List</strong></div>
+            <div id="fb-shopping" style="font-size: 12px; color: var(--text2); line-height: 1.8;">
+              Length: — feet<br>
+              Width: — feet<br>
+              Depth: — inches
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-sm" onclick="copyFlowerBedCalc()">📋 Copy Results</button>
+          <button class="btn btn-secondary btn-sm" onclick="resetFlowerBed()" style="margin-left: 8px;">Clear</button>
         </div>
       </div>
     </div>
@@ -1544,6 +1603,21 @@ nav {
         </div>
         
         <div id="gh-status" style="margin-top: 12px; font-size: 12px; color: var(--text3);"></div>
+      </div>
+    </div>
+
+    <!-- QUOTES PAGE -->
+    <div class="page" id="page-quotes">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px; flex-wrap: wrap;">
+        <span style="font-weight: 700;">Quotes</span>
+        <button class="btn btn-primary btn-sm" onclick="newQuote()">+ New Quote</button>
+      </div>
+      <div class="search-bar">
+        <span>🔍</span>
+        <input type="text" placeholder="Search quotes..." id="quote-search" oninput="renderQuotes()">
+      </div>
+      <div class="card">
+        <div id="quotes-list" style="padding: 18px;"></div>
       </div>
     </div>
 
@@ -1716,6 +1790,42 @@ nav {
   </div>
 </div>
 
+<!-- QUOTE MODAL -->
+<div class="modal-overlay" id="m-quote">
+  <div class="modal">
+    <div class="modal-header"><h3>💬 Quote</h3><button class="close-btn" onclick="closeModal('m-quote')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="q-id">
+      <div class="form-group"><label class="form-label">Client *</label><select class="form-control" id="q-cl"></select></div>
+      <div class="form-group"><label class="form-label">Description</label><input class="form-control" id="q-de" placeholder="Project description"></div>
+      <div class="form-group">
+        <label class="form-label">Line Items</label>
+        <div id="q-lines"></div>
+        <button class="btn btn-ghost btn-sm" style="margin-top: 4px;" onclick="addLine('q-lines')">+ Add Line</button>
+      </div>
+      <div style="display: flex; justify-content: space-between; padding: 12px 0; border-top: 1px solid var(--border); font-weight: 700;">
+        <span>Total</span><span id="q-total">$0.00</span>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Valid Until</label><input class="form-control" id="q-exp" type="date"></div>
+        <div class="form-group"><label class="form-label">Status</label>
+          <select class="form-control" id="q-st">
+            <option>Pending</option>
+            <option>Sent</option>
+            <option>Accepted</option>
+            <option>Rejected</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control" id="q-no" rows="2" placeholder="Additional notes..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('m-quote')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveQuote()">Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- CONFIRM MODAL -->
 <div class="modal-overlay" id="m-confirm">
   <div class="modal" style="width: 360px;">
@@ -1814,7 +1924,7 @@ function gotoPage(p, el) {
   document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
   if (el) el.classList.add('active');
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.p === p));
-  const titles = {dashboard: 'Dashboard', schedule: 'Schedule', jobs: 'Jobs', invoices: 'Invoices', clients: 'Clients', measure: 'Measurement Tool', backup: 'Backup', settings: 'Invoice Settings'};
+  const titles = {dashboard: 'Dashboard', schedule: 'Schedule', jobs: 'Jobs', invoices: 'Invoices', quotes: 'Quotes', clients: 'Clients', measure: 'Measurement Tool', backup: 'Backup', settings: 'Invoice Settings'};
   document.getElementById('page-title').textContent = titles[p] || p;
   renderPage(p);
 }
@@ -1832,134 +1942,124 @@ let measureMode = false;
 let measureCanvas = null;
 let measureCtx = null;
 let currentMapCenter = {lat: 35.2642, lng: -97.4867}; // Duncan, OK default
-let mapZoom = 19;
-let mapScale = 1;
-let leafletMap = null;
-let leafletPolyline = null;
-let leafletMarkers = [];
-let leafletPolygon = null;
+let mapZoom = 17;
+let mapScale = 1; // pixels per meter at current zoom
 
 function initMeasureTool() {
   const mapEl = document.getElementById('measure-map');
   if (!mapEl) return;
-
-  // Init Leaflet map
-  if (!leafletMap) {
-    leafletMap = L.map('measure-leaflet', {
-      center: [currentMapCenter.lat, currentMapCenter.lng],
-      zoom: mapZoom,
-      zoomControl: true,
-      attributionControl: true
-    });
-
-    L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-      maxZoom: 21,
-      attribution: '© Google Satellite'
-    }).addTo(leafletMap);
-
-    leafletMap.on('click', function(e) {
-      if (!measureMode) return;
-      const latlng = e.latlng;
-      addMeasurePointLatLng(latlng.lat, latlng.lng);
-    });
-  } else {
-    leafletMap.setView([currentMapCenter.lat, currentMapCenter.lng], mapZoom);
-    setTimeout(() => leafletMap.invalidateSize(), 100);
+  
+  // Get or create canvas
+  let measureCanvas = document.getElementById('measure-canvas');
+  if (!measureCanvas) {
+    measureCanvas = document.createElement('canvas');
+    measureCanvas.id = 'measure-canvas';
+    measureCanvas.style.cssText = 'position: absolute; top: 0; left: 0; cursor: crosshair; display: block;';
+    mapEl.innerHTML = ''; // Clear any old content
+    mapEl.appendChild(measureCanvas);
   }
-
-  // Sync canvas size to map
-  const canvas = document.getElementById('measure-canvas');
-  canvas.width = mapEl.offsetWidth;
-  canvas.height = mapEl.offsetHeight;
-  window.measureCanvas = canvas;
-  window.measureCtx = canvas.getContext('2d');
-
-  setTimeout(() => { leafletMap.invalidateSize(); }, 200);
+  
+  measureCanvas.width = mapEl.offsetWidth;
+  measureCanvas.height = mapEl.offsetHeight;
+  
+  window.measureCanvas = measureCanvas; // Store globally
+  window.measureCtx = measureCanvas.getContext('2d');
+  
+  drawMeasureMap();
+  measureCanvas.addEventListener('click', addMeasurePoint);
+  
   toast('✅ Map ready! Search an address or use GPS.');
 }
 
-function addMeasurePointLatLng(lat, lng) {
-  if (!measureMode) return;
-
-  // Check if closing polygon
-  if (measurePoints.length > 2) {
-    const first = measurePoints[0];
-    const firstPx = leafletMap.latLngToContainerPoint([first.lat, first.lng]);
-    const thisPx = leafletMap.latLngToContainerPoint([lat, lng]);
-    const dist = Math.hypot(thisPx.x - firstPx.x, thisPx.y - firstPx.y);
-    if (dist < 20) {
-      measureMode = false;
-      document.getElementById('measure-mode').textContent = '🖍️ Draw';
-      document.getElementById('measure-mode').style.background = '';
-      updateLeafletShape();
-      calcMeasurement();
-      return;
-    }
-  }
-
-  measurePoints.push({lat, lng});
-  updateLeafletShape();
-  calcMeasurement();
-}
-
-function updateLeafletShape() {
-  if (!leafletMap) return;
-
-  // Clear old overlays
-  leafletMarkers.forEach(m => leafletMap.removeLayer(m));
-  leafletMarkers = [];
-  if (leafletPolyline) { leafletMap.removeLayer(leafletPolyline); leafletPolyline = null; }
-  if (leafletPolygon) { leafletMap.removeLayer(leafletPolygon); leafletPolygon = null; }
-
-  if (measurePoints.length === 0) return;
-
-  const latlngs = measurePoints.map(p => [p.lat, p.lng]);
-
-  // Draw filled polygon if 3+ points
-  if (measurePoints.length >= 3) {
-    leafletPolygon = L.polygon(latlngs, {
-      color: '#2d7a3a',
-      weight: 2,
-      fillColor: '#2d7a3a',
-      fillOpacity: 0.15
-    }).addTo(leafletMap);
-  }
-
-  // Draw polyline
-  leafletPolyline = L.polyline(latlngs, {color: '#2d7a3a', weight: 2}).addTo(leafletMap);
-
-  // Draw markers with numbers
-  measurePoints.forEach((p, i) => {
-    const icon = L.divIcon({
-      className: '',
-      html: `<div style="width:22px;height:22px;border-radius:50%;background:#2d7a3a;border:2px solid white;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.4)">${i+1}</div>`,
-      iconSize: [22, 22],
-      iconAnchor: [11, 11]
-    });
-    const marker = L.marker([p.lat, p.lng], {icon}).addTo(leafletMap);
-    leafletMarkers.push(marker);
-  });
-}
-
 function drawMeasureMap() {
-  // Legacy stub — Leaflet handles rendering now
-  if (leafletMap) {
-    leafletMap.setView([currentMapCenter.lat, currentMapCenter.lng], mapZoom);
-    setTimeout(() => leafletMap.invalidateSize(), 100);
+  const ctx = window.measureCtx;
+  const canvas = window.measureCanvas;
+  
+  if (!ctx || !canvas) return;
+  
+  // Background (light map-like color)
+  ctx.fillStyle = '#e8f4f8';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Grid
+  ctx.strokeStyle = '#d0d0d0';
+  ctx.lineWidth = 1;
+  const gridSize = 40;
+  for (let x = 0; x < canvas.width; x += gridSize) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, canvas.height);
+    ctx.stroke();
+  }
+  for (let y = 0; y < canvas.height; y += gridSize) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(canvas.width, y);
+    ctx.stroke();
+  }
+  
+  // Center crosshair
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  ctx.strokeStyle = '#2d7a3a';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx - 20, cy);
+  ctx.lineTo(cx + 20, cy);
+  ctx.moveTo(cx, cy - 20);
+  ctx.lineTo(cx, cy + 20);
+  ctx.stroke();
+  
+  // Draw existing shape
+  if (measurePoints.length > 0) {
+    // Draw lines
+    ctx.strokeStyle = '#2d7a3a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(measurePoints[0].x, measurePoints[0].y);
+    for (let i = 1; i < measurePoints.length; i++) {
+      ctx.lineTo(measurePoints[i].x, measurePoints[i].y);
+    }
+    if (measurePoints.length > 2) {
+      ctx.lineTo(measurePoints[0].x, measurePoints[0].y);
+    }
+    ctx.stroke();
+    
+    // Draw points
+    ctx.fillStyle = '#2d7a3a';
+    for (let p of measurePoints) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    
+    // Draw labels
+    ctx.fillStyle = '#2d7a3a';
+    ctx.font = 'bold 12px DM Sans';
+    for (let i = 0; i < measurePoints.length; i++) {
+      ctx.fillText(i + 1, measurePoints[i].x + 10, measurePoints[i].y - 10);
+    }
   }
 }
 
 function useGPS() {
   toast('📍 Getting your location...');
+  
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        currentMapCenter = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        currentMapCenter = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude
+        };
+        
+        // Reverse geocode to get address
         reverseGeocode(currentMapCenter.lat, currentMapCenter.lng);
         resetMeasurement();
-        if (leafletMap) {
-          leafletMap.setView([currentMapCenter.lat, currentMapCenter.lng], mapZoom);
-        }
+        drawMeasureMap();
         toast('✅ Location loaded!');
       },
       (err) => {
@@ -1982,6 +2082,7 @@ async function searchMeasureAddress() {
   toast('🔍 Searching...');
   
   try {
+    // Use Nominatim (free, open-source geocoding)
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
     const resp = await fetch(url);
     const data = await resp.json();
@@ -1999,10 +2100,7 @@ async function searchMeasureAddress() {
     
     document.getElementById('measure-location').textContent = result.display_name;
     resetMeasurement();
-    if (leafletMap) {
-      leafletMap.setView([currentMapCenter.lat, currentMapCenter.lng], mapZoom);
-      setTimeout(() => leafletMap.invalidateSize(), 100);
-    }
+    drawMeasureMap();
     toast('✅ Address loaded!');
   } catch (e) {
     console.error('Geocoding error:', e);
@@ -2025,20 +2123,39 @@ async function reverseGeocode(lat, lng) {
 }
 
 function addMeasurePoint(e) {
-  // Legacy stub — Leaflet map click handler now calls addMeasurePointLatLng
+  if (!measureMode || !window.measureCanvas) return;
+  
+  const rect = window.measureCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  // Check if closing shape (near first point)
+  if (measurePoints.length > 2) {
+    const dist = Math.hypot(x - measurePoints[0].x, y - measurePoints[0].y);
+    if (dist < 15) {
+      measureMode = false;
+      document.getElementById('measure-mode').textContent = '🖍️ Draw';
+      document.getElementById('measure-mode').style.background = '';
+      updateMeasurement();
+      return;
+    }
+  }
+  
+  measurePoints.push({x, y});
+  drawMeasureMap();
 }
 
 function undoMeasurePoint() {
   if (measurePoints.length > 0) {
     measurePoints.pop();
-    updateLeafletShape();
-    calcMeasurement();
+    drawMeasureMap();
+    updateMeasurement();
   }
 }
 
 function toggleMeasureMode() {
-  if (!leafletMap) {
-    toast('⚠️ Open the Measurement Tool first');
+  if (!currentMapCenter || !document.getElementById('measure-location').textContent) {
+    toast('⚠️ Select a location first (GPS or search)');
     return;
   }
   
@@ -2048,28 +2165,13 @@ function toggleMeasureMode() {
     btn.textContent = '✓ Done';
     btn.style.background = '#2d7a3a';
     btn.style.color = 'white';
-    leafletMap.getContainer().style.cursor = 'crosshair';
-    toast('👆 Tap on the map to mark corners. Tap near point 1 to close.');
+    toast('👆 Tap on the map to mark corners');
   } else {
     btn.textContent = '🖍️ Draw';
     btn.style.background = '';
     btn.style.color = '';
-    leafletMap.getContainer().style.cursor = '';
-    calcMeasurement();
+    updateMeasurement();
   }
-}
-
-// Haversine distance in meters between two lat/lng points
-function haversineMeters(lat1, lng1, lat2, lng2) {
-  const R = 6371000;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
-function calcMeasurement() {
-  updateMeasurement();
 }
 
 function updateMeasurement() {
@@ -2078,35 +2180,35 @@ function updateMeasurement() {
     document.getElementById('measure-perim').textContent = '0 ft';
     return;
   }
-
-  // Shoelace formula using projected meters (equirectangular approximation)
-  const avgLat = measurePoints.reduce((s, p) => s + p.lat, 0) / measurePoints.length * Math.PI / 180;
-  const mPerDegLat = 111320;
-  const mPerDegLng = 111320 * Math.cos(avgLat);
-
+  
+  // Calculate area (shoelace formula)
+  // 1 pixel ≈ 0.3 meters at zoom 17 (adjust based on actual zoom)
+  const pxToMeter = 0.3 / mapZoom;
+  
   let area = 0;
-  const n = measurePoints.length;
-  for (let i = 0; i < n; i++) {
-    const j = (i + 1) % n;
-    const xi = measurePoints[i].lng * mPerDegLng;
-    const yi = measurePoints[i].lat * mPerDegLat;
-    const xj = measurePoints[j].lng * mPerDegLng;
-    const yj = measurePoints[j].lat * mPerDegLat;
-    area += xi * yj - xj * yi;
+  for (let i = 0; i < measurePoints.length; i++) {
+    const j = (i + 1) % measurePoints.length;
+    area += measurePoints[i].x * measurePoints[j].y;
+    area -= measurePoints[j].x * measurePoints[i].y;
   }
-  const sqMeters = Math.abs(area) / 2;
-  const sqFeet = sqMeters * 10.764;
-
-  // Perimeter using Haversine
-  let perimMeters = 0;
-  for (let i = 0; i < n; i++) {
-    const j = (i + 1) % n;
-    perimMeters += haversineMeters(measurePoints[i].lat, measurePoints[i].lng, measurePoints[j].lat, measurePoints[j].lng);
+  area = Math.abs(area) / 2;
+  const sqMeters = area * (pxToMeter * pxToMeter);
+  const sqFeet = sqMeters * 10.764; // sq meters to sq feet
+  
+  // Calculate perimeter
+  let perim = 0;
+  for (let i = 0; i < measurePoints.length; i++) {
+    const j = (i + 1) % measurePoints.length;
+    const dist = Math.hypot(
+      measurePoints[j].x - measurePoints[i].x,
+      measurePoints[j].y - measurePoints[i].y
+    );
+    perim += dist;
   }
-  const perimFeet = perimMeters * 3.28084;
-
-  document.getElementById('measure-area').textContent = Math.round(sqFeet).toLocaleString() + ' sq ft';
-  document.getElementById('measure-perim').textContent = Math.round(perimFeet).toLocaleString() + ' ft';
+  const perimFeet = perim * pxToMeter * 3.281; // meters to feet
+  
+  document.getElementById('measure-area').textContent = Math.round(sqFeet) + ' sq ft';
+  document.getElementById('measure-perim').textContent = Math.round(perimFeet) + ' ft';
 }
 
 function resetMeasurement() {
@@ -2117,8 +2219,7 @@ function resetMeasurement() {
   document.getElementById('measure-mode').style.color = '';
   document.getElementById('measure-area').textContent = '0 sq ft';
   document.getElementById('measure-perim').textContent = '0 ft';
-  updateLeafletShape();
-  if (leafletMap) leafletMap.getContainer().style.cursor = '';
+  if (window.measureCanvas) drawMeasureMap();
 }
 
 function copyMeasurement() {
@@ -2133,11 +2234,226 @@ function copyMeasurement() {
   });
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// QUOTES
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function newQuote() {
+  document.querySelector('#m-quote .modal-header h3').textContent = '💬 New Quote';
+  document.getElementById('q-id').value = '';
+  fillClients('q-cl');
+  document.getElementById('q-de').value = '';
+  document.getElementById('q-exp').value = '';
+  document.getElementById('q-st').value = 'Pending';
+  document.getElementById('q-no').value = '';
+  document.getElementById('q-lines').innerHTML = '';
+  document.getElementById('q-total').textContent = '$0.00';
+  addLine('q-lines');
+  openModal('m-quote');
+}
+
+function editQuote(id) {
+  const q = DB.quotes.find(q => q.id === id);
+  if (!q) return;
+  document.querySelector('#m-quote .modal-header h3').textContent = '💬 Edit Quote';
+  document.getElementById('q-id').value = id;
+  fillClients('q-cl', q.clientId);
+  document.getElementById('q-de').value = q.de || '';
+  document.getElementById('q-exp').value = q.exp || '';
+  document.getElementById('q-st').value = q.status || 'Pending';
+  document.getElementById('q-no').value = q.no || '';
+  setLines('q-lines', q.items || []);
+  openModal('m-quote');
+}
+
+function deleteQuote(id) {
+  if (confirm('Delete this quote?')) {
+    DB.quotes = DB.quotes.filter(q => q.id !== id);
+    save();
+    renderQuotes();
+    toast('Quote deleted');
+  }
+}
+
+function saveQuote() {
+  const cid = parseInt(document.getElementById('q-cl').value);
+  if (!cid) { toast('Please select a client'); return; }
+  
+  const items = getLines('q-lines');
+  if (!items.length) { toast('Add at least one line item'); return; }
+  
+  const total = items.reduce((s, i) => s + i.q * i.p, 0);
+  const data = {
+    clientId: cid,
+    de: document.getElementById('q-de').value.trim(),
+    items,
+    total,
+    exp: document.getElementById('q-exp').value,
+    status: document.getElementById('q-st').value,
+    no: document.getElementById('q-no').value.trim(),
+    createdAt: new Date().toISOString()
+  };
+  
+  const eid = parseInt(document.getElementById('q-id').value);
+  if (eid) {
+    Object.assign(DB.quotes.find(q => q.id === eid), data);
+    toast('Quote updated!');
+  } else {
+    if (!DB.quotes) DB.quotes = [];
+    DB.quotes.push({id: nid('q'), ...data});
+    toast('Quote created!');
+  }
+  save();
+  closeModal('m-quote');
+  renderQuotes();
+}
+
+function renderQuotes() {
+  if (!DB.quotes) DB.quotes = [];
+  
+  const q = (document.getElementById('quote-search')?.value || '').toLowerCase();
+  let list = [...DB.quotes].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  if (q) list = list.filter(quote => (cname(quote.clientId) + quote.de).toLowerCase().includes(q));
+  
+  const el = document.getElementById('quotes-list');
+  if (!list.length) {
+    el.innerHTML = '<p style="color: var(--text3); text-align: center;">No quotes</p>';
+    return;
+  }
+  
+  const isMobile = window.innerWidth <= 800;
+  
+  if (isMobile) {
+    el.innerHTML = list.map(quote => {
+      const statusColor = quote.status === 'Accepted' ? 'var(--green)' : quote.status === 'Rejected' ? 'var(--red)' : 'var(--gold)';
+      const isExpired = quote.exp && new Date(quote.exp) < new Date();
+      return `
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+            <div>
+              <div style="font-weight: 700; font-size: 14px;">${cname(quote.clientId)}</div>
+              <div style="font-size: 11px; color: var(--text3); margin-top: 4px;">${quote.de || 'Untitled'}</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: 700; font-size: 14px;">$${quote.total.toFixed(2)}</div>
+              <div style="font-size: 10px; color: ${isExpired ? 'var(--red)' : 'var(--text3)'};">${quote.exp ? 'Exp: ' + fdate(quote.exp) : 'No exp date'}</div>
+            </div>
+          </div>
+          <div style="border-top: 1px solid var(--border); padding-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span class="badge ${quote.status === 'Accepted' ? 'badge-green' : quote.status === 'Rejected' ? 'badge-red' : 'badge-gold'}">${quote.status}</span>
+            <button class="btn btn-secondary btn-xs" onclick="editQuote(${quote.id})">Edit</button>
+            <button class="btn btn-danger btn-xs" onclick="deleteQuote(${quote.id})">✕</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } else {
+    el.innerHTML = '<table class="table"><tbody>' +
+      list.map(quote => {
+        const isExpired = quote.exp && new Date(quote.exp) < new Date();
+        return `<tr>
+          <td>
+            <strong>${cname(quote.clientId)}</strong><br>
+            <span style="font-size: 11px; color: var(--text3);">${quote.de || 'Untitled'}</span>
+          </td>
+          <td style="font-size: 12px; color: var(--text3);">${quote.exp ? (isExpired ? '❌ ' : '') + fdate(quote.exp) : 'No exp date'}</td>
+          <td><strong>$${quote.total.toFixed(2)}</strong></td>
+          <td style="text-align: right;">
+            <span class="badge ${quote.status === 'Accepted' ? 'badge-green' : quote.status === 'Rejected' ? 'badge-red' : 'badge-gold'}">${quote.status}</span>
+            <button class="btn btn-secondary btn-xs" style="margin-left: 4px;" onclick="editQuote(${quote.id})">Edit</button>
+            <button class="btn btn-danger btn-xs" style="margin-left: 2px;" onclick="deleteQuote(${quote.id})">✕</button>
+          </td>
+        </tr>`;
+      }).join('') +
+      '</tbody></table>';
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// FLOWER BED CALCULATOR
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function calcFlowerBed() {
+  const length = parseFloat(document.getElementById('fb-length').value) || 0;
+  const width = parseFloat(document.getElementById('fb-width').value) || 0;
+  const depth = parseFloat(document.getElementById('fb-depth').value) || 0;
+  const depthType = document.getElementById('fb-depth-type').value;
+
+  if (length <= 0 || width <= 0 || depth <= 0) {
+    document.getElementById('fb-sqft').textContent = '0 sq ft';
+    document.getElementById('fb-cubic').textContent = '0 cu yd';
+    document.getElementById('fb-shopping').innerHTML = 'Length: — feet<br>Width: — feet<br>Depth: — inches';
+    return;
+  }
+
+  // Calculate square footage
+  const sqft = length * width;
+
+  // Calculate cubic yardage
+  // Formula: (length × width × depth in inches) / 324 = cubic yards
+  const cubicYards = (length * width * depth) / 324;
+
+  // Update display
+  document.getElementById('fb-sqft').textContent = sqft.toFixed(1) + ' sq ft';
+  document.getElementById('fb-cubic').textContent = cubicYards.toFixed(2) + ' cu yd';
+
+  // Update shopping list
+  let recommendation = '';
+  if (depthType === 'mulch') {
+    recommendation = `<strong>Mulch:</strong> ${cubicYards.toFixed(2)} cubic yards (2-4" depth)<br>`;
+  } else if (depthType === 'soil') {
+    recommendation = `<strong>Garden Soil:</strong> ${cubicYards.toFixed(2)} cubic yards (6-12" depth)<br>`;
+  } else {
+    recommendation = `<strong>Material needed:</strong> ${cubicYards.toFixed(2)} cubic yards<br>`;
+  }
+
+  document.getElementById('fb-shopping').innerHTML = 
+    `<strong>Flower Bed Dimensions</strong><br>` +
+    `Length: ${length.toFixed(1)} feet<br>` +
+    `Width: ${width.toFixed(1)} feet<br>` +
+    `Depth: ${depth.toFixed(1)} inches<br>` +
+    `<br>${recommendation}` +
+    `<strong>Tips:</strong><br>` +
+    `• Add 10% extra for settling<br>` +
+    `• 1 cubic yard = 27 cubic feet`;
+}
+
+function resetFlowerBed() {
+  document.getElementById('fb-length').value = '';
+  document.getElementById('fb-width').value = '';
+  document.getElementById('fb-depth').value = '4';
+  document.getElementById('fb-depth-type').value = 'mulch';
+  document.getElementById('fb-sqft').textContent = '0 sq ft';
+  document.getElementById('fb-cubic').textContent = '0 cu yd';
+  document.getElementById('fb-shopping').innerHTML = 'Length: — feet<br>Width: — feet<br>Depth: — inches';
+}
+
+function copyFlowerBedCalc() {
+  const length = document.getElementById('fb-length').value;
+  const width = document.getElementById('fb-width').value;
+  const depth = document.getElementById('fb-depth').value;
+  const sqft = document.getElementById('fb-sqft').textContent;
+  const cubic = document.getElementById('fb-cubic').textContent;
+
+  if (!length || !width) {
+    toast('⚠️ Enter length and width first');
+    return;
+  }
+
+  const text = `Flower Bed Calculator\nLength: ${length} ft\nWidth: ${width} ft\nDepth: ${depth} in\n\nSquare Footage: ${sqft}\nCubic Yardage: ${cubic}`;
+  navigator.clipboard.writeText(text).then(() => {
+    toast('📋 Flower bed specs copied!');
+  }).catch(() => {
+    toast('❌ Copy failed');
+  });
+}
+
 function renderPage(p) {
   if (p === 'dashboard') renderDash();
   else if (p === 'schedule') renderSchedule();
   else if (p === 'jobs') renderJobs();
   else if (p === 'invoices') renderInvoices();
+  else if (p === 'quotes') renderQuotes();
   else if (p === 'clients') renderClients();
   else if (p === 'measure') {
     setTimeout(initMeasureTool, 100);
@@ -3657,6 +3973,10 @@ document.addEventListener('DOMContentLoaded', () => {
     <button class="fab-item" onclick="gotoMobile('invoices', document.querySelector('[data-p=invoices]')); closeFAB()" title="New Invoice">
       <span style="font-size: 20px;">🧾</span>
       <span>New Invoice</span>
+    </button>
+    <button class="fab-item" onclick="gotoMobile('quotes', null); closeFAB()" title="New Quote">
+      <span style="font-size: 20px;">💬</span>
+      <span>New Quote</span>
     </button>
     <button class="fab-item" onclick="gotoMobile('clients', document.querySelector('[data-p=clients]')); closeFAB()" title="New Client">
       <span style="font-size: 20px;">👥</span>
