@@ -1673,7 +1673,12 @@ nav {
         <div class="form-group"><label class="form-label">Last Name</label><input class="form-control" id="c-ln" placeholder="Last"></div>
       </div>
       <div class="form-group"><label class="form-label">Phone</label><input class="form-control" id="c-ph" placeholder="(580) 555-0000"></div>
-      <div class="form-group"><label class="form-label">Address</label><input class="form-control" id="c-ad" placeholder="Street address"></div>
+      <div class="form-group">
+        <label class="form-label">Properties / Addresses</label>
+        <div id="c-props-list"></div>
+        <button class="btn btn-ghost btn-sm" style="margin-top: 6px;" onclick="addClientProp()">+ Add Property</button>
+        <div style="font-size: 11px; color: var(--text3); margin-top: 4px;">Give each property a nickname (e.g. "Home", "Rental on Elm") so you can pick the right one when scheduling a job.</div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('m-client')">Cancel</button>
@@ -1688,7 +1693,8 @@ nav {
     <div class="modal-header"><h3>🔧 Job</h3><button class="close-btn" onclick="closeModal('m-job')">✕</button></div>
     <div class="modal-body">
       <input type="hidden" id="j-id">
-      <div class="form-group"><label class="form-label">Client *</label><select class="form-control" id="j-cl"></select></div>
+      <div class="form-group"><label class="form-label">Client *</label><select class="form-control" id="j-cl" onchange="fillJobProperties()"></select></div>
+      <div class="form-group" id="j-prop-group" style="display:none;"><label class="form-label">Property</label><select class="form-control" id="j-prop"></select></div>
       <div class="form-group"><label class="form-label">Service *</label>
         <select class="form-control" id="j-sv">
           <option>Lawn Mowing</option>
@@ -1764,7 +1770,8 @@ nav {
     <div class="modal-header"><h3>🧾 Invoice</h3><button class="close-btn" onclick="closeModal('m-invoice')">✕</button></div>
     <div class="modal-body">
       <input type="hidden" id="i-id">
-      <div class="form-group"><label class="form-label">Client *</label><select class="form-control" id="i-cl"></select></div>
+      <div class="form-group"><label class="form-label">Client *</label><select class="form-control" id="i-cl" onchange="fillInvoiceProperties()"></select></div>
+      <div class="form-group" id="i-prop-group" style="display:none;"><label class="form-label">Property</label><select class="form-control" id="i-prop"></select></div>
       <div class="form-group"><label class="form-label">Description</label><input class="form-control" id="i-de" placeholder="e.g. Lawn Mowing"></div>
       <div class="form-group">
         <label class="form-label">Line Items</label>
@@ -2790,6 +2797,7 @@ function completeJob(id) {
       const newInv = {
         id: invId,
         clientId: j.clientId,
+        propId: j.propId || null,
         de: j.sv + ' - ' + fdate(j.date),
         items: [{d: j.sv, q: 1, p: j.tot}],
         total: j.tot,
@@ -2810,6 +2818,7 @@ function newJob() {
   document.querySelector('#m-job .modal-header h3').textContent = '🔧 New Job';
   document.getElementById('j-id').value = '';
   fillClients('j-cl');
+  fillJobProperties();
   document.getElementById('j-dt').value = today();
   document.getElementById('j-dur').value = '1';
   document.getElementById('j-tot').value = '';
@@ -2826,6 +2835,14 @@ function editJob(id) {
   document.querySelector('#m-job .modal-header h3').textContent = '🔧 Edit Job';
   document.getElementById('j-id').value = id;
   fillClients('j-cl', j.clientId);
+  fillJobProperties();
+  // Restore saved property selection
+  if (j.propId) {
+    const sel = document.getElementById('j-prop');
+    for (let i = 0; i < sel.options.length; i++) {
+      if (parseInt(sel.options[i].value) === j.propId) { sel.selectedIndex = i; break; }
+    }
+  }
   document.getElementById('j-sv').value = j.sv;
   document.getElementById('j-dt').value = j.date;
   document.getElementById('j-dur').value = j.dur || 1;
@@ -2865,8 +2882,12 @@ function saveJob() {
   const rec = document.getElementById('j-rec').value;
   const recEnd = document.getElementById('j-rec-end').value;
   
+  const propSel = document.getElementById('j-prop');
+  const propId = propSel && propSel.value ? parseInt(propSel.value) : null;
+
   const data = {
     clientId: cid,
+    propId: propId || null,
     sv: document.getElementById('j-sv').value,
     date: dt,
     dur: parseFloat(document.getElementById('j-dur').value) || 1,
@@ -2922,13 +2943,96 @@ function fillClients(selId, selVal) {
   });
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// MULTI-PROPERTY HELPERS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function renderClientPropsEditor(props) {
+  const wrap = document.getElementById('c-props-list');
+  wrap.innerHTML = '';
+  (props || []).forEach((p, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:grid; grid-template-columns: 1fr 2fr 28px; gap:6px; margin-bottom:8px; align-items:center;';
+    row.innerHTML = `
+      <input class="form-control" placeholder='Nickname (e.g. "Home")' value="${(p.nickname||'').replace(/"/g,'&quot;')}" style="font-size:13px;">
+      <input class="form-control" placeholder="Street address" value="${(p.address||'').replace(/"/g,'&quot;')}" style="font-size:13px;">
+      <button class="btn btn-ghost btn-xs" style="padding:4px; color:var(--red); font-size:16px;" onclick="this.parentElement.remove()">✕</button>
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+function addClientProp() {
+  renderClientPropsEditor(getClientPropsFromEditor().concat([{nickname:'', address:''}]));
+  // focus last nickname input
+  const inputs = document.querySelectorAll('#c-props-list input');
+  if (inputs.length) inputs[inputs.length - 2].focus();
+}
+
+function getClientPropsFromEditor() {
+  const rows = document.querySelectorAll('#c-props-list > div');
+  const props = [];
+  let pid = 1;
+  rows.forEach(row => {
+    const ins = row.querySelectorAll('input');
+    const nickname = ins[0]?.value.trim();
+    const address = ins[1]?.value.trim();
+    if (nickname || address) {
+      props.push({id: pid++, nickname: nickname || 'Property ' + pid, address: address || ''});
+    }
+  });
+  return props;
+}
+
+function getClientProps(clientId) {
+  const c = DB.clients.find(c => c.id === clientId);
+  if (!c) return [];
+  if (c.properties && c.properties.length) return c.properties;
+  // fallback: migrate legacy ad field
+  if (c.ad) return [{id: 1, nickname: 'Main', address: c.ad}];
+  return [];
+}
+
+function fillJobProperties() {
+  const cid = parseInt(document.getElementById('j-cl').value);
+  const grp = document.getElementById('j-prop-group');
+  const sel = document.getElementById('j-prop');
+  const props = getClientProps(cid);
+  if (props.length <= 1) {
+    grp.style.display = 'none';
+    sel.innerHTML = props.length ? `<option value="${props[0].id}">${props[0].nickname} — ${props[0].address}</option>` : '';
+  } else {
+    sel.innerHTML = props.map(p => `<option value="${p.id}">${p.nickname} — ${p.address}</option>`).join('');
+    grp.style.display = '';
+  }
+}
+
+function fillInvoiceProperties(selPropId) {
+  const cid = parseInt(document.getElementById('i-cl').value);
+  const grp = document.getElementById('i-prop-group');
+  const sel = document.getElementById('i-prop');
+  const props = getClientProps(cid);
+  if (props.length <= 1) {
+    grp.style.display = 'none';
+    sel.innerHTML = props.length ? `<option value="${props[0].id}">${props[0].nickname} — ${props[0].address}</option>` : '';
+  } else {
+    sel.innerHTML = props.map(p => `<option value="${p.id}">${p.nickname} — ${p.address}</option>`).join('');
+    grp.style.display = '';
+  }
+  if (selPropId) {
+    for (let i = 0; i < sel.options.length; i++) {
+      if (parseInt(sel.options[i].value) === selPropId) { sel.selectedIndex = i; break; }
+    }
+  }
+}
+
 function newClient() {
   document.querySelector('#m-client .modal-header h3').textContent = '👤 New Client';
   document.getElementById('c-id').value = '';
   document.getElementById('c-fn').value = '';
   document.getElementById('c-ln').value = '';
   document.getElementById('c-ph').value = '';
-  document.getElementById('c-ad').value = '';
+  renderClientPropsEditor([]);
   openModal('m-client');
 }
 
@@ -2940,7 +3044,10 @@ function editClient(id) {
   document.getElementById('c-fn').value = c.fn || '';
   document.getElementById('c-ln').value = c.ln || '';
   document.getElementById('c-ph').value = c.ph || '';
-  document.getElementById('c-ad').value = c.ad || '';
+  // Migrate legacy single address to properties if needed
+  let props = c.properties || [];
+  if (!props.length && c.ad) props = [{id: 1, nickname: 'Main', address: c.ad}];
+  renderClientPropsEditor(props);
   openModal('m-client');
 }
 
@@ -2963,8 +3070,10 @@ function saveClient() {
     fn,
     ln: document.getElementById('c-ln').value.trim(),
     ph: document.getElementById('c-ph').value.trim(),
-    ad: document.getElementById('c-ad').value.trim()
+    properties: getClientPropsFromEditor()
   };
+  // keep legacy ad field pointing to first property address for backward compat
+  data.ad = data.properties[0]?.address || '';
   
   const eid = parseInt(document.getElementById('c-id').value);
   if (eid) {
@@ -3008,6 +3117,7 @@ function renderClients() {
             <div>
               <div style="font-weight: 700; font-size: 14px;">${(c.fn + ' ' + c.ln).trim()}</div>
               <div style="font-size: 11px; color: var(--text3); margin-top: 4px;">${c.ph || 'No phone'}</div>
+              ${(() => { const props = getClientProps(c.id); return props.length ? '<div style="margin-top:6px;">' + props.map(p => `<div style="font-size:11px; color:var(--text2);"><span style="background:var(--green-light);color:var(--green-dark);border-radius:4px;padding:1px 5px;font-weight:600;font-size:10px;">${p.nickname}</span> ${p.address}</div>`).join('') + '</div>' : ''; })()}
             </div>
             <div style="text-align: right;">
               <button class="btn btn-secondary btn-xs" onclick="editClient(${c.id})">Edit</button>
@@ -3041,6 +3151,7 @@ function renderClients() {
           <td>
             <strong>${(c.fn + ' ' + c.ln).trim()}</strong><br>
             <span style="font-size: 11px; color: var(--text3);">${c.ph || 'No phone'}</span><br>
+            ${(() => { const props = getClientProps(c.id); return props.length ? props.map(p => `<span style="font-size:10px;color:var(--text2);"><span style="background:var(--green-light);color:var(--green-dark);border-radius:4px;padding:1px 5px;font-weight:600;">${p.nickname}</span> ${p.address}</span><br>`).join('') : ''; })()}
             <span style="font-size: 10px; color: var(--text3);">Total Paid: <strong style="color: var(--green);">$${totalPaid.toFixed(2)}</strong></span>
           </td>
           <td style="text-align: right; color: ${balance > 0 ? 'var(--red)' : 'var(--green)'};">
@@ -3110,6 +3221,7 @@ function newInvoice() {
   document.querySelector('#m-invoice .modal-header h3').textContent = '🧾 New Invoice';
   document.getElementById('i-id').value = '';
   fillClients('i-cl');
+  fillInvoiceProperties();
   document.getElementById('i-de').value = '';
   document.getElementById('i-dt').value = today();
   document.getElementById('i-st').value = 'Sent';
@@ -3125,6 +3237,7 @@ function editInvoice(id) {
   document.querySelector('#m-invoice .modal-header h3').textContent = '🧾 Edit Invoice';
   document.getElementById('i-id').value = id;
   fillClients('i-cl', inv.clientId);
+  fillInvoiceProperties(inv.propId);
   document.getElementById('i-de').value = inv.de || '';
   document.getElementById('i-dt').value = inv.date || today();
   document.getElementById('i-st').value = inv.status;
@@ -3149,9 +3262,13 @@ function saveInvoice() {
   const items = getLines('i-lines');
   if (!items.length) { toast('Add at least one line item'); return; }
   
+  const propSel = document.getElementById('i-prop');
+  const propId = propSel && propSel.value ? parseInt(propSel.value) : null;
+
   const total = items.reduce((s, i) => s + i.q * i.p, 0);
   const data = {
     clientId: cid,
+    propId: propId || null,
     de: document.getElementById('i-de').value.trim(),
     items,
     total,
@@ -3285,7 +3402,7 @@ function viewInvoice(id) {
       <div>
         <div class="party-label">Bill To</div>
         <div style="font-weight: 700;">${c ? (c.fn + ' ' + c.ln).trim() : 'Client'}</div>
-        <div style="font-size: 13px; color: var(--text2);">${c?.ph || ''}<br>${c?.ad || ''}</div>
+        <div style="font-size: 13px; color: var(--text2);">${c?.ph || ''}<br>${(() => { if (inv.propId) { const props = getClientProps(inv.clientId); const p = props.find(p => p.id === inv.propId); if (p) return p.address; } return c?.ad || ''; })()}</div>
       </div>
     </div>
     <table class="line-items" style="margin-bottom: 20px;">
