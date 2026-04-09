@@ -224,6 +224,12 @@ nav {
   border: 1px solid #f5c6c2;
 }
 
+.inv-filter-btn.active {
+  background: var(--green);
+  color: #fff;
+  border: 1px solid var(--green);
+}
+
 .btn-ghost {
   background: transparent;
   color: var(--text2);
@@ -1335,6 +1341,13 @@ nav {
         <span style="font-weight: 700;">Invoices</span>
         <button class="btn btn-primary btn-sm" onclick="newInvoice()">+ New Invoice</button>
       </div>
+      <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;" id="inv-filter-bar">
+        <button class="btn btn-sm inv-filter-btn active" data-filter="all" onclick="setInvFilter('all', this)">All</button>
+        <button class="btn btn-sm inv-filter-btn" data-filter="Sent" onclick="setInvFilter('Sent', this)" style="background:#fef3dc;color:#9a6d1a;border:1px solid #f5d98a;">Sent</button>
+        <button class="btn btn-sm inv-filter-btn" data-filter="Overdue" onclick="setInvFilter('Overdue', this)" style="background:#fde9e7;color:#b02a1e;border:1px solid #f5c6c2;">Overdue</button>
+        <button class="btn btn-sm inv-filter-btn" data-filter="Paid" onclick="setInvFilter('Paid', this)" style="background:#e3f5e7;color:#1e6e2e;border:1px solid #a8ddb5;">Paid</button>
+        <span id="inv-filter-summary" style="margin-left:auto; font-size:12px; color:var(--text3); align-self:center;"></span>
+      </div>
       <div class="search-bar">
         <span>🔍</span>
         <input type="text" placeholder="Search invoices..." id="inv-search" oninput="renderInvoices()">
@@ -1694,7 +1707,7 @@ nav {
     <div class="modal-body">
       <input type="hidden" id="j-id">
       <div class="form-group"><label class="form-label">Client *</label><select class="form-control" id="j-cl" onchange="fillJobProperties()"></select></div>
-      <div class="form-group" id="j-prop-group" style="display:none;"><label class="form-label">Property</label><select class="form-control" id="j-prop"></select></div>
+      <div class="form-group" id="j-prop-group" style="display:none;"><label class="form-label">Property</label><select class="form-control" id="j-prop" onchange="applyPropertyPrice()"></select></div>
       <div class="form-group"><label class="form-label">Service *</label>
         <select class="form-control" id="j-sv">
           <option>Lawn Mowing</option>
@@ -2818,10 +2831,10 @@ function newJob() {
   document.querySelector('#m-job .modal-header h3').textContent = '🔧 New Job';
   document.getElementById('j-id').value = '';
   fillClients('j-cl');
-  fillJobProperties();
   document.getElementById('j-dt').value = today();
   document.getElementById('j-dur').value = '1';
   document.getElementById('j-tot').value = '';
+  fillJobProperties();
   document.getElementById('j-st').value = 'Upcoming';
   document.getElementById('j-no').value = '';
   document.getElementById('j-rec').value = 'none';
@@ -2950,14 +2963,19 @@ function fillClients(selId, selVal) {
 function renderClientPropsEditor(props) {
   const wrap = document.getElementById('c-props-list');
   wrap.innerHTML = '';
+  if (props && props.length) {
+    const hdr = document.createElement('div');
+    hdr.style.cssText = 'display:grid; grid-template-columns: 1fr 2fr 90px 28px; gap:6px; margin-bottom:4px;';
+    hdr.innerHTML = '<div style="font-size:10px;color:var(--text3);font-weight:600;padding-left:2px;">NICKNAME</div><div style="font-size:10px;color:var(--text3);font-weight:600;">ADDRESS</div><div style="font-size:10px;color:var(--text3);font-weight:600;">DEFAULT $</div><div></div>';
+    wrap.appendChild(hdr);
+  }
   (props || []).forEach((p, i) => {
     const row = document.createElement('div');
-    row.style.cssText = 'display:grid; grid-template-columns: 1fr 2fr 28px; gap:6px; margin-bottom:8px; align-items:center;';
-    row.innerHTML = `
-      <input class="form-control" placeholder='Nickname (e.g. "Home")' value="${(p.nickname||'').replace(/"/g,'&quot;')}" style="font-size:13px;">
-      <input class="form-control" placeholder="Street address" value="${(p.address||'').replace(/"/g,'&quot;')}" style="font-size:13px;">
-      <button class="btn btn-ghost btn-xs" style="padding:4px; color:var(--red); font-size:16px;" onclick="this.parentElement.remove()">✕</button>
-    `;
+    row.style.cssText = 'display:grid; grid-template-columns: 1fr 2fr 90px 28px; gap:6px; margin-bottom:8px; align-items:center;';
+    const priceVal = p.price > 0 ? p.price : '';
+    const nick = (p.nickname||'').replace(/"/g, '&quot;');
+    const addr = (p.address||'').replace(/"/g, '&quot;');
+    row.innerHTML = `<input class="form-control" placeholder="e.g. Home" value="${nick}" style="font-size:13px;"><input class="form-control" placeholder="Street address" value="${addr}" style="font-size:13px;"><input class="form-control" type="number" placeholder="$0" min="0" step="0.01" value="${priceVal}" style="font-size:13px;"><button class="btn btn-ghost btn-xs" style="padding:4px; color:var(--red); font-size:16px;" onclick="this.parentElement.remove()">x</button>`;
     wrap.appendChild(row);
   });
 }
@@ -2975,10 +2993,12 @@ function getClientPropsFromEditor() {
   let pid = 1;
   rows.forEach(row => {
     const ins = row.querySelectorAll('input');
+    if (!ins.length) return; // skip header row (no inputs)
     const nickname = ins[0]?.value.trim();
     const address = ins[1]?.value.trim();
+    const price = parseFloat(ins[2]?.value) || 0;
     if (nickname || address) {
-      props.push({id: pid++, nickname: nickname || 'Property ' + pid, address: address || ''});
+      props.push({id: pid++, nickname: nickname || 'Property ' + pid, address: address || '', price: price});
     }
   });
   return props;
@@ -3000,11 +3020,20 @@ function fillJobProperties() {
   const props = getClientProps(cid);
   if (props.length <= 1) {
     grp.style.display = 'none';
-    sel.innerHTML = props.length ? `<option value="${props[0].id}">${props[0].nickname} — ${props[0].address}</option>` : '';
+    sel.innerHTML = props.length ? `<option value="${props[0].id}" data-price="${props[0].price||0}">${props[0].nickname} — ${props[0].address}${props[0].price > 0 ? ' ($' + props[0].price.toFixed(2) + ')' : ''}</option>` : '';
   } else {
-    sel.innerHTML = props.map(p => `<option value="${p.id}">${p.nickname} — ${p.address}</option>`).join('');
+    sel.innerHTML = props.map(p => `<option value="${p.id}" data-price="${p.price||0}">${p.nickname} — ${p.address}${p.price > 0 ? ' ($' + p.price.toFixed(2) + ')' : ''}</option>`).join('');
     grp.style.display = '';
   }
+  applyPropertyPrice();
+}
+
+function applyPropertyPrice() {
+  const sel = document.getElementById('j-prop');
+  const totEl = document.getElementById('j-tot');
+  if (!sel || !totEl) return;
+  const price = parseFloat(sel.selectedOptions[0]?.dataset.price || 0);
+  if (price > 0 && !totEl.value) totEl.value = price.toFixed(2);
 }
 
 function fillInvoiceProperties(selPropId) {
@@ -3117,7 +3146,7 @@ function renderClients() {
             <div>
               <div style="font-weight: 700; font-size: 14px;">${(c.fn + ' ' + c.ln).trim()}</div>
               <div style="font-size: 11px; color: var(--text3); margin-top: 4px;">${c.ph || 'No phone'}</div>
-              ${(() => { const props = getClientProps(c.id); return props.length ? '<div style="margin-top:6px;">' + props.map(p => `<div style="font-size:11px; color:var(--text2);"><span style="background:var(--green-light);color:var(--green-dark);border-radius:4px;padding:1px 5px;font-weight:600;font-size:10px;">${p.nickname}</span> ${p.address}</div>`).join('') + '</div>' : ''; })()}
+              ${(() => { const props = getClientProps(c.id); return props.length ? '<div style="margin-top:6px;">' + props.map(p => `<div style="font-size:11px; color:var(--text2); display:flex; justify-content:space-between;"><span><span style="background:var(--green-light);color:var(--green-dark);border-radius:4px;padding:1px 5px;font-weight:600;font-size:10px;">${p.nickname}</span> ${p.address}</span>${p.price > 0 ? '<span style=\"font-weight:700;color:var(--green);\">' + '$' + p.price.toFixed(2) + '</span>' : ''}</div>`).join('') + '</div>' : ''; })()}
             </div>
             <div style="text-align: right;">
               <button class="btn btn-secondary btn-xs" onclick="editClient(${c.id})">Edit</button>
@@ -3151,7 +3180,7 @@ function renderClients() {
           <td>
             <strong>${(c.fn + ' ' + c.ln).trim()}</strong><br>
             <span style="font-size: 11px; color: var(--text3);">${c.ph || 'No phone'}</span><br>
-            ${(() => { const props = getClientProps(c.id); return props.length ? props.map(p => `<span style="font-size:10px;color:var(--text2);"><span style="background:var(--green-light);color:var(--green-dark);border-radius:4px;padding:1px 5px;font-weight:600;">${p.nickname}</span> ${p.address}</span><br>`).join('') : ''; })()}
+            ${(() => { const props = getClientProps(c.id); return props.length ? props.map(p => `<span style="font-size:10px;color:var(--text2);"><span style="background:var(--green-light);color:var(--green-dark);border-radius:4px;padding:1px 5px;font-weight:600;">${p.nickname}</span> ${p.address}${p.price > 0 ? ' <strong style=\"color:var(--green);\">' + '$' + p.price.toFixed(2) + '</strong>' : ''}</span><br>`).join('') : ''; })()}
             <span style="font-size: 10px; color: var(--text3);">Total Paid: <strong style="color: var(--green);">$${totalPaid.toFixed(2)}</strong></span>
           </td>
           <td style="text-align: right; color: ${balance > 0 ? 'var(--red)' : 'var(--green)'};">
@@ -3290,11 +3319,28 @@ function saveInvoice() {
   renderDash();
 }
 
+let currentInvFilter = 'all';
+
+function setInvFilter(f, btn) {
+  currentInvFilter = f;
+  document.querySelectorAll('.inv-filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderInvoices();
+}
+
 function renderInvoices() {
   const q = (document.getElementById('inv-search')?.value || '').toLowerCase();
   let list = [...DB.invoices].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  if (currentInvFilter !== 'all') list = list.filter(i => i.status === currentInvFilter);
   if (q) list = list.filter(i => (cname(i.clientId) + i.de + i.date).toLowerCase().includes(q));
-  
+
+  // Update summary
+  const sumEl = document.getElementById('inv-filter-summary');
+  if (sumEl) {
+    const total = list.reduce((s, i) => s + i.total, 0);
+    sumEl.textContent = list.length + ' invoice' + (list.length !== 1 ? 's' : '') + ' · $' + total.toFixed(2);
+  }
+
   const out = DB.invoices.filter(i => i.status !== 'Paid').reduce((s, i) => s + i.total, 0);
   
   const el = document.getElementById('invoices-list');
