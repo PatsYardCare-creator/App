@@ -1860,6 +1860,21 @@ nav {
   </div>
 </div>
 
+
+<!-- CLIENT PROFILE MODAL -->
+<div class="modal-overlay" id="m-client-profile">
+  <div class="modal" style="width:520px; max-height:90vh;">
+    <div class="modal-header" style="background:var(--surface);">
+      <h3 style="font-size:15px;">Client Profile</h3>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-primary btn-sm" id="profile-new-invoice-btn" onclick="profileNewInvoice()">🧾 New Invoice</button>
+        <button class="close-btn" onclick="closeModal('m-client-profile')">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" style="padding:0;" id="m-client-profile-body"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -3120,81 +3135,273 @@ function saveClient() {
   fillClients('i-cl');
 }
 
+
+function viewClient(id) {
+  const c = DB.clients.find(c => c.id === id);
+  if (!c) return;
+
+  const fullName = (c.fn + ' ' + c.ln).trim();
+  const initials = (c.fn?.[0] || '') + (c.ln?.[0] || c.fn?.[1] || '');
+  const [avatarFg, avatarBg] = clientAvatarColor(fullName);
+
+  const props = getClientProps(id);
+  const firstAddr = props[0]?.address || c.ad || '';
+
+  // Jobs
+  const allJobs = DB.jobs.filter(j => j.clientId === id);
+  const upcoming = allJobs.filter(j => j.status === 'Upcoming').sort((a,b) => (a.date||'').localeCompare(b.date||'')).slice(0,5);
+  const completed = allJobs.filter(j => j.status === 'Completed').sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  const lastVisit = completed[0]?.date || '';
+
+  // Most common service
+  const svcCount = {};
+  allJobs.forEach(j => { svcCount[j.sv] = (svcCount[j.sv] || 0) + 1; });
+  const topSvc = Object.entries(svcCount).sort((a,b) => b[1]-a[1])[0]?.[0] || '—';
+
+  // Default rate = first property price or most common job total
+  const defaultRate = props[0]?.price > 0 ? '$' + props[0].price.toFixed(2) + '/visit'
+    : (completed[0] ? '$' + completed[0].tot.toFixed(2) + '/visit' : '—');
+
+  // Invoices
+  const clientInvs = DB.invoices.filter(i => i.clientId === id).sort((a,b) => (b.date||'').localeCompare(a.date||'')).slice(0,5);
+  const balance = DB.invoices.filter(i => i.clientId === id && i.status !== 'Paid').reduce((s,i) => s + i.total, 0);
+  const totalPaid = DB.invoices.filter(i => i.clientId === id && i.status === 'Paid').reduce((s,i) => s + i.total, 0);
+
+  // Time logs (jobs with startTime + finishTime)
+  const timeLogs = allJobs.filter(j => j.startTime && j.finishTime).sort((a,b) => (b.date||'').localeCompare(a.date||'')).slice(0,5);
+
+  const upcomingHTML = upcoming.length ? upcoming.map(j => `
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:var(--surface); border-radius:10px; margin-bottom:6px; cursor:pointer;" onclick="closeModal('m-profile'); editJob(${j.id})">
+      <span style="font-size:13px; font-weight:600; color:var(--text);">${fdate(j.date)}</span>
+      <span style="background:var(--green-light); color:var(--green-dark); font-size:11px; font-weight:600; padding:3px 10px; border-radius:20px;">${j.sv}</span>
+    </div>`).join('') : '<p style="font-size:12px; color:var(--text3); padding:8px 0;">No upcoming jobs</p>';
+
+  const invoicesHTML = clientInvs.length ? clientInvs.map(inv => {
+    const sc = inv.status === 'Paid' ? '#1e6e2e' : inv.status === 'Overdue' ? 'var(--red)' : '#9a6d1a';
+    const sb = inv.status === 'Paid' ? '#e3f5e7' : inv.status === 'Overdue' ? '#fde9e7' : '#fef3dc';
+    return `
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:var(--surface); border-radius:10px; margin-bottom:6px; cursor:pointer;" onclick="closeModal('m-profile'); viewInvoice(${inv.id}); gotoPage('invoices', document.querySelector('[onclick*=invoices]'))">
+      <div>
+        <div style="font-size:12px; color:var(--text3);">${fdate(inv.date)}</div>
+        <div style="font-size:13px; font-weight:600;">${inv.de || inv.items?.[0]?.d || 'Invoice'}</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="background:${sb}; color:${sc}; font-size:11px; font-weight:600; padding:3px 10px; border-radius:20px;">${inv.status === 'Paid' ? '✅ Paid' : inv.status}</span>
+        <span style="font-weight:700; color:var(--green); font-size:13px;">$${inv.total.toFixed(2)}</span>
+      </div>
+    </div>`;
+  }).join('') : '<p style="font-size:12px; color:var(--text3); padding:8px 0;">No invoices</p>';
+
+  const timeHTML = timeLogs.length ? timeLogs.map(j => {
+    const start = j.startTime, end = j.finishTime;
+    let dur = '';
+    if (start && end) {
+      const [sh,sm] = start.split(':').map(Number);
+      const [eh,em] = end.split(':').map(Number);
+      const mins = (eh*60+em) - (sh*60+sm);
+      if (mins > 0) dur = Math.floor(mins/60) + 'h ' + (mins%60) + 'm';
+    }
+    return `
+    <div style="padding:10px 14px; background:var(--surface); border-radius:10px; margin-bottom:6px;">
+      <div style="font-size:11px; color:var(--text3);">${j.date}</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
+        <span style="font-size:13px; font-weight:600;">Work session</span>
+        <span style="font-size:12px; color:var(--text2);">🟢${start} → 🔴${end}${dur ? ' · ' + dur : ''}</span>
+      </div>
+    </div>`;
+  }).join('') : '<p style="font-size:12px; color:var(--text3); padding:8px 0;">No time logs</p>';
+
+  const propsHTML = props.length > 1 ? props.map(p => `
+    <div style="display:flex; gap:6px; align-items:center; margin-top:4px;">
+      <span>📍</span><span style="font-size:13px; color:var(--text2);">${p.nickname}: ${p.address}${p.price>0 ? ' · <strong style=color:var(--green)>$'+p.price.toFixed(2)+'</strong>' : ''}</span>
+    </div>`).join('') : '';
+
+  document.getElementById('profile-body').innerHTML = `
+    <div style="padding:20px; background:var(--surface2); border-radius:0 0 4px 4px;">
+      <!-- Header -->
+      <div style="display:flex; gap:14px; align-items:flex-start; margin-bottom:20px;">
+        <div style="width:56px; height:56px; border-radius:50%; background:${avatarBg}; color:${avatarFg}; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:20px; flex-shrink:0;">${initials.toUpperCase()}</div>
+        <div>
+          <div style="font-size:18px; font-weight:700; color:var(--text);">${fullName}</div>
+          ${firstAddr ? `<div style="font-size:12px; color:var(--text2); margin-top:3px;">📍 ${firstAddr}</div>` : ''}
+          ${propsHTML}
+        </div>
+      </div>
+
+      <!-- Info grid -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px;">
+        <div style="background:var(--surface); border-radius:12px; padding:14px;">
+          <div style="font-size:10px; font-weight:700; color:var(--text3); letter-spacing:.5px; margin-bottom:4px;">PHONE</div>
+          <div style="font-size:14px; font-weight:500;">${c.ph || '—'}</div>
+        </div>
+        <div style="background:var(--surface); border-radius:12px; padding:14px;">
+          <div style="font-size:10px; font-weight:700; color:var(--text3); letter-spacing:.5px; margin-bottom:4px;">EMAIL</div>
+          <div style="font-size:14px; font-weight:500;">${c.em ? c.em.replace('mailto:','') : '—'}</div>
+        </div>
+        <div style="background:var(--surface); border-radius:12px; padding:14px;">
+          <div style="font-size:10px; font-weight:700; color:var(--text3); letter-spacing:.5px; margin-bottom:4px;">SERVICE</div>
+          <div style="font-size:14px; font-weight:500;">${topSvc}</div>
+        </div>
+        <div style="background:var(--surface); border-radius:12px; padding:14px;">
+          <div style="font-size:10px; font-weight:700; color:var(--text3); letter-spacing:.5px; margin-bottom:4px;">DEFAULT RATE</div>
+          <div style="font-size:14px; font-weight:500; color:var(--green);">${defaultRate}</div>
+        </div>
+        <div style="background:var(--surface); border-radius:12px; padding:14px;">
+          <div style="font-size:10px; font-weight:700; color:var(--text3); letter-spacing:.5px; margin-bottom:4px;">LAST VISIT</div>
+          <div style="font-size:14px; font-weight:500;">${lastVisit || '—'}</div>
+        </div>
+        <div style="background:var(--surface); border-radius:12px; padding:14px;">
+          <div style="font-size:10px; font-weight:700; color:var(--text3); letter-spacing:.5px; margin-bottom:4px;">BALANCE</div>
+          <div style="font-size:14px; font-weight:700; color:${balance > 0 ? 'var(--red)' : 'var(--green)'};">${balance > 0 ? 'Owes $'+balance.toFixed(2) : totalPaid > 0 ? 'Paid up ✓' : '—'}</div>
+        </div>
+      </div>
+
+      <!-- Upcoming -->
+      <div style="margin-bottom:18px;">
+        <div style="font-size:13px; font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:6px;">📅 Upcoming (${upcoming.length})</div>
+        <div style="background:var(--surface2); border-radius:12px; padding:10px;">${upcomingHTML}</div>
+      </div>
+
+      <!-- Invoices -->
+      <div style="margin-bottom:18px;">
+        <div style="font-size:13px; font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:6px;">🧾 Invoices (${clientInvs.length})</div>
+        <div style="background:var(--surface2); border-radius:12px; padding:10px;">${invoicesHTML}</div>
+      </div>
+
+      <!-- Time Log -->
+      <div style="margin-bottom:8px;">
+        <div style="font-size:13px; font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:6px;">⏱️ Time Log (${timeLogs.length})</div>
+        <div style="background:var(--surface2); border-radius:12px; padding:10px;">${timeHTML}</div>
+      </div>
+
+      <!-- Edit button -->
+      <div style="display:flex; gap:8px; margin-top:16px;">
+        <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('m-profile'); editClient(${id})">✏️ Edit Client</button>
+      </div>
+    </div>
+  `;
+
+  // Store id for new invoice button
+  document.getElementById('m-profile').dataset.clientId = id;
+  openModal('m-profile');
+}
+
+function profileNewInvoice() {
+  const id = parseInt(document.getElementById('m-profile').dataset.clientId);
+  closeModal('m-profile');
+  newInvoice();
+  setTimeout(() => {
+    fillClients('i-cl', id);
+    fillInvoiceProperties();
+  }, 50);
+}
+
+
+let profileClientId = null;
+
+
+function profileNewInvoice() {
+  closeModal('m-client-profile');
+  setTimeout(() => {
+    newInvoice();
+    if (profileClientId) {
+      fillClients('i-cl', profileClientId);
+      fillInvoiceProperties();
+    }
+  }, 150);
+}
+
+function clientAvatarColor(name) {
+  const colors = [
+    ['#4a9e5c','#e8f5ea'],['#3b82f6','#eff6ff'],['#f59e0b','#fef3c7'],
+    ['#ef4444','#fee2e2'],['#8b5cf6','#ede9fe'],['#ec4899','#fce7f3'],
+    ['#06b6d4','#cffafe'],['#10b981','#d1fae5'],['#f97316','#ffedd5']
+  ];
+  const i = (name.charCodeAt(0) || 0) % colors.length;
+  return colors[i];
+}
+
 function renderClients() {
   const q = (document.getElementById('client-search')?.value || '').toLowerCase();
   let list = DB.clients;
   if (q) list = list.filter(c => ((c.fn + ' ' + c.ln + c.ph + c.ad).toLowerCase().includes(q)));
-  
+
   const el = document.getElementById('clients-list');
+  el.style.padding = '12px';
   if (!list.length) {
-    el.innerHTML = '<p style="color: var(--text3); text-align: center;">No clients</p>';
+    el.innerHTML = '<p style="color: var(--text3); text-align: center; padding: 30px;">No clients</p>';
     return;
   }
-  
-  const isMobile = window.innerWidth <= 800;
-  
-  if (isMobile) {
-    // Mobile card layout
-    el.innerHTML = list.map(c => {
-      const balance = DB.invoices.filter(i => i.clientId === c.id && i.status !== 'Paid')
-        .reduce((s, i) => s + i.total, 0);
-      const totalPaid = DB.invoices.filter(i => i.clientId === c.id && i.status === 'Paid')
-        .reduce((s, i) => s + i.total, 0);
-      return `
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
-            <div>
-              <div style="font-weight: 700; font-size: 14px;">${(c.fn + ' ' + c.ln).trim()}</div>
-              <div style="font-size: 11px; color: var(--text3); margin-top: 4px;">${c.ph || 'No phone'}</div>
-              ${(() => { const props = getClientProps(c.id); return props.length ? '<div style="margin-top:6px;">' + props.map(p => `<div style="font-size:11px; color:var(--text2); display:flex; justify-content:space-between;"><span><span style="background:var(--green-light);color:var(--green-dark);border-radius:4px;padding:1px 5px;font-weight:600;font-size:10px;">${p.nickname}</span> ${p.address}</span>${p.price > 0 ? '<span style=\"font-weight:700;color:var(--green);\">' + '$' + p.price.toFixed(2) + '</span>' : ''}</div>`).join('') + '</div>' : ''; })()}
-            </div>
-            <div style="text-align: right;">
-              <button class="btn btn-secondary btn-xs" onclick="editClient(${c.id})">Edit</button>
-              <button class="btn btn-danger btn-xs" style="margin-top: 4px; width: 100%;" onclick="deleteClient(${c.id})">✕</button>
-            </div>
+
+  el.innerHTML = list.map(c => {
+    const balance = DB.invoices.filter(i => i.clientId === c.id && i.status !== 'Paid')
+      .reduce((s, i) => s + i.total, 0);
+    const totalPaid = DB.invoices.filter(i => i.clientId === c.id && i.status === 'Paid')
+      .reduce((s, i) => s + i.total, 0);
+
+    const fullName = (c.fn + ' ' + c.ln).trim();
+    const initials = (c.fn?.[0] || '') + (c.ln?.[0] || c.fn?.[1] || '');
+    const [avatarFg, avatarBg] = clientAvatarColor(fullName);
+
+    // Last job date
+    const clientJobs = DB.jobs.filter(j => j.clientId === c.id && j.status === 'Completed')
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const lastVisit = clientJobs[0]?.date ? 'Last visit: ' + clientJobs[0].date : '';
+
+    // Most common service
+    const allJobs = DB.jobs.filter(j => j.clientId === c.id);
+    const svcCount = {};
+    allJobs.forEach(j => { svcCount[j.sv] = (svcCount[j.sv] || 0) + 1; });
+    const topSvc = Object.entries(svcCount).sort((a,b) => b[1]-a[1])[0]?.[0] || '';
+
+    // Properties
+    const props = getClientProps(c.id);
+    const firstAddr = props[0]?.address || c.ad || '';
+    const propsHTML = props.length > 0 ? props.map(p =>
+      `<div style="display:flex; align-items:center; gap:5px; margin-top:4px; flex-wrap:wrap;">
+        <span style="font-size:13px;">📍</span>
+        <span style="font-size:12px; color:var(--text2);">${p.address || '—'}</span>
+        ${p.price > 0 ? `<span style="font-size:11px; font-weight:700; color:var(--green); margin-left:4px;">$${p.price.toFixed(2)}</span>` : ''}
+      </div>`
+    ).join('') : (firstAddr ? `<div style="display:flex;align-items:center;gap:5px;margin-top:4px;"><span style="font-size:13px;">📍</span><span style="font-size:12px;color:var(--text2);">${firstAddr}</span></div>` : '');
+
+    return `
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:10px; box-shadow: 0 1px 3px rgba(0,0,0,.05); cursor:pointer;" onclick="viewClient(${c.id})">
+        <div style="display:flex; align-items:flex-start; gap:12px;">
+          <!-- Avatar -->
+          <div style="width:44px; height:44px; border-radius:50%; background:${avatarBg}; color:${avatarFg}; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; flex-shrink:0;">
+            ${initials.toUpperCase()}
           </div>
-          <div style="border-top: 1px solid var(--border); padding-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div>
-              <div style="font-size: 10px; color: var(--text3); margin-bottom: 4px;">Total Paid</div>
-              <div style="font-weight: 700; color: var(--green); font-size: 14px;">$${totalPaid.toFixed(2)}</div>
+          <!-- Main info -->
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div>
+                <div style="font-weight:700; font-size:15px; color:var(--text);">${fullName}</div>
+                ${c.ph ? `<div style="font-size:12px; color:var(--text3); margin-top:2px;">${c.ph}</div>` : ''}
+              </div>
+              <!-- Action buttons -->
+              <div style="display:flex; gap:6px; flex-shrink:0; margin-left:8px;">
+                <button onclick="event.stopPropagation(); editClient(${c.id})" style="background:none;border:none;cursor:pointer;font-size:18px;padding:4px;color:var(--text3);" title="Edit">✏️</button>
+                <button onclick="event.stopPropagation(); deleteClient(${c.id})" style="background:#fde9e7;border:none;cursor:pointer;font-size:16px;padding:6px 8px;border-radius:8px;color:var(--red);" title="Delete">🗑️</button>
+              </div>
             </div>
-            <div style="text-align: right;">
-              <div style="font-size: 10px; color: var(--text3); margin-bottom: 4px;">Outstanding</div>
-              <div style="font-weight: 700; color: ${balance > 0 ? 'var(--red)' : 'var(--green)'}; font-size: 14px;">$${balance.toFixed(2)}</div>
+            <!-- Service tag -->
+            ${topSvc ? `<div style="margin-top:8px;"><span style="background:var(--green-light); color:var(--green-dark); font-size:11px; font-weight:600; padding:3px 10px; border-radius:20px;">${topSvc}</span></div>` : ''}
+            <!-- Properties -->
+            ${propsHTML}
+            <!-- Last visit + financials -->
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px; flex-wrap:wrap; gap:6px;">
+              ${lastVisit ? `<span style="font-size:11px; color:var(--text3);">${lastVisit}</span>` : '<span></span>'}
+              <div style="display:flex; gap:10px;">
+                ${balance > 0 ? `<span style="font-size:11px; font-weight:700; color:var(--red);">Owes $${balance.toFixed(2)}</span>` : ''}
+                ${totalPaid > 0 ? `<span style="font-size:11px; color:var(--text3);">Paid $${totalPaid.toFixed(2)}</span>` : ''}
+              </div>
             </div>
           </div>
         </div>
-      `;
-    }).join('');
-  } else {
-    // Desktop table layout
-    el.innerHTML = '<table class="table"><tbody>' +
-      list.map(c => {
-        const balance = DB.invoices.filter(i => i.clientId === c.id && i.status !== 'Paid')
-          .reduce((s, i) => s + i.total, 0);
-        const totalPaid = DB.invoices.filter(i => i.clientId === c.id && i.status === 'Paid')
-          .reduce((s, i) => s + i.total, 0);
-        const totalJobs = DB.jobs.filter(j => j.clientId === c.id)
-          .reduce((s, j) => s + j.tot, 0);
-        return `<tr>
-          <td>
-            <strong>${(c.fn + ' ' + c.ln).trim()}</strong><br>
-            <span style="font-size: 11px; color: var(--text3);">${c.ph || 'No phone'}</span><br>
-            ${(() => { const props = getClientProps(c.id); return props.length ? props.map(p => `<span style="font-size:10px;color:var(--text2);"><span style="background:var(--green-light);color:var(--green-dark);border-radius:4px;padding:1px 5px;font-weight:600;">${p.nickname}</span> ${p.address}${p.price > 0 ? ' <strong style=\"color:var(--green);\">' + '$' + p.price.toFixed(2) + '</strong>' : ''}</span><br>`).join('') : ''; })()}
-            <span style="font-size: 10px; color: var(--text3);">Total Paid: <strong style="color: var(--green);">$${totalPaid.toFixed(2)}</strong></span>
-          </td>
-          <td style="text-align: right; color: ${balance > 0 ? 'var(--red)' : 'var(--green)'};">
-            <div style="font-size: 13px; font-weight: 700;">$${balance.toFixed(2)}</div>
-            <div style="font-size: 10px; color: var(--text3);">Outstanding</div>
-          </td>
-          <td style="text-align: right;">
-            <button class="btn btn-secondary btn-xs" onclick="editClient(${c.id})">Edit</button>
-            <button class="btn btn-danger btn-xs" style="margin-left: 2px;" onclick="deleteClient(${c.id})">✕</button>
-          </td>
-        </tr>`;
-      }).join('') +
-      '</tbody></table>';
-  }
+      </div>
+    `;
+  }).join('');
 }
 
 function addLine(id) {
@@ -4108,7 +4315,22 @@ document.addEventListener('DOMContentLoaded', () => {
   
   renderDash();
 });
-</script>  <!-- FLOATING ACTION MENU (Mobile) -->
+</script>  
+<!-- CLIENT PROFILE MODAL -->
+<div class="modal-overlay" id="m-profile">
+  <div class="modal" style="width:520px; max-height:90vh; border-radius:18px;">
+    <div class="modal-header" style="border-radius:18px 18px 0 0; padding:16px 20px;">
+      <h3 style="font-size:15px;">Client Profile</h3>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="btn btn-primary btn-sm" id="profile-new-inv-btn" onclick="profileNewInvoice()">🧾 New Invoice</button>
+        <button class="close-btn" onclick="closeModal('m-profile')">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" style="padding:0;" id="profile-body"></div>
+  </div>
+</div>
+
+<!-- FLOATING ACTION MENU (Mobile) -->
   <div id="fab-menu" style="position: fixed; bottom: 100px; right: 20px; z-index: 999; display: none;">
     <button class="fab-item" onclick="gotoMobile('jobs', document.querySelector('[data-p=jobs]')); closeFAB()" title="New Job">
       <span style="font-size: 20px;">🔧</span>
