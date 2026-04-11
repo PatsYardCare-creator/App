@@ -1927,6 +1927,17 @@ function cname(id) {
   return c ? (c.fn + ' ' + c.ln).trim() : 'Unknown';
 }
 
+function getPropName(clientId, propId) {
+  const c = DB.clients.find(c => c.id === clientId);
+  if (!c || !c.properties) return cname(clientId);
+  if (!propId) {
+    // No specific property - just return client name
+    return cname(clientId);
+  }
+  const prop = c.properties.find(p => p.id === propId);
+  return prop && prop.nickname ? prop.nickname : cname(clientId);
+}
+
 function cby(id) {
   return DB.clients.find(c => c.id === id);
 }
@@ -2513,7 +2524,7 @@ function renderDailyView() {
     html += '<p style="color: var(--text3); text-align: center; padding: 40px 20px;">No jobs scheduled</p>';
   } else {
     html += dayJobs.map(j => `<div class="daily-job-item" onclick="editJob(${j.id})">
-      <div class="daily-job-client">${cname(j.clientId)}</div>
+      <div class="daily-job-client">${getPropName(j.clientId, j.propId)}</div>
       <div class="daily-job-service">${j.sv}</div>
       <div class="daily-job-bottom">
         <span class="badge badge-${j.status === 'Completed' ? 'green' : j.status === 'In Progress' ? 'gold' : 'gold'}">${j.status}</span>
@@ -2559,8 +2570,8 @@ function renderWeeklyView() {
     const dayJobs = DB.jobs.filter(j => j.date === dateStr);
     
     html += `<div class="weekly-day-cell ${isToday ? 'today' : ''}">
-      ${dayJobs.map(j => `<div class="weekly-job ${j.status === 'Completed' ? 'completed' : j.status === 'In Progress' ? 'in-progress' : ''}" onclick="editJob(${j.id}); event.stopPropagation();" title="${cname(j.clientId)} - ${j.sv}">
-        <strong>${cname(j.clientId)}</strong><br>${j.sv}<br>$${j.tot.toFixed(2)}
+      ${dayJobs.map(j => `<div class="weekly-job ${j.status === 'Completed' ? 'completed' : j.status === 'In Progress' ? 'in-progress' : ''}" onclick="editJob(${j.id}); event.stopPropagation();" title="${getPropName(j.clientId, j.propId)} - ${j.sv}">
+        <strong>${getPropName(j.clientId, j.propId)}</strong><br>${j.sv}<br>$${j.tot.toFixed(2)}
       </div>`).join('')}
     </div>`;
   }
@@ -2602,7 +2613,7 @@ function renderMonthlyView() {
     
     html += `<div class="calendar-day ${isToday ? 'today' : ''}">
       <div class="calendar-day-number">${i}</div>
-      ${dayJobs.map(j => `<div class="calendar-job ${j.status === 'Completed' ? 'completed' : j.status === 'In Progress' ? 'in-progress' : ''}" onclick="editJob(${j.id}); event.stopPropagation();" title="${cname(j.clientId)} - ${j.sv}">${cname(j.clientId)}</div>`).join('')}
+      ${dayJobs.map(j => `<div class="calendar-job ${j.status === 'Completed' ? 'completed' : j.status === 'In Progress' ? 'in-progress' : ''}" onclick="editJob(${j.id}); event.stopPropagation();" title="${getPropName(j.clientId, j.propId)} - ${j.sv}">${getPropName(j.clientId, j.propId)}</div>`).join('')}
     </div>`;
   }
   
@@ -2671,7 +2682,7 @@ function renderDash() {
     tjEl.innerHTML = '<p style="color: var(--text3); text-align: center;">No jobs today</p>';
   } else {
     tjEl.innerHTML = '<table class="table"><tbody>' + 
-      tj.map(j => `<tr><td><strong>${cname(j.clientId)}</strong> - ${j.sv}</td>
+      tj.map(j => `<tr><td><strong>${getPropName(j.clientId, j.propId)}</strong> - ${j.sv}</td>
         <td style="text-align: right;">
           ${j.status !== 'Completed' ? `<button class="btn btn-primary btn-xs" onclick="completeJob(${j.id})">Done</button>` : '<span class="badge badge-green">Completed</span>'}
         </td></tr>`).join('') + 
@@ -2755,7 +2766,7 @@ function clearJobTimer() {
 function renderJobs() {
   const q = (document.getElementById('job-search')?.value || '').toLowerCase();
   let list = [...DB.jobs].sort((a, b) => a.date.localeCompare(b.date));
-  if (q) list = list.filter(j => (cname(j.clientId) + j.sv + j.date).toLowerCase().includes(q));
+  if (q) list = list.filter(j => (getPropName(j.clientId, j.propId) + j.sv + j.date).toLowerCase().includes(q));
   
   const el = document.getElementById('jobs-list');
   if (!list.length) {
@@ -2773,7 +2784,7 @@ function renderJobs() {
         <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px;">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
             <div>
-              <div style="font-weight: 700; font-size: 14px;">${cname(j.clientId)}</div>
+              <div style="font-weight: 700; font-size: 14px;">${getPropName(j.clientId, j.propId)}</div>
               <div style="font-size: 11px; color: var(--text3); margin-top: 4px;">${j.sv}${recurNote}</div>
             </div>
             <div style="text-align: right;">
@@ -2796,7 +2807,7 @@ function renderJobs() {
       list.map(j => {
         const recurNote = j.rec !== 'none' ? `<div class="recur-note">${j.rec === 'weekly' ? 'Weekly' : 'Biweekly'}</div>` : '';
         return `<tr>
-          <td><strong>${cname(j.clientId)}</strong><br><span style="font-size: 11px; color: var(--text3);">${j.sv}</span>${recurNote}</td>
+          <td><strong>${getPropName(j.clientId, j.propId)}</strong><br><span style="font-size: 11px; color: var(--text3);">${j.sv}</span>${recurNote}</td>
           <td style="font-size: 12px; color: var(--text3);">${fdate(j.date)}</td>
           <td><strong>$${j.tot.toFixed(2)}</strong></td>
           <td style="text-align: right;">
@@ -2811,6 +2822,16 @@ function renderJobs() {
   }
 }
 
+function getWeekStart(dateStr) {
+  // Use Central Time to match the rest of the app
+  const d = new Date(dateStr + 'T12:00:00');
+  const centralDate = new Date(d.toLocaleString('en-US', {timeZone: 'America/Chicago'}));
+  const day = centralDate.getDay();
+  const diff = centralDate.getDate() - day;
+  const weekStart = new Date(centralDate.setDate(diff));
+  return weekStart.getFullYear() + '-' + String(weekStart.getMonth() + 1).padStart(2, '0') + '-' + String(weekStart.getDate()).padStart(2, '0');
+}
+
 function completeJob(id) {
   const j = DB.jobs.find(x => x.id === id);
   if (!j) return;
@@ -2822,24 +2843,43 @@ function completeJob(id) {
   toast('✓ Job marked complete!');
   
   setTimeout(() => {
-    if (confirm(`Create invoice for ${cname(j.clientId)} - ${j.sv}?`)) {
-      const invId = DB.nxt.i++;
-      const newInv = {
-        id: invId,
-        clientId: j.clientId,
-        propId: j.propId || null,
-        de: j.sv + ' - ' + fdate(j.date),
-        items: [{d: j.sv, q: 1, p: j.tot}],
-        total: j.tot,
-        date: today(),
-        status: 'Sent'
-      };
-      DB.invoices.push(newInv);
-      save();
-      renderInvoices();
-      toast('📄 Invoice created!');
+    if (confirm(`Create invoice for ${getPropName(j.clientId, j.propId)} - ${j.sv}?`)) {
+      // Check if invoice already exists for this CLIENT from the same week
+      const jobWeekStart = getWeekStart(j.date);
+      const existingInv = DB.invoices.find(inv => 
+        inv.clientId === j.clientId && 
+        getWeekStart(inv.date) === jobWeekStart
+      );
       
-      setTimeout(() => viewInvoice(invId), 200);
+      if (existingInv) {
+        // Add to existing invoice
+        existingInv.items.push({d: `${getPropName(j.clientId, j.propId)} - ${j.sv}`, q: 1, p: j.tot});
+        existingInv.total += j.tot;
+        save();
+        renderInvoices();
+        toast('✅ Added to existing invoice!');
+        
+        setTimeout(() => viewInvoice(existingInv.id), 200);
+      } else {
+        // Create new invoice
+        const invId = DB.nxt.i++;
+        const newInv = {
+          id: invId,
+          clientId: j.clientId,
+          propId: j.propId || null,
+          de: j.sv + ' - ' + fdate(j.date),
+          items: [{d: `${getPropName(j.clientId, j.propId)} - ${j.sv}`, q: 1, p: j.tot}],
+          total: j.tot,
+          date: today(),
+          status: 'Sent'
+        };
+        DB.invoices.push(newInv);
+        save();
+        renderInvoices();
+        toast('📄 Invoice created!');
+        
+        setTimeout(() => viewInvoice(invId), 200);
+      }
     }
   }, 500);
 }
@@ -3541,7 +3581,7 @@ function renderInvoices() {
   const q = (document.getElementById('inv-search')?.value || '').toLowerCase();
   let list = [...DB.invoices].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   if (currentInvFilter !== 'all') list = list.filter(i => i.status === currentInvFilter);
-  if (q) list = list.filter(i => (cname(i.clientId) + i.de + i.date).toLowerCase().includes(q));
+  if (q) list = list.filter(i => (getPropName(i.clientId, i.propId) + i.de + i.date).toLowerCase().includes(q));
 
   // Update summary
   const sumEl = document.getElementById('inv-filter-summary');
@@ -3569,7 +3609,7 @@ function renderInvoices() {
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
             <div>
               <div style="font-weight: 700; font-size: 14px;">#${String(inv.id).padStart(4, '0')}</div>
-              <div style="font-size: 11px; color: var(--text3); margin-top: 4px;">${cname(inv.clientId)}</div>
+              <div style="font-size: 11px; color: var(--text3); margin-top: 4px;">${getPropName(inv.clientId, inv.propId)}</div>
             </div>
             <div style="text-align: right;">
               <div style="font-weight: 700; font-size: 14px;">$${inv.total.toFixed(2)}</div>
@@ -3595,7 +3635,7 @@ function renderInvoices() {
       list.map(inv => `<tr>
         <td>
           <strong>#${String(inv.id).padStart(4, '0')}</strong><br>
-          <span style="font-size: 11px; color: var(--text3);">${cname(inv.clientId)}</span>
+          <span style="font-size: 11px; color: var(--text3);">${getPropName(inv.clientId, inv.propId)}</span>
         </td>
         <td style="font-size: 12px; color: var(--text3);">${fdate(inv.date)}</td>
         <td><strong>$${inv.total.toFixed(2)}</strong></td>
