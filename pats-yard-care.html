@@ -1893,7 +1893,22 @@ function loadDB() {
       const parsed = JSON.parse(stored);
       if (parsed && parsed.clients && parsed.clients.length > 0) {
         DB = parsed;
+        
+        // Migration: Add weekStart to invoices that don't have it
+        if (DB.invoices && DB.invoices.length > 0) {
+          DB.invoices.forEach(inv => {
+            if (!inv.weekStart && inv.date) {
+              inv.weekStart = getWeekStart(inv.date);
+            }
+          });
+          save();
+        }
       }
+    } else {
+      // Load default backup data if no stored data exists
+      const backupData = {"clients":[{"id":1,"fn":"Debbie","ln":"Hopkins","em":"","ph":"580) 467-3587","ad":"Lester","no":"","properties":[{"id":1,"nickname":"Cody","address":"Lester","price":50},{"id":2,"nickname":"4 plex","address":"","price":45},{"id":3,"nickname":"Debbie's house","address":"","price":50}]},{"id":2,"fn":"Stacy","ln":"Brown","em":"","ph":"(580) 606-1257","ad":"2012 Redbud ave Duncan, OK 73533","no":""},{"id":3,"fn":"Sam","ln":"Porter","em":"","ph":"(580) 512-4897","ad":"","no":""},{"id":4,"fn":"Rebecca","ln":"Whatler","em":"","ph":"(479) 259-8265","ad":"1434 N 5th St Duncan OK 73533","no":""},{"id":5,"fn":"Josh","ln":"Gruver","em":"","ph":"+1 (314) 685-4032","ad":"","no":""},{"id":6,"fn":"Eunice","ln":"Mcroy","em":"","ph":"(580) 467-7266","ad":"","no":"","properties":[]},{"id":7,"fn":"Betty","ln":"Jefferies","em":"","ph":"(580) 656-5181","ad":"7521 pleasant view LN Duncan, Oklahoma","no":"","properties":[{"id":1,"nickname":"Main","address":"7521 pleasant view LN Duncan, Oklahoma"}]},{"id":8,"fn":"Autumn","ln":"Jackson","em":"","ph":"(580) 467-7112","ad":"2011 W Walnut Duncan OK 73533","no":""},{"id":9,"fn":"Bruce","ln":"Jones","em":"","ph":"(580) 277-4235","ad":"281743 Bell Road Comanche OK 73529","no":""},{"id":10,"fn":"Bill","ln":"Parson","em":"","ph":"1 (254) 485-4220","ad":"","no":""},{"id":11,"fn":"Pam","ln":"","em":"","ph":"+1 (979) 864-7214","ad":"","no":""},{"id":12,"fn":"Cheryl","ln":"Wilkinson","em":"","ph":"+1 (405) 550-5375","ad":"3305 Spencer Road Duncan OK 73533","no":""},{"id":13,"fn":"Paul","ln":"","em":"","ph":"+1 (405) 403-5591","ad":"1201 North Harville Rd. in Duncan","no":""},{"id":14,"fn":"Tony","ln":"Brittain","em":"","ph":"(580) 475-2399","ad":"3747 S Ridgeback Rd Marlow OK 73055","no":""},{"id":15,"fn":"Patrick","ln":"","em":"","ph":"+1 (805) 705-4643","ad":"1030 E Plato Rd, Duncan, OK","no":""},{"id":16,"fn":"Cindy","ln":"","em":"","ph":"+1 (580) 470-6396","ad":"1324 Normandy Duncan OK 73533","no":""},{"id":17,"fn":"Chasity","ln":"Fazendin","em":"mailto:chasityfazendin@gmail.com","ph":"9319808057","ad":"2 South 28th street Duncan,OK","no":""},{"id":18,"fn":"4825 country club","ln":"","em":"","ph":"+1 (580) 252-2782","ad":"4825 country club Duncan, ok","no":""},{"id":19,"fn":"Amber","ln":"Skinner","em":"","ph":"+1 (580) 736-8421","ad":"503 N K Street. Duncan OK 73533","no":""},{"id":20,"fn":"Glenn","ln":"","ph":"(254) 644-3947","ad":""},{"id":21,"fn":"Dani","ln":"Green","ph":"+1 (580) 736-5969","ad":""},{"id":22,"fn":"Lucas's mom","ln":"","ph":"+1 (580) 786-8461","ad":""},{"id":24,"fn":"Ann","ln":"Cochran","ph":"+1 (580) 467-0016","ad":"Spruce"},{"id":25,"fn":"Josh","ln":"Besheres","ph":"+1 (580) 606-0542","ad":"Oliver rd","properties":[{"id":1,"nickname":"Christy's mom","address":"Oliver rd","price":50},{"id":2,"nickname":"Home","address":"Brown","price":50}]},{"id":26,"fn":"Christy's mom","ln":"","ph":"","ad":""},{"id":27,"fn":"James","ln":"Wooten","ph":"(580) 467-0785","properties":[{"id":1,"nickname":"Home","address":"3709 Country Clup Duncan OK 73533 United States"}],"ad":"3709 Country Clup Duncan OK 73533 United States"}],"jobs":[],"invoices":[],"quotes":[],"nxt":{"c":28,"j":358,"i":30},"activity":[]};
+      DB = backupData;
+      save();
     }
   } catch (e) {
     console.log('Load error:', e);
@@ -2293,6 +2308,68 @@ function editQuote(id) {
   openModal('m-quote');
 }
 
+function viewQuote(id) {
+  const quote = DB.quotes.find(q => q.id === id);
+  if (!quote) return;
+  const c = cby(quote.clientId);
+  const bp = getBP();
+  
+  const rows = (quote.items || []).map(i => 
+    `<tr><td>${i.d}</td><td style="text-align: center;">${i.q}</td><td style="text-align: right;">$${i.p.toFixed(2)}</td><td style="text-align: right;">$${(i.q * i.p).toFixed(2)}</td></tr>`
+  ).join('');
+  
+  const logoHTML = bp.logo ? `<img src="${bp.logo}" style="max-height: 80px; max-width: 160px; object-fit: contain;">` : `<strong style="font-size: 18px;">${bp.name}</strong>`;
+  const isExpired = quote.exp && new Date(quote.exp) < new Date();
+  
+  const quotePreview = `
+    <div class="inv-head">
+      <div>${logoHTML}<br><span style="font-size: 11px; color: var(--text3); margin-top: 6px;">${bp.phone}<br>${bp.email}${bp.addr ? '<br>' + bp.addr : ''}</span></div>
+      <div style="text-align: right;">
+        <h2 style="font-size: 20px; color: ${bp.color};">QUOTE</h2>
+        <p style="font-size: 12px; color: var(--text2);">Quote #${quote.id}</p>
+        <p style="font-size: 12px; color: var(--text2);">${quote.createdAt ? fdate(quote.createdAt.split('T')[0]) : 'N/A'}</p>
+        <p style="font-size: 11px; color: var(--text3);">Expires: ${quote.exp ? (isExpired ? '❌ ' : '') + fdate(quote.exp) : 'No exp date'}</p>
+      </div>
+    </div>
+    <div class="inv-parties">
+      <div>
+        <div class="party-label">Quote For</div>
+        <div style="font-weight: 700;">${c ? (c.fn + ' ' + c.ln).trim() : 'Client'}</div>
+        <div style="font-size: 13px; color: var(--text2);">${c?.ph || ''}<br>${c?.ad || ''}</div>
+      </div>
+    </div>
+    <div style="background: var(--green-light); padding: 12px; border-radius: 7px; margin-bottom: 20px;">
+      <p style="font-size: 12px; color: var(--text2);"><strong>Description:</strong> ${quote.de || 'No description'}</p>
+      ${quote.no ? `<p style="font-size: 12px; color: var(--text2); margin-top: 6px;"><strong>Notes:</strong> ${quote.no}</p>` : ''}
+    </div>
+    <table class="line-items" style="margin-bottom: 20px;">
+      <thead style="background: ${bp.color}20;">
+        <tr><th style="color: ${bp.color};">Description</th><th style="color: ${bp.color};">Qty</th><th style="color: ${bp.color};">Price</th><th style="color: ${bp.color};">Total</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+      <div style="text-align: right; width: 200px;">
+        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px;">
+          <span>Subtotal:</span>
+          <span>$${quote.total.toFixed(2)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; padding-top: 8px; border-top: 2px solid ${bp.color};">
+          <span>Total:</span>
+          <span style="color: ${bp.color};">$${quote.total.toFixed(2)}</span>
+        </div>
+      </div>
+    </div>
+    <div style="padding-top: 20px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text3); text-align: center;">
+      <p>${bp.terms}</p>
+      <p style="margin-top: 8px;">Status: <span style="font-weight: 700; color: ${quote.status === 'Accepted' ? 'var(--green)' : quote.status === 'Rejected' ? 'var(--red)' : 'var(--gold)'};">${quote.status}</span></p>
+    </div>
+  `;
+  
+  document.getElementById('inv-box').innerHTML = quotePreview;
+  openModal('m-invoice-preview');
+}
+
 function deleteQuote(id) {
   if (confirm('Delete this quote?')) {
     DB.quotes = DB.quotes.filter(q => q.id !== id);
@@ -2368,6 +2445,7 @@ function renderQuotes() {
           </div>
           <div style="border-top: 1px solid var(--border); padding-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
             <span class="badge ${quote.status === 'Accepted' ? 'badge-green' : quote.status === 'Rejected' ? 'badge-red' : 'badge-gold'}">${quote.status}</span>
+            <button class="btn btn-secondary btn-xs" onclick="viewQuote(${quote.id})">View</button>
             <button class="btn btn-secondary btn-xs" onclick="editQuote(${quote.id})">Edit</button>
             <button class="btn btn-danger btn-xs" onclick="deleteQuote(${quote.id})">✕</button>
           </div>
@@ -2387,7 +2465,8 @@ function renderQuotes() {
           <td><strong>$${quote.total.toFixed(2)}</strong></td>
           <td style="text-align: right;">
             <span class="badge ${quote.status === 'Accepted' ? 'badge-green' : quote.status === 'Rejected' ? 'badge-red' : 'badge-gold'}">${quote.status}</span>
-            <button class="btn btn-secondary btn-xs" style="margin-left: 4px;" onclick="editQuote(${quote.id})">Edit</button>
+            <button class="btn btn-secondary btn-xs" style="margin-left: 4px;" onclick="viewQuote(${quote.id})">View</button>
+            <button class="btn btn-secondary btn-xs" style="margin-left: 2px;" onclick="editQuote(${quote.id})">Edit</button>
             <button class="btn btn-danger btn-xs" style="margin-left: 2px;" onclick="deleteQuote(${quote.id})">✕</button>
           </td>
         </tr>`;
@@ -2848,7 +2927,7 @@ function completeJob(id) {
       const jobWeekStart = getWeekStart(j.date);
       const existingInv = DB.invoices.find(inv => 
         inv.clientId === j.clientId && 
-        getWeekStart(inv.date) === jobWeekStart
+        inv.weekStart === jobWeekStart
       );
       
       if (existingInv) {
@@ -2867,6 +2946,7 @@ function completeJob(id) {
           id: invId,
           clientId: j.clientId,
           propId: j.propId || null,
+          weekStart: jobWeekStart,
           de: j.sv + ' - ' + fdate(j.date),
           items: [{d: `${getPropName(j.clientId, j.propId)} - ${j.sv}`, q: 1, p: j.tot}],
           total: j.tot,
