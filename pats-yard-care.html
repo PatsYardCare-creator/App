@@ -2309,65 +2309,87 @@ function editQuote(id) {
 }
 
 function viewQuote(id) {
+  console.log('viewQuote called with id:', id);
   const quote = DB.quotes.find(q => q.id === id);
-  if (!quote) return;
-  const c = cby(quote.clientId);
-  const bp = getBP();
+  console.log('quote found:', quote);
+  if (!quote) {
+    console.log('Quote not found!');
+    toast('Quote not found');
+    return;
+  }
   
-  const rows = (quote.items || []).map(i => 
-    `<tr><td>${i.d}</td><td style="text-align: center;">${i.q}</td><td style="text-align: right;">$${i.p.toFixed(2)}</td><td style="text-align: right;">$${(i.q * i.p).toFixed(2)}</td></tr>`
-  ).join('');
-  
-  const logoHTML = bp.logo ? `<img src="${bp.logo}" style="max-height: 80px; max-width: 160px; object-fit: contain;">` : `<strong style="font-size: 18px;">${bp.name}</strong>`;
-  const isExpired = quote.exp && new Date(quote.exp) < new Date();
-  
-  const quotePreview = `
-    <div class="inv-head">
-      <div>${logoHTML}<br><span style="font-size: 11px; color: var(--text3); margin-top: 6px;">${bp.phone}<br>${bp.email}${bp.addr ? '<br>' + bp.addr : ''}</span></div>
-      <div style="text-align: right;">
-        <h2 style="font-size: 20px; color: ${bp.color};">QUOTE</h2>
-        <p style="font-size: 12px; color: var(--text2);">Quote #${quote.id}</p>
-        <p style="font-size: 12px; color: var(--text2);">${quote.createdAt ? fdate(quote.createdAt.split('T')[0]) : 'N/A'}</p>
-        <p style="font-size: 11px; color: var(--text3);">Expires: ${quote.exp ? (isExpired ? '❌ ' : '') + fdate(quote.exp) : 'No exp date'}</p>
-      </div>
-    </div>
-    <div class="inv-parties">
-      <div>
-        <div class="party-label">Quote For</div>
-        <div style="font-weight: 700;">${c ? (c.fn + ' ' + c.ln).trim() : 'Client'}</div>
-        <div style="font-size: 13px; color: var(--text2);">${c?.ph || ''}<br>${c?.ad || ''}</div>
-      </div>
-    </div>
-    <div style="background: var(--green-light); padding: 12px; border-radius: 7px; margin-bottom: 20px;">
-      <p style="font-size: 12px; color: var(--text2);"><strong>Description:</strong> ${quote.de || 'No description'}</p>
-      ${quote.no ? `<p style="font-size: 12px; color: var(--text2); margin-top: 6px;"><strong>Notes:</strong> ${quote.no}</p>` : ''}
-    </div>
-    <table class="line-items" style="margin-bottom: 20px;">
-      <thead style="background: ${bp.color}20;">
-        <tr><th style="color: ${bp.color};">Description</th><th style="color: ${bp.color};">Qty</th><th style="color: ${bp.color};">Price</th><th style="color: ${bp.color};">Total</th></tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-    <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
-      <div style="text-align: right; width: 200px;">
-        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px;">
-          <span>Subtotal:</span>
-          <span>$${quote.total.toFixed(2)}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; padding-top: 8px; border-top: 2px solid ${bp.color};">
-          <span>Total:</span>
-          <span style="color: ${bp.color};">$${quote.total.toFixed(2)}</span>
+  try {
+    const c = cby(quote.clientId);
+    const bp = getBP();
+    
+    const rows = (quote.items || []).map(i => 
+      `<tr><td>${i.d}</td><td style="text-align: center;">${i.q}</td><td style="text-align: right;">$${i.p.toFixed(2)}</td><td style="text-align: right;">$${(i.q * i.p).toFixed(2)}</td></tr>`
+    ).join('');
+    
+    const logoHTML = bp.logo ? `<img src="${bp.logo}" style="max-height: 80px; max-width: 160px; object-fit: contain;">` : `<strong style="font-size: 18px;">${bp.name}</strong>`;
+    const isExpired = quote.exp && new Date(quote.exp) < new Date();
+    
+    // Navigate to invoices page first (where preview is shown)
+    gotoPage('invoices', document.querySelector('[data-p=invoices]'));
+    
+    // Update the label
+    document.getElementById('inv-prev-lbl').textContent = 'Quote #' + quote.id;
+    
+    // Set the preview content
+    document.getElementById('inv-box').innerHTML = `
+      <div class="inv-head">
+        <div>${logoHTML}<br><span style="font-size: 11px; color: var(--text3); margin-top: 6px;">${bp.phone}<br>${bp.email}${bp.addr ? '<br>' + bp.addr : ''}</span></div>
+        <div style="text-align: right;">
+          <h2 style="font-size: 20px; color: ${bp.color};">QUOTE</h2>
+          <p style="font-size: 12px; color: var(--text2);">Quote #${quote.id}</p>
+          <p style="font-size: 12px; color: var(--text2);">${quote.createdAt ? fdate(quote.createdAt.split('T')[0]) : 'N/A'}</p>
+          <p style="font-size: 11px; color: var(--text3);">Expires: ${quote.exp ? (isExpired ? '❌ ' : '') + fdate(quote.exp) : 'No exp date'}</p>
         </div>
       </div>
-    </div>
-    <div style="padding-top: 20px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text3); text-align: center;">
-      <p>${bp.terms}</p>
-      <p style="margin-top: 8px;">Status: <span style="font-weight: 700; color: ${quote.status === 'Accepted' ? 'var(--green)' : quote.status === 'Rejected' ? 'var(--red)' : 'var(--gold)'};">${quote.status}</span></p>
-    </div>
-  `;
-  
-  document.getElementById('inv-box').innerHTML = quotePreview;
-  openModal('m-invoice-preview');
+      <div class="inv-parties">
+        <div>
+          <div class="party-label">Quote For</div>
+          <div style="font-weight: 700;">${c ? (c.fn + ' ' + c.ln).trim() : 'Client'}</div>
+          <div style="font-size: 13px; color: var(--text2);">${c?.ph || ''}<br>${c?.ad || ''}</div>
+        </div>
+      </div>
+      <div style="background: var(--green-light); padding: 12px; border-radius: 7px; margin-bottom: 20px;">
+        <p style="font-size: 12px; color: var(--text2);"><strong>Description:</strong> ${quote.de || 'No description'}</p>
+        ${quote.no ? `<p style="font-size: 12px; color: var(--text2); margin-top: 6px;"><strong>Notes:</strong> ${quote.no}</p>` : ''}
+      </div>
+      <table class="line-items" style="margin-bottom: 20px;">
+        <thead style="background: var(--green)20;">
+          <tr><th style="color: var(--green);">Description</th><th style="color: var(--green);">Qty</th><th style="color: var(--green);">Price</th><th style="color: var(--green);">Total</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+        <div style="min-width: 200px;">
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 15px; border-top: 2px solid var(--border); font-weight: 700; color: ${bp.color};">
+            <span>Total</span>
+            <span>$${quote.total.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: var(--text3); border-top: 1px solid var(--border); padding-top: 12px;">
+        <p><strong>Status:</strong> <span style="font-weight: 700; color: ${quote.status === 'Accepted' ? 'var(--green)' : quote.status === 'Rejected' ? 'var(--red)' : 'var(--gold)'};">${quote.status}</span></p>
+        <p style="margin-top: 8px;">${bp.terms}</p>
+      </div>
+    `;
+    
+    console.log('Showing preview');
+    document.getElementById('inv-preview-wrap').style.display = 'block';
+    
+    // Scroll to preview after a small delay to ensure page is loaded
+    setTimeout(() => {
+      document.getElementById('inv-preview-wrap').scrollIntoView({behavior: 'smooth'});
+    }, 100);
+    
+    console.log('Quote preview displayed');
+  } catch (e) {
+    console.error('Error in viewQuote:', e);
+    toast('Error displaying quote: ' + e.message);
+  }
 }
 
 function deleteQuote(id) {
