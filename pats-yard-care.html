@@ -2656,7 +2656,22 @@ function renderDailyView() {
   const dateStr = currentMonth.getFullYear() + '-' + String(currentMonth.getMonth() + 1).padStart(2, '0') + '-' + String(currentMonth.getDate()).padStart(2, '0');
   const dayJobs = DB.jobs.filter(j => j.date === dateStr).sort((a, b) => a.sv.localeCompare(b.sv));
   
+  // Calculate day earnings
+  const dayTotal = dayJobs.reduce((sum, j) => sum + j.tot, 0);
+  
   let html = `<div class="daily-header"><h3>${currentMonth.toLocaleDateString('en-US', {weekday: 'long', month: 'long', day: 'numeric'})}</h3></div>`;
+  
+  // Add earnings summary
+  html += `<div style="background: var(--green-light); padding: 14px; border-radius: 10px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <div style="font-size: 12px; color: var(--text2); font-weight: 600;">TODAY'S EARNINGS</div>
+      <div style="font-size: 18px; font-weight: 700; color: var(--green); margin-top: 4px;">$${dayTotal.toFixed(2)}</div>
+    </div>
+    <div style="text-align: right;">
+      <div style="font-size: 12px; color: var(--text2); font-weight: 600;">JOBS TODAY</div>
+      <div style="font-size: 18px; font-weight: 700; color: var(--green); margin-top: 4px;">${dayJobs.length}</div>
+    </div>
+  </div>`;
   
   if (!dayJobs.length) {
     html += '<p style="color: var(--text3); text-align: center; padding: 40px 20px;">No jobs scheduled</p>';
@@ -2683,7 +2698,23 @@ function renderWeeklyView() {
   
   document.getElementById('sched-label').textContent = `${weekStart.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})} - ${weekEnd.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}`;
   
-  let html = '';
+  // Calculate week earnings
+  const weekStartStr = weekStart.getFullYear() + '-' + String(weekStart.getMonth() + 1).padStart(2, '0') + '-' + String(weekStart.getDate()).padStart(2, '0');
+  const weekEndStr = weekEnd.getFullYear() + '-' + String(weekEnd.getMonth() + 1).padStart(2, '0') + '-' + String(weekEnd.getDate()).padStart(2, '0');
+  const weekJobs = DB.jobs.filter(j => j.date >= weekStartStr && j.date <= weekEndStr);
+  const weekTotal = weekJobs.reduce((sum, j) => sum + j.tot, 0);
+  
+  let html = `<div style="background: var(--green-light); padding: 14px; border-radius: 10px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <div style="font-size: 12px; color: var(--text2); font-weight: 600;">WEEK EARNINGS</div>
+      <div style="font-size: 18px; font-weight: 700; color: var(--green); margin-top: 4px;">$${weekTotal.toFixed(2)}</div>
+    </div>
+    <div style="text-align: right;">
+      <div style="font-size: 12px; color: var(--text2); font-weight: 600;">JOBS THIS WEEK</div>
+      <div style="font-size: 18px; font-weight: 700; color: var(--green); margin-top: 4px;">${weekJobs.length}</div>
+    </div>
+  </div>`;
+  
   const todayDate = new Date();
   const today = todayDate.getFullYear() + '-' + String(todayDate.getMonth() + 1).padStart(2, '0') + '-' + String(todayDate.getDate()).padStart(2, '0');
   
@@ -2723,11 +2754,29 @@ function renderMonthlyView() {
   
   document.getElementById('sched-label').textContent = currentMonth.toLocaleDateString('en-US', {month: 'long', year: 'numeric'});
   
+  // Calculate month earnings
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
-  const prevLastDay = new Date(year, month, 0);
+  let monthTotal = 0;
+  let monthJobCount = 0;
+  for (let i = 1; i <= lastDay.getDate(); i++) {
+    const date = new Date(year, month, i);
+    const dateStr = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+    const dayJobs = DB.jobs.filter(j => j.date === dateStr);
+    monthJobCount += dayJobs.length;
+    monthTotal += dayJobs.reduce((sum, j) => sum + j.tot, 0);
+  }
   
-  let html = '';
+  let html = `<div style="background: var(--green-light); padding: 14px; border-radius: 10px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <div style="font-size: 12px; color: var(--text2); font-weight: 600;">MONTH EARNINGS</div>
+      <div style="font-size: 18px; font-weight: 700; color: var(--green); margin-top: 4px;">$${monthTotal.toFixed(2)}</div>
+    </div>
+    <div style="text-align: right;">
+      <div style="font-size: 12px; color: var(--text2); font-weight: 600;">JOBS THIS MONTH</div>
+      <div style="font-size: 18px; font-weight: 700; color: var(--green); margin-top: 4px;">${monthJobCount}</div>
+    </div>
+  </div>`;
   
   // Day headers
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -2736,6 +2785,7 @@ function renderMonthlyView() {
   });
   
   // Previous month days
+  const prevLastDay = new Date(year, month, 0);
   for (let i = prevLastDay.getDate() - firstDay.getDay() + 1; i <= prevLastDay.getDate(); i++) {
     html += `<div class="calendar-day other-month"><div class="calendar-day-number">${i}</div></div>`;
   }
