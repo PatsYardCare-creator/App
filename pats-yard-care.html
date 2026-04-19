@@ -1262,6 +1262,22 @@ nav {
         <button class="btn btn-primary btn-sm" onclick="schedToday()">Today</button>
       </div>
       
+      <!-- EARNINGS SUMMARY -->
+      <div id="earnings-summary" style="display: none; margin-bottom: 16px;">
+        <div class="card" style="background: var(--green-light); padding: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-size: 12px; color: var(--text2); font-weight: 600;">WEEK EARNINGS</div>
+              <div style="font-size: 18px; font-weight: 700; color: var(--green); margin-top: 4px;" id="week-earnings-amount">$0.00</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 12px; color: var(--text2); font-weight: 600;">JOBS THIS WEEK</div>
+              <div style="font-size: 18px; font-weight: 700; color: var(--green); margin-top: 4px;" id="week-jobs-count">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <!-- DAILY VIEW -->
       <div id="daily-view" style="display: none;">
         <div class="card">
@@ -2653,6 +2669,7 @@ function renderSchedule() {
 
 function renderDailyView() {
   document.getElementById('sched-label').textContent = currentMonth.toLocaleDateString('en-US', {weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'});
+  document.getElementById('earnings-summary').style.display = 'none';
   const dateStr = currentMonth.getFullYear() + '-' + String(currentMonth.getMonth() + 1).padStart(2, '0') + '-' + String(currentMonth.getDate()).padStart(2, '0');
   const dayJobs = DB.jobs.filter(j => j.date === dateStr).sort((a, b) => a.sv.localeCompare(b.sv));
   
@@ -2698,23 +2715,19 @@ function renderWeeklyView() {
   
   document.getElementById('sched-label').textContent = `${weekStart.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})} - ${weekEnd.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}`;
   
+  // Show and update earnings summary
+  document.getElementById('earnings-summary').style.display = 'block';
+  
   // Calculate week earnings
   const weekStartStr = weekStart.getFullYear() + '-' + String(weekStart.getMonth() + 1).padStart(2, '0') + '-' + String(weekStart.getDate()).padStart(2, '0');
   const weekEndStr = weekEnd.getFullYear() + '-' + String(weekEnd.getMonth() + 1).padStart(2, '0') + '-' + String(weekEnd.getDate()).padStart(2, '0');
   const weekJobs = DB.jobs.filter(j => j.date >= weekStartStr && j.date <= weekEndStr);
   const weekTotal = weekJobs.reduce((sum, j) => sum + j.tot, 0);
   
-  let html = `<div style="background: var(--green-light); padding: 14px; border-radius: 10px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
-    <div>
-      <div style="font-size: 12px; color: var(--text2); font-weight: 600;">WEEK EARNINGS</div>
-      <div style="font-size: 18px; font-weight: 700; color: var(--green); margin-top: 4px;">$${weekTotal.toFixed(2)}</div>
-    </div>
-    <div style="text-align: right;">
-      <div style="font-size: 12px; color: var(--text2); font-weight: 600;">JOBS THIS WEEK</div>
-      <div style="font-size: 18px; font-weight: 700; color: var(--green); margin-top: 4px;">${weekJobs.length}</div>
-    </div>
-  </div>`;
+  document.getElementById('week-earnings-amount').textContent = '$' + weekTotal.toFixed(2);
+  document.getElementById('week-jobs-count').textContent = weekJobs.length;
   
+  let html = '';
   const todayDate = new Date();
   const today = todayDate.getFullYear() + '-' + String(todayDate.getMonth() + 1).padStart(2, '0') + '-' + String(todayDate.getDate()).padStart(2, '0');
   
@@ -2767,16 +2780,13 @@ function renderMonthlyView() {
     monthTotal += dayJobs.reduce((sum, j) => sum + j.tot, 0);
   }
   
-  let html = `<div style="background: var(--green-light); padding: 14px; border-radius: 10px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
-    <div>
-      <div style="font-size: 12px; color: var(--text2); font-weight: 600;">MONTH EARNINGS</div>
-      <div style="font-size: 18px; font-weight: 700; color: var(--green); margin-top: 4px;">$${monthTotal.toFixed(2)}</div>
-    </div>
-    <div style="text-align: right;">
-      <div style="font-size: 12px; color: var(--text2); font-weight: 600;">JOBS THIS MONTH</div>
-      <div style="font-size: 18px; font-weight: 700; color: var(--green); margin-top: 4px;">${monthJobCount}</div>
-    </div>
-  </div>`;
+  // Show and update earnings summary
+  document.getElementById('earnings-summary').style.display = 'block';
+  document.querySelector('#earnings-summary .card > div > div:first-child > div:first-child').textContent = 'MONTH EARNINGS';
+  document.getElementById('week-earnings-amount').textContent = '$' + monthTotal.toFixed(2);
+  document.getElementById('week-jobs-count').textContent = monthJobCount;
+  
+  let html = '';
   
   // Day headers
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
