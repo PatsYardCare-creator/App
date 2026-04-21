@@ -1876,6 +1876,27 @@ nav {
   </div>
 </div>
 
+<!-- SKIP JOB MODAL -->
+<div class="modal-overlay" id="m-skip-job">
+  <div class="modal" style="width: 380px;">
+    <div class="modal-header"><h3>Skip Job to...</h3><button class="close-btn" onclick="closeModal('m-skip-job')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size: 13px; color: var(--text2); margin-bottom: 16px;">Where would you like to reschedule this job?</p>
+      <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+        <button class="btn btn-secondary" style="flex: 1;" onclick="skipJobToDate('tomorrow')">Tomorrow</button>
+        <button class="btn btn-secondary" style="flex: 1;" onclick="skipJobToDate('pick')">Pick Date</button>
+      </div>
+      <div id="skip-date-picker" style="display: none;">
+        <label class="form-label" style="font-size: 12px;">Select Date</label>
+        <input type="date" id="skip-new-date" class="form-control" style="margin-bottom: 12px;">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('m-skip-job')">Cancel</button>
+      <button class="btn btn-primary" id="skip-confirm-btn" onclick="confirmSkipJob()" style="display: none;">Reschedule</button>
+    </div>
+  </div>
+</div>
 
 <!-- CLIENT PROFILE MODAL -->
 <div class="modal-overlay" id="m-client-profile">
@@ -2881,8 +2902,9 @@ function renderDash() {
   } else {
     tjEl.innerHTML = '<table class="table"><tbody>' + 
       tj.map(j => `<tr><td><strong>${getPropName(j.clientId, j.propId)}</strong> - ${j.sv}</td>
-        <td style="text-align: right;">
-          ${j.status !== 'Completed' ? `<button class="btn btn-primary btn-xs" onclick="completeJob(${j.id})">Done</button>` : '<span class="badge badge-green">Completed</span>'}
+        <td style="text-align: right; display: flex; gap: 6px; justify-content: flex-end;">
+          ${j.status !== 'Completed' ? `<button class="btn btn-primary btn-xs" onclick="completeJob(${j.id})">Done</button>
+          <button class="btn btn-secondary btn-xs" onclick="openSkipJobModal(${j.id})">Skip</button>` : '<span class="badge badge-green">Completed</span>'}
         </td></tr>`).join('') + 
       '</tbody></table>';
   }
@@ -3081,6 +3103,61 @@ function completeJob(id) {
       }
     }
   }, 500);
+}
+
+let skipJobData = { id: null, mode: null };
+
+function openSkipJobModal(jobId) {
+  skipJobData.id = jobId;
+  skipJobData.mode = null;
+  document.getElementById('skip-date-picker').style.display = 'none';
+  document.getElementById('skip-confirm-btn').style.display = 'none';
+  document.getElementById('skip-new-date').value = '';
+  openModal('m-skip-job');
+}
+
+function skipJobToDate(mode) {
+  skipJobData.mode = mode;
+  
+  if (mode === 'tomorrow') {
+    confirmSkipJob();
+  } else if (mode === 'pick') {
+    document.getElementById('skip-date-picker').style.display = 'block';
+    document.getElementById('skip-confirm-btn').style.display = 'inline-block';
+    
+    // Set min date to tomorrow
+    const tomorrow = new Date(today());
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const minDate = tomorrow.getFullYear() + '-' + String(tomorrow.getMonth() + 1).padStart(2, '0') + '-' + String(tomorrow.getDate()).padStart(2, '0');
+    document.getElementById('skip-new-date').min = minDate;
+    document.getElementById('skip-new-date').value = minDate;
+  }
+}
+
+function confirmSkipJob() {
+  const j = DB.jobs.find(x => x.id === skipJobData.id);
+  if (!j) return;
+  
+  let newDate;
+  
+  if (skipJobData.mode === 'tomorrow') {
+    const tomorrow = new Date(today());
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    newDate = tomorrow.getFullYear() + '-' + String(tomorrow.getMonth() + 1).padStart(2, '0') + '-' + String(tomorrow.getDate()).padStart(2, '0');
+  } else if (skipJobData.mode === 'pick') {
+    newDate = document.getElementById('skip-new-date').value;
+    if (!newDate) {
+      toast('Please select a date');
+      return;
+    }
+  }
+  
+  j.date = newDate;
+  save();
+  renderJobs();
+  renderDash();
+  closeModal('m-skip-job');
+  toast('📅 Job rescheduled to ' + fdate(newDate));
 }
 
 function newJob() {
