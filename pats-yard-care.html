@@ -1376,6 +1376,7 @@ nav {
           <span style="font-weight: 700; font-size: 15px;" id="inv-prev-lbl">Invoice Preview</span>
           <div style="display: flex; gap: 8px;">
             <button class="btn btn-secondary btn-sm" onclick="printInvoice()">🖨️ Print</button>
+            <button class="btn btn-secondary btn-sm" onclick="downloadInvoicePDF()" id="download-inv-btn">📥 Download</button>
             <button class="btn btn-ghost btn-sm" onclick="document.getElementById('inv-preview-wrap').style.display = 'none'">Close</button>
           </div>
         </div>
@@ -4036,21 +4037,381 @@ function viewInvoice(id) {
 function printInvoice() {
   const box = document.getElementById('inv-box');
   const w = window.open('', '_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>Invoice</title><style>
-    body { font-family: sans-serif; padding: 20px; max-width: 680px; margin: 0 auto; }
-    table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-    th, td { padding: 8px; border: 1px solid #ddd; text-align: left; }
-    th { background: #e8f5ea; font-weight: bold; }
-    .total { text-align: right; font-weight: bold; }
-    @media print { body { padding: 0; } }
-  </style></head><body>`);
-  w.document.write(box.innerHTML);
-  w.document.write('</body></html>');
+  const bp = getBP();
+  
+  w.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      padding: 40px 20px;
+      max-width: 720px;
+      margin: 0 auto;
+      color: #333;
+      line-height: 1.6;
+      background: white;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .logo { max-width: 120px; }
+    .logo img { max-width: 100%; height: auto; }
+    
+    .business-info {
+      font-size: 13px;
+      color: #666;
+      line-height: 1.6;
+    }
+    
+    .invoice-title {
+      text-align: right;
+      font-size: 32px;
+      font-weight: 700;
+      color: #2d6a2f;
+      margin-bottom: 8px;
+    }
+    
+    .invoice-details {
+      text-align: right;
+      font-size: 13px;
+      color: #999;
+    }
+    
+    .invoice-details strong { color: #333; }
+    
+    .parties {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin: 40px 0;
+    }
+    
+    .party { font-size: 13px; }
+    .party-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #999;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    
+    .party-name { font-weight: 700; font-size: 16px; color: #333; margin-bottom: 4px; }
+    .party-detail { color: #666; font-size: 13px; }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 30px 0;
+    }
+    
+    thead tr { background: #e8f5e9; }
+    th {
+      padding: 12px 8px;
+      text-align: left;
+      font-weight: 700;
+      color: #2d6a2f;
+      font-size: 12px;
+      border: none;
+    }
+    
+    td {
+      padding: 14px 8px;
+      border-bottom: 1px solid #e0e0e0;
+      font-size: 13px;
+    }
+    
+    tr:last-child td { border-bottom: 2px solid #e0e0e0; }
+    
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+    
+    .subtotal-row td {
+      padding-top: 20px;
+      border-bottom: none;
+      font-size: 13px;
+      color: #666;
+    }
+    
+    .subtotal-row .text-right { color: #333; font-weight: 600; }
+    
+    .total-row td {
+      padding: 16px 8px;
+      font-size: 16px;
+      font-weight: 700;
+      border-top: 2px solid #2d6a2f;
+      border-bottom: none;
+    }
+    
+    .total-row .text-right { color: #2d6a2f; }
+    
+    .notes {
+      margin-top: 30px;
+      padding: 16px;
+      background: #f5f5f5;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #666;
+      line-height: 1.6;
+    }
+    
+    .footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+      text-align: center;
+      font-size: 11px;
+      color: #999;
+    }
+    
+    @media print {
+      body { padding: 0; }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      ${bp.logo ? `<div class="logo"><img src="${bp.logo}" alt="Logo"></div>` : `<strong style="font-size:18px;">${bp.name}</strong>`}
+      <div class="business-info" style="margin-top: 12px;">
+        ${bp.phone ? `<div>${bp.phone}</div>` : ''}
+        ${bp.email ? `<div>${bp.email}</div>` : ''}
+        ${bp.addr ? `<div>${bp.addr}</div>` : ''}
+      </div>
+    </div>
+    <div style="text-align: right;">
+      <div class="invoice-title">INVOICE</div>
+      <div class="invoice-details">
+        <div><strong>${document.querySelector('[id*=inv-num]')?.textContent || 'Invoice'}</strong></div>
+        <div>${document.querySelector('[id*=inv-date]')?.textContent || ''}</div>
+        <div>${document.querySelector('[id*=inv-status]')?.textContent || ''}</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="parties">
+    <div class="party">
+      <div class="party-label">Bill To</div>
+      ${document.querySelector('[id*=inv-to]')?.innerHTML || ''}
+    </div>
+  </div>
+  
+  ${box.innerHTML}
+  
+  <div class="footer">
+    ${bp.terms || 'Thank you for your business!'}
+  </div>
+</body>
+</html>`);
   w.document.close();
   w.onload = () => w.print();
 }
 
-function exportJSON() {
+function downloadInvoicePDF() {
+  const box = document.getElementById('inv-box');
+  const bp = getBP();
+  const invNum = document.querySelector('[id*=inv-num]')?.textContent || 'Invoice';
+  
+  // Create HTML for PDF
+  const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${invNum}.pdf</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      padding: 40px 20px;
+      max-width: 720px;
+      margin: 0 auto;
+      color: #333;
+      line-height: 1.6;
+      background: white;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .logo { max-width: 120px; }
+    .logo img { max-width: 100%; height: auto; }
+    
+    .business-info {
+      font-size: 13px;
+      color: #666;
+      line-height: 1.6;
+    }
+    
+    .invoice-title {
+      text-align: right;
+      font-size: 32px;
+      font-weight: 700;
+      color: #2d6a2f;
+      margin-bottom: 8px;
+    }
+    
+    .invoice-details {
+      text-align: right;
+      font-size: 13px;
+      color: #999;
+    }
+    
+    .invoice-details strong { color: #333; }
+    
+    .parties {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin: 40px 0;
+    }
+    
+    .party { font-size: 13px; }
+    .party-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #999;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    
+    .party-name { font-weight: 700; font-size: 16px; color: #333; margin-bottom: 4px; }
+    .party-detail { color: #666; font-size: 13px; }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 30px 0;
+    }
+    
+    thead tr { background: #e8f5e9; }
+    th {
+      padding: 12px 8px;
+      text-align: left;
+      font-weight: 700;
+      color: #2d6a2f;
+      font-size: 12px;
+      border: none;
+    }
+    
+    td {
+      padding: 14px 8px;
+      border-bottom: 1px solid #e0e0e0;
+      font-size: 13px;
+    }
+    
+    tr:last-child td { border-bottom: 2px solid #e0e0e0; }
+    
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+    
+    .subtotal-row td {
+      padding-top: 20px;
+      border-bottom: none;
+      font-size: 13px;
+      color: #666;
+    }
+    
+    .subtotal-row .text-right { color: #333; font-weight: 600; }
+    
+    .total-row td {
+      padding: 16px 8px;
+      font-size: 16px;
+      font-weight: 700;
+      border-top: 2px solid #2d6a2f;
+      border-bottom: none;
+    }
+    
+    .total-row .text-right { color: #2d6a2f; }
+    
+    .notes {
+      margin-top: 30px;
+      padding: 16px;
+      background: #f5f5f5;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #666;
+      line-height: 1.6;
+    }
+    
+    .footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+      text-align: center;
+      font-size: 11px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      ${bp.logo ? `<div class="logo"><img src="${bp.logo}" alt="Logo"></div>` : `<strong style="font-size:18px;">${bp.name}</strong>`}
+      <div class="business-info" style="margin-top: 12px;">
+        ${bp.phone ? `<div>${bp.phone}</div>` : ''}
+        ${bp.email ? `<div>${bp.email}</div>` : ''}
+        ${bp.addr ? `<div>${bp.addr}</div>` : ''}
+      </div>
+    </div>
+    <div style="text-align: right;">
+      <div class="invoice-title">INVOICE</div>
+      <div class="invoice-details">
+        <div><strong>${invNum}</strong></div>
+        <div>${document.querySelector('[id*=inv-date]')?.textContent || ''}</div>
+        <div>${document.querySelector('[id*=inv-status]')?.textContent || ''}</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="parties">
+    <div class="party">
+      <div class="party-label">Bill To</div>
+      ${document.querySelector('[id*=inv-to]')?.innerHTML || ''}
+    </div>
+  </div>
+  
+  ${box.innerHTML}
+  
+  <div class="footer">
+    ${bp.terms || 'Thank you for your business!'}
+  </div>
+</body>
+</html>`;
+
+  // Use html2pdf if available, otherwise fall back to print
+  if (typeof html2pdf !== 'undefined') {
+    const element = document.createElement('div');
+    element.innerHTML = htmlContent;
+    html2pdf().set({margin: 10, filename: invNum + '.pdf'}).from(element).save();
+  } else {
+    // Fallback: open in new window and user can save as PDF via print
+    const w = window.open('', '_blank');
+    w.document.write(htmlContent);
+    w.document.close();
+    toast('Open print dialog to save as PDF');
+    setTimeout(() => w.print(), 500);
+  }
+}
   const snap = {...DB, exportedAt: new Date().toISOString()};
   const ds = new Date().toISOString().slice(0, 10);
   const b = new Blob([JSON.stringify(snap, null, 2)], {type: 'application/json'});
