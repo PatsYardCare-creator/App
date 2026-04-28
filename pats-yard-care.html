@@ -1702,6 +1702,16 @@ nav {
         <div class="form-group"><label class="form-label">Last Name</label><input class="form-control" id="c-ln" placeholder="Last"></div>
       </div>
       <div class="form-group"><label class="form-label">Phone</label><input class="form-control" id="c-ph" placeholder="(580) 555-0000"></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="c-em" type="email" placeholder="john@example.com"></div>
+      
+      <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px;">
+        <label class="form-label" style="font-weight: 600; font-size: 13px; margin-bottom: 8px;">Secondary Contact (optional)</label>
+        <div class="form-row" style="margin-bottom: 8px;">
+          <div class="form-group"><label class="form-label" style="font-size: 12px;">Name</label><input class="form-control" id="c-sec-name" placeholder="e.g. Wife, Manager"></div>
+        </div>
+        <div class="form-group"><label class="form-label" style="font-size: 12px;">Phone</label><input class="form-control" id="c-sec-ph" placeholder="(580) 555-1111"></div>
+      </div>
+      
       <div class="form-group">
         <label class="form-label">Properties / Addresses</label>
         <div id="c-props-list"></div>
@@ -3394,6 +3404,9 @@ function newClient() {
   document.getElementById('c-fn').value = '';
   document.getElementById('c-ln').value = '';
   document.getElementById('c-ph').value = '';
+  document.getElementById('c-em').value = '';
+  document.getElementById('c-sec-name').value = '';
+  document.getElementById('c-sec-ph').value = '';
   renderClientPropsEditor([]);
   openModal('m-client');
 }
@@ -3406,6 +3419,9 @@ function editClient(id) {
   document.getElementById('c-fn').value = c.fn || '';
   document.getElementById('c-ln').value = c.ln || '';
   document.getElementById('c-ph').value = c.ph || '';
+  document.getElementById('c-em').value = c.em || '';
+  document.getElementById('c-sec-name').value = c.secName || '';
+  document.getElementById('c-sec-ph').value = c.secPh || '';
   // Migrate legacy single address to properties if needed
   let props = c.properties || [];
   if (!props.length && c.ad) props = [{id: 1, nickname: 'Main', address: c.ad}];
@@ -3432,6 +3448,9 @@ function saveClient() {
     fn,
     ln: document.getElementById('c-ln').value.trim(),
     ph: document.getElementById('c-ph').value.trim(),
+    em: document.getElementById('c-em').value.trim(),
+    secName: document.getElementById('c-sec-name').value.trim(),
+    secPh: document.getElementById('c-sec-ph').value.trim(),
     properties: getClientPropsFromEditor()
   };
   // keep legacy ad field pointing to first property address for backward compat
@@ -3573,6 +3592,13 @@ function viewClient(id) {
           <div style="font-size:14px; font-weight:700; color:${balance > 0 ? 'var(--red)' : 'var(--green)'};">${balance > 0 ? 'Owes $'+balance.toFixed(2) : totalPaid > 0 ? 'Paid up ✓' : '—'}</div>
         </div>
       </div>
+
+      ${c.secName || c.secPh ? `<!-- Secondary Contact -->
+      <div style="background:var(--surface); border-radius:12px; padding:14px; margin-bottom:20px;">
+        <div style="font-size:11px; font-weight:700; color:var(--text3); letter-spacing:.5px; margin-bottom:8px;">SECONDARY CONTACT</div>
+        <div style="font-size:13px; font-weight:600; color:var(--text); margin-bottom:4px;">${c.secName || 'Contact'}</div>
+        <div style="font-size:13px; color:var(--text2);">${c.secPh || '—'}</div>
+      </div>` : ''}
 
       <!-- Upcoming -->
       <div style="margin-bottom:18px;">
