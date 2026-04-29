@@ -4181,56 +4181,10 @@ function printInvoice() {
       .no-print { display: none; }
     }
   </style>
-</head>
-<body>
-  <div class="header">
-    <div>
-      ${bp.logo ? `<div class="logo"><img src="${bp.logo}" alt="Logo"></div>` : `<strong style="font-size:18px;">${bp.name}</strong>`}
-      <div class="business-info" style="margin-top: 12px;">
-        ${bp.phone ? `<div>${bp.phone}</div>` : ''}
-        ${bp.email ? `<div>${bp.email}</div>` : ''}
-        ${bp.addr ? `<div>${bp.addr}</div>` : ''}
-      </div>
-    </div>
-    <div style="text-align: right;">
-      <div class="invoice-title">INVOICE</div>
-      <div class="invoice-details">
-        <div><strong>${document.querySelector('[id*=inv-num]')?.textContent || 'Invoice'}</strong></div>
-        <div>${document.querySelector('[id*=inv-date]')?.textContent || ''}</div>
-        <div>${document.querySelector('[id*=inv-status]')?.textContent || ''}</div>
-      </div>
-    </div>
-  </div>
-  
-  <div class="parties">
-    <div class="party">
-      <div class="party-label">Bill To</div>
-      ${document.querySelector('[id*=inv-to]')?.innerHTML || ''}
-    </div>
-  </div>
-  
-  ${box.innerHTML}
-  
-  <div class="footer">
-    ${bp.terms || 'Thank you for your business!'}
-  </div>
 </body>
 </html>`);
   w.document.close();
-  
-  // Apply CSS that matches the preview
-  const styleSheet = w.document.createElement('style');
-  styleSheet.textContent = `
-    .inv-head { display: flex; justify-content: space-between; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #ddd; }
-    .inv-head > div:nth-child(2) h2 { text-align: right; }
-    .inv-parties { margin: 30px 0; }
-    .party-label { font-size: 10px; font-weight: 700; color: #999; margin-bottom: 4px; letter-spacing: 0.5px; }
-    .line-items thead { background: #e8f5ea; }
-    .line-items th { color: #2d6a2f; font-weight: 700; }
-    .line-items tbody tr:last-child td { border-bottom: 2px solid #ddd; }
-  `;
-  w.document.head.appendChild(styleSheet);
-  w.print();
+  setTimeout(() => w.print(), 100);
 }
 
 function downloadInvoicePDF() {
