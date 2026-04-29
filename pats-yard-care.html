@@ -1985,6 +1985,19 @@ function fdate(iso) {
   return d.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago'});
 }
 
+function formatAddress(addr) {
+  if (!addr) return '';
+  // Try to split on the last comma to separate city/zip from street
+  const parts = addr.trim().split(',');
+  if (parts.length >= 2) {
+    // Assume last part is city/zip, everything before is street
+    const street = parts.slice(0, -1).join(',').trim();
+    const cityZip = parts[parts.length - 1].trim();
+    return `${street}<br>${cityZip}`;
+  }
+  return addr;
+}
+
 function cname(id) {
   const c = DB.clients.find(c => c.id === id);
   return c ? (c.fn + ' ' + c.ln).trim() : 'Unknown';
@@ -2386,7 +2399,7 @@ function viewQuote(id) {
     // Set the preview content
     document.getElementById('inv-box').innerHTML = `
       <div class="inv-head">
-        <div>${logoHTML}<br><span style="font-size: 11px; color: var(--text3); margin-top: 6px;">${bp.phone}<br>${bp.email}${bp.addr ? '<br>' + bp.addr : ''}</span></div>
+        <div>${logoHTML}<br><span style="font-size: 13px; color: var(--text2); margin-top: 8px; line-height: 1.6; display: block;">${bp.owner ? '<strong style="display: block; margin-bottom: 4px;">' + bp.owner + '</strong>' : ''}${bp.phone}<br>${bp.email}${bp.web ? '<br>' + bp.web : ''}${bp.addr ? '<br>' + formatAddress(bp.addr) : ''}</span></div>
         <div style="text-align: right;">
           <h2 style="font-size: 20px; color: ${bp.color};">QUOTE</h2>
           <p style="font-size: 12px; color: var(--text2);">Quote #${quote.id}</p>
@@ -2398,7 +2411,7 @@ function viewQuote(id) {
         <div>
           <div class="party-label">Quote For</div>
           <div style="font-weight: 700;">${c ? (c.fn + ' ' + c.ln).trim() : 'Client'}</div>
-          <div style="font-size: 13px; color: var(--text2);">${c?.ph || ''}<br>${c?.ad || ''}</div>
+          <div style="font-size: 13px; color: var(--text2);">${c?.ph || ''}<br>${formatAddress(c?.ad || '')}</div>
         </div>
       </div>
       <div style="background: var(--green-light); padding: 12px; border-radius: 7px; margin-bottom: 20px;">
@@ -3988,7 +4001,7 @@ function viewInvoice(id) {
   document.getElementById('inv-prev-lbl').textContent = bp.prefix + String(inv.id).padStart(4, '0');
   document.getElementById('inv-box').innerHTML = `
     <div class="inv-head">
-      <div>${logoHTML}<br><span style="font-size: 11px; color: var(--text3); margin-top: 6px;">${bp.phone}<br>${bp.email}${bp.addr ? '<br>' + bp.addr : ''}</span></div>
+      <div>${logoHTML}<br><span style="font-size: 13px; color: var(--text2); margin-top: 8px; line-height: 1.6; display: block;">${bp.owner ? '<strong style="display: block; margin-bottom: 4px;">' + bp.owner + '</strong>' : ''}${bp.phone}<br>${bp.email}${bp.web ? '<br>' + bp.web : ''}${bp.addr ? '<br>' + formatAddress(bp.addr) : ''}</span></div>
       <div style="text-align: right;">
         <h2 style="font-size: 20px; color: ${bp.color};">INVOICE</h2>
         <p style="font-size: 12px; color: var(--text2);">${bp.prefix}${String(inv.id).padStart(4, '0')}</p>
@@ -4000,7 +4013,7 @@ function viewInvoice(id) {
       <div>
         <div class="party-label">Bill To</div>
         <div style="font-weight: 700;">${c ? (c.fn + ' ' + c.ln).trim() : 'Client'}</div>
-        <div style="font-size: 13px; color: var(--text2);">${c?.ph || ''}<br>${(() => { if (inv.propId) { const props = getClientProps(inv.clientId); const p = props.find(p => p.id === inv.propId); if (p) return p.address; } return c?.ad || ''; })()}</div>
+        <div style="font-size: 13px; color: var(--text2);">${c?.ph || ''}<br>${(() => { if (inv.propId) { const props = getClientProps(inv.clientId); const p = props.find(p => p.id === inv.propId); if (p) return formatAddress(p.address); } return formatAddress(c?.ad || ''); })()}</div>
       </div>
     </div>
     <table class="line-items" style="margin-bottom: 20px;">
@@ -4629,7 +4642,7 @@ function updateInvoicePreview() {
   const html = `
     <div class="invoice-box" style="max-width: 600px;">
       <div class="inv-head">
-        <div>${logoHTML}<br><span style="font-size: 11px; color: var(--text3); margin-top: 6px;">${bp.phone}<br>${bp.email}${bp.addr ? '<br>' + bp.addr : ''}</span></div>
+        <div>${logoHTML}<br><span style="font-size: 13px; color: var(--text2); margin-top: 8px; line-height: 1.6; display: block;">${bp.owner ? '<strong style="display: block; margin-bottom: 4px;">' + bp.owner + '</strong>' : ''}${bp.phone}<br>${bp.email}${bp.web ? '<br>' + bp.web : ''}${bp.addr ? '<br>' + formatAddress(bp.addr) : ''}</span></div>
         <div style="text-align: right;">
           <h2 style="font-size: 20px; color: ${bp.color}; margin: 0;">INVOICE</h2>
           <p style="font-size: 12px; color: var(--text2); margin: 4px 0;">${bp.prefix}0001</p>
@@ -4641,7 +4654,7 @@ function updateInvoicePreview() {
         <div>
           <div class="party-label">Bill To</div>
           <div style="font-weight: 700;">Sample Client</div>
-          <div style="font-size: 13px; color: var(--text2);">(555) 123-4567<br>123 Main St</div>
+          <div style="font-size: 13px; color: var(--text2);">(555) 123-4567<br>${formatAddress('123 Main St, Anytown, OK 12345')}</div>
         </div>
       </div>
       <table class="line-items" style="margin-bottom: 20px;">
