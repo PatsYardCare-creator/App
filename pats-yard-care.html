@@ -1374,13 +1374,13 @@ nav {
       <div id="inv-preview-wrap" style="margin-top: 24px; display: none;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
           <span style="font-weight: 700; font-size: 15px;" id="inv-prev-lbl">Invoice Preview</span>
-          <div style="display: flex; gap: 8px;">
-            <button class="btn btn-secondary btn-sm" onclick="printInvoice()">🖨️ Print</button>
-            <button class="btn btn-secondary btn-sm" onclick="downloadInvoicePDF()" id="download-inv-btn">📥 Download</button>
-            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('inv-preview-wrap').style.display = 'none'">Close</button>
-          </div>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('inv-preview-wrap').style.display = 'none'">✕ Close</button>
         </div>
         <div class="invoice-box" id="inv-box"></div>
+        <div style="display: flex; gap: 8px; margin-top: 16px; justify-content: center;">
+          <button class="btn btn-secondary btn-sm" onclick="printInvoice()">🖨️ Print</button>
+          <button class="btn btn-secondary btn-sm" onclick="downloadInvoicePDF()" id="download-inv-btn">📥 Download</button>
+        </div>
       </div>
     </div>
 
@@ -4217,7 +4217,20 @@ function printInvoice() {
 </body>
 </html>`);
   w.document.close();
-  w.onload = () => w.print();
+  
+  // Apply CSS that matches the preview
+  const styleSheet = w.document.createElement('style');
+  styleSheet.textContent = `
+    .inv-head { display: flex; justify-content: space-between; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #ddd; }
+    .inv-head > div:nth-child(2) h2 { text-align: right; }
+    .inv-parties { margin: 30px 0; }
+    .party-label { font-size: 10px; font-weight: 700; color: #999; margin-bottom: 4px; letter-spacing: 0.5px; }
+    .line-items thead { background: #e8f5ea; }
+    .line-items th { color: #2d6a2f; font-weight: 700; }
+    .line-items tbody tr:last-child td { border-bottom: 2px solid #ddd; }
+  `;
+  w.document.head.appendChild(styleSheet);
+  w.print();
 }
 
 function downloadInvoicePDF() {
@@ -4412,6 +4425,8 @@ function downloadInvoicePDF() {
     setTimeout(() => w.print(), 500);
   }
 }
+
+function exportJSON() {
   const snap = {...DB, exportedAt: new Date().toISOString()};
   const ds = new Date().toISOString().slice(0, 10);
   const b = new Blob([JSON.stringify(snap, null, 2)], {type: 'application/json'});
