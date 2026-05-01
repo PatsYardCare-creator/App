@@ -3119,7 +3119,7 @@ function completeJob(id) {
       
       if (existingInv) {
         // Add to existing invoice
-        existingInv.items.push({d: `${getPropName(j.clientId, j.propId)} - ${j.sv}`, q: 1, p: j.tot});
+        existingInv.items.push({d: `${getPropName(j.clientId, j.propId)} - ${j.sv}`, q: 1, p: j.tot, date: j.date});
         existingInv.total += j.tot;
         save();
         renderInvoices();
@@ -3135,7 +3135,7 @@ function completeJob(id) {
           propId: j.propId || null,
           weekStart: groupingKey,
           de: j.sv + ' - ' + fdate(j.date),
-          items: [{d: `${getPropName(j.clientId, j.propId)} - ${j.sv}`, q: 1, p: j.tot}],
+          items: [{d: `${getPropName(j.clientId, j.propId)} - ${j.sv}`, q: 1, p: j.tot, date: j.date}],
           total: j.tot,
           date: today(),
           status: 'Sent'
@@ -4014,7 +4014,7 @@ function viewInvoice(id) {
   const bp = getBP();
   
   const rows = (inv.items || []).map(i => 
-    `<tr><td>${i.d}</td><td style="text-align: center;">${i.q}</td><td style="text-align: right;">$${i.p.toFixed(2)}</td><td style="text-align: right;">$${(i.q * i.p).toFixed(2)}</td></tr>`
+    `<tr><td>${i.d}${i.date ? '<br><span style="font-size: 11px; color: var(--text3);">' + fdate(i.date) + '</span>' : ''}</td><td style="text-align: center;">${i.q}</td><td style="text-align: right;">$${i.p.toFixed(2)}</td><td style="text-align: right;">$${(i.q * i.p).toFixed(2)}</td></tr>`
   ).join('');
   
   const subtotal = inv.total;
