@@ -32,16 +32,6 @@
   --radius: 10px;
 }
 
-body.dark-mode {
-  --bg: #0f1419;
-  --surface: #1a2332;
-  --surface2: #232d3d;
-  --border: #2a3647;
-  --text: #e8eef5;
-  --text2: #b0bec9;
-  --text3: #768794;
-}
-
 * {
   box-sizing: border-box;
   margin: 0;
@@ -571,24 +561,6 @@ nav {
 }
 
 /* DARK MODE TOGGLE */
-.dark-toggle {
-  position: fixed;
-  bottom: 24px;
-  left: 24px;
-  z-index: 200;
-  background: var(--green);
-  border: none;
-  color: white;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 20px;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-}
 
 /* MOBILE STYLES */
 @media (max-width: 800px) {
@@ -657,11 +629,6 @@ nav {
     width: 60px;
     height: 60px;
     font-size: 18px;
-  }
-
-  .dark-toggle {
-    display: flex;
-    bottom: 90px;
   }
 }
 
@@ -802,6 +769,41 @@ nav {
   border-top: 2px solid var(--border);
   margin-top: 6px;
   padding-top: 8px;
+}
+
+.paid-stamp {
+  position: absolute;
+  top: 50px;
+  right: 20px;
+  width: 140px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 3px solid #dc2626;
+  color: #dc2626;
+  font-weight: 900;
+  font-size: 28px;
+  letter-spacing: 2px;
+  transform: rotate(25deg);
+  z-index: 10;
+  font-family: Arial, sans-serif;
+  text-shadow: 1px 1px 0 #dc2626;
+  box-shadow: inset 0 0 0 3px #dc2626;
+}
+
+.paid-stamp::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  border: 3px solid #dc2626;
+  opacity: 0.3;
+  transform: rotate(-2deg);
+  z-index: -1;
 }
 
 .stat-grid {
@@ -1234,7 +1236,6 @@ nav {
   </nav>
   <div class="sidebar-footer" style="display: flex; gap: 8px;">
     <button onclick="lockApp()" style="background: rgba(255,255,255,.12); border: none; color: rgba(255,255,255,.7); border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: inherit; flex: 1;">🔒 Lock</button>
-    <button onclick="toggleDarkMode()" style="background: rgba(255,255,255,.12); border: none; color: rgba(255,255,255,.7); border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: inherit; flex: 1;">🌙</button>
   </div>
 </aside>
 
@@ -1691,14 +1692,20 @@ nav {
   </div>
 </nav>
 
-<button class="dark-toggle" onclick="toggleDarkMode()">🌙</button>
-
 <!-- CLIENT MODAL -->
 <div class="modal-overlay" id="m-client">
   <div class="modal">
     <div class="modal-header"><h3>👤 Client</h3><button class="close-btn" onclick="closeModal('m-client')">✕</button></div>
     <div class="modal-body">
       <input type="hidden" id="c-id">
+      
+      <!-- Screenshot Preview Section -->
+      <div style="background: var(--blue-light); padding: 12px; border-radius: 7px; margin-bottom: 16px;">
+        <div style="font-size: 12px; font-weight: 600; margin-bottom: 8px;">📸 Auto-Extract Client Info</div>
+        <input type="file" id="c-screenshot" accept="image/*" onchange="previewScreenshot()" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px;">
+        <img id="screenshot-preview" style="width: 100%; max-height: 150px; object-fit: contain; margin-top: 8px; border-radius: 4px; display: none;">
+        <div style="font-size: 11px; color: var(--text3); margin-top: 6px;">📱 Upload a screenshot and it will automatically extract: name, phone, email, and address</div>
+      </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">First Name *</label><input class="form-control" id="c-fn" placeholder="First"></div>
         <div class="form-group"><label class="form-label">Last Name</label><input class="form-control" id="c-ln" placeholder="Last"></div>
@@ -1742,7 +1749,15 @@ nav {
     <div class="modal-header"><h3>🔧 Job</h3><button class="close-btn" onclick="closeModal('m-job')">✕</button></div>
     <div class="modal-body">
       <input type="hidden" id="j-id">
-      <div class="form-group"><label class="form-label">Client *</label><select class="form-control" id="j-cl" onchange="fillJobProperties()"></select></div>
+      <div class="form-group">
+        <label class="form-label">Client *</label>
+        <div style="position: relative;">
+          <input type="text" class="form-control" id="j-cl-search" placeholder="Search by name or address..." oninput="filterClientDropdown()" style="margin-bottom: 4px;">
+          <select class="form-control" id="j-cl" onchange="fillJobProperties()" style="height: 120px;">
+            <!-- Options will be filled by JavaScript -->
+          </select>
+        </div>
+      </div>
       <div class="form-group" id="j-prop-group" style="display:none;"><label class="form-label">Property</label><select class="form-control" id="j-prop" onchange="applyPropertyPrice()"></select></div>
       <div class="form-group"><label class="form-label">Service *</label>
         <select class="form-control" id="j-sv">
@@ -1932,13 +1947,42 @@ nav {
   </div>
 </div>
 
+<!-- Payment Method Modal -->
+<div class="modal-overlay" id="m-payment-method">
+  <div class="modal" style="max-width: 400px;">
+    <div class="modal-header">
+      <h3>💳 Payment Method</h3>
+      <button class="close-btn" onclick="closeModal('m-payment-method')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom: 16px;">
+        <label class="form-label" style="font-weight: 600;">How was payment received?</label>
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <button class="btn btn-secondary" onclick="selectPaymentMethod('Cash')" id="pm-cash" style="flex: 1;">💵 Cash</button>
+          <button class="btn btn-secondary" onclick="selectPaymentMethod('Check')" id="pm-check" style="flex: 1;">✓ Check</button>
+          <button class="btn btn-secondary" onclick="selectPaymentMethod('CashApp')" id="pm-cashapp" style="flex: 1;">📱 Cash App</button>
+        </div>
+      </div>
+      
+      <div id="check-number-wrap" style="display: none; margin-bottom: 16px;">
+        <label class="form-label">Check Number (if you still have it)</label>
+        <input type="text" class="form-control" id="check-number" placeholder="e.g. 1234">
+      </div>
+      
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary" onclick="closeModal('m-payment-method')" style="flex: 1;">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmPayment()" style="flex: 1;">✓ Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 const KEY = 'pyc2';
 const PIN_KEY = 'pyc_pin';
 const DEFAULT_PIN = '2606';
-const DARK_MODE_KEY = 'pyc_dark';
 
 let DB = {"clients":[{"id":1,"fn":"Debbie","ln":"Hopkins","em":"","ph":"580) 467-3587","ad":"Lester","no":"","properties":[{"id":1,"nickname":"Cody","address":"Lester","price":50},{"id":2,"nickname":"4 plex","address":"","price":45},{"id":3,"nickname":"Home","address":"","price":50}]},{"id":2,"fn":"Stacy","ln":"Brown","em":"","ph":"(580) 606-1257","ad":"2012 Redbud ave Duncan, OK 73533","no":""},{"id":3,"fn":"Sam","ln":"Porter","em":"","ph":"(580) 512-4897","ad":"","no":""},{"id":4,"fn":"Rebecca","ln":"Whatler","em":"","ph":"(479) 259-8265","ad":"1434 N 5th St Duncan OK 73533","no":""},{"id":5,"fn":"Josh","ln":"Gruver","em":"","ph":"+1 (314) 685-4032","ad":"","no":""},{"id":6,"fn":"Eunice","ln":"Mcroy","em":"","ph":"(580) 467-7266","ad":"","no":"","properties":[]},{"id":7,"fn":"Betty","ln":"Jefferies","em":"","ph":"(580) 656-5181","ad":"7521 pleasant view LN Duncan, Oklahoma","no":"","properties":[{"id":1,"nickname":"Main","address":"7521 pleasant view LN Duncan, Oklahoma"}]},{"id":8,"fn":"Autumn","ln":"Jackson","em":"","ph":"(580) 467-7112","ad":"2011 W Walnut Duncan OK 73533","no":""},{"id":9,"fn":"Bruce","ln":"Jones","em":"","ph":"(580) 277-4235","ad":"281743 Bell Road Comanche OK 73529","no":""},{"id":10,"fn":"Bill","ln":"Parson","em":"","ph":"1 (254) 485-4220","ad":"","no":""},{"id":11,"fn":"Pam","ln":"","em":"","ph":"+1 (979) 864-7214","ad":"","no":""},{"id":12,"fn":"Cheryl","ln":"Wilkinson","em":"","ph":"+1 (405) 550-5375","ad":"3305 Spencer Road Duncan OK 73533","no":""},{"id":13,"fn":"Paul","ln":"","em":"","ph":"+1 (405) 403-5591","ad":"1201 North Harville Rd. in Duncan","no":""},{"id":14,"fn":"Tony","ln":"Brittain","em":"","ph":"(580) 475-2399","ad":"3747 S Ridgeback Rd Marlow OK 73055","no":""},{"id":15,"fn":"Patrick","ln":"","em":"","ph":"+1 (805) 705-4643","ad":"1030 E Plato Rd, Duncan, OK","no":""},{"id":16,"fn":"Cindy","ln":"","em":"","ph":"+1 (580) 470-6396","ad":"1324 Normandy Duncan OK 73533","no":""},{"id":17,"fn":"Chasity","ln":"Fazendin","em":"mailto:chasityfazendin@gmail.com","ph":"9319808057","ad":"2 South 28th street Duncan,OK","no":""},{"id":18,"fn":"4825 country club","ln":"","em":"","ph":"+1 (580) 252-2782","ad":"4825 country club Duncan, ok","no":""},{"id":19,"fn":"Amber","ln":"Skinner","em":"","ph":"+1 (580) 736-8421","ad":"503 N K Street. Duncan OK 73533","no":""},{"id":20,"fn":"Glenn","ln":"","ph":"(254) 644-3947","ad":""},{"id":21,"fn":"Dani","ln":"Green","ph":"+1 (580) 736-5969","ad":""},{"id":22,"fn":"Lucas's mom","ln":"","ph":"+1 (580) 786-8461","ad":""},{"id":24,"fn":"Ann","ln":"Cochran","ph":"+1 (580) 467-0016","ad":"Spruce"},{"id":25,"fn":"Josh","ln":"Besheres","ph":"+1 (580) 606-0542","ad":"Oliver rd","properties":[{"id":1,"nickname":"Christy\u2019s mom","address":"Oliver rd","price":50},{"id":2,"nickname":"Home","address":"Brown","price":50}]},{"id":26,"fn":"Christy\u2019s mom","ln":"","ph":"","ad":""},{"id":27,"fn":"James","ln":"Wooten","ph":"(580) 467-0785","properties":[{"id":1,"nickname":"Home","address":"3709 Country Clup Duncan OK 73533 United States"}],"ad":"3709 Country Clup Duncan OK 73533 United States"}],"jobs":[{"id":1,"clientId":14,"sv":"Full Yard Cleanup","date":"2026-03-30","dur":1,"tot":200,"status":"Completed","no":"","rec":"none"},{"id":3,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-04-03","dur":1,"tot":50,"status":"Completed","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":false},{"id":4,"clientId":5,"sv":"Lawn Mowing","date":"2026-04-07","dur":1,"tot":55,"status":"Completed","no":"","rec":"biweekly","recEnd":"2026-11-27","isRecInstance":false,"startTime":"","finishTime":""},{"id":5,"clientId":11,"sv":"Lawn Mowing","date":"2026-04-07","dur":1,"tot":50,"status":"Completed","no":"","rec":"biweekly","recEnd":null,"isRecInstance":false,"startTime":"","finishTime":""},{"id":6,"clientId":16,"sv":"Other","date":"2026-03-31","dur":1,"tot":65,"status":"Completed","no":"","rec":"none"},{"id":7,"clientId":6,"sv":"Lawn Mowing","date":"2026-04-02","dur":1,"tot":120,"status":"Completed","no":"","rec":"biweekly","recEnd":"","isRecInstance":false,"propId":null,"startTime":"","finishTime":""},{"id":8,"clientId":15,"sv":"Full Yard Cleanup","date":"2026-03-31","dur":1,"tot":1000,"status":"Completed","no":"Plus reseeding and fertilizer.","rec":"none"},{"id":9,"clientId":17,"sv":"Lawn Mowing","date":"2026-04-07","dur":1,"tot":125,"status":"Completed","no":"Yard cleanup and trimming bushes","rec":"none","startTime":"","finishTime":""},{"id":10,"clientId":18,"sv":"Lawn Mowing","date":"2026-04-02","dur":1,"tot":300,"status":"Completed","no":"Yard cleanup","rec":"none"},{"id":11,"clientId":6,"sv":"Lawn Mowing","date":"2026-04-16","dur":1,"tot":120,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-05-14","isRecInstance":true,"parentId":7},{"id":12,"clientId":6,"sv":"Lawn Mowing","date":"2026-04-30","dur":1,"tot":120,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-05-14","isRecInstance":true,"parentId":7},{"id":13,"clientId":6,"sv":"Lawn Mowing","date":"2026-05-14","dur":1,"tot":120,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-05-14","isRecInstance":true,"parentId":7},{"id":14,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-04-10","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":15,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-04-17","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":16,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-04-24","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":17,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-05-01","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":18,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-05-08","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":19,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-05-15","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":20,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-05-22","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":21,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-05-29","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":22,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-06-05","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":23,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-06-12","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":24,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-06-19","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":25,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-06-26","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":26,"clientId":2,"sv":"Full Yard Cleanup","date":"2026-07-03","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":3},{"id":27,"clientId":5,"sv":"Lawn Mowing","date":"2026-04-17","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":4},{"id":28,"clientId":5,"sv":"Lawn Mowing","date":"2026-05-01","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":4},{"id":29,"clientId":5,"sv":"Lawn Mowing","date":"2026-05-15","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":4},{"id":30,"clientId":5,"sv":"Lawn Mowing","date":"2026-05-29","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":4},{"id":31,"clientId":5,"sv":"Lawn Mowing","date":"2026-06-12","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":4},{"id":32,"clientId":5,"sv":"Lawn Mowing","date":"2026-06-26","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":4},{"id":33,"clientId":5,"sv":"Lawn Mowing","date":"2026-07-10","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"biweekly","recEnd":"2026-11-27","isRecInstance":true,"parentId":4},{"id":47,"clientId":15,"sv":"Other","date":"2026-04-07","dur":1,"tot":0,"status":"Completed","no":"Check sprinkler system. Possible fix","rec":"none","recEnd":null,"isRecInstance":false,"startTime":"","finishTime":""},{"id":48,"clientId":19,"sv":"Lawn Mowing","date":"2026-04-02","dur":1,"tot":60,"status":"Completed","no":"","rec":"none","recEnd":null,"isRecInstance":false},{"id":49,"clientId":13,"sv":"Full Yard Cleanup","date":"2026-04-03","dur":1,"tot":150,"status":"Completed","no":"","rec":"none"},{"id":51,"clientId":9,"sv":"Lawn Mowing","date":"2026-04-08","dur":1,"tot":55,"status":"Completed","no":"","rec":"biweekly"},{"id":52,"clientId":9,"sv":"Lawn Mowing","date":"2026-04-22","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none"},{"id":53,"clientId":9,"sv":"Lawn Mowing","date":"2026-05-06","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none"},{"id":54,"clientId":9,"sv":"Lawn Mowing","date":"2026-05-20","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none"},{"id":55,"clientId":9,"sv":"Lawn Mowing","date":"2026-06-03","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none"},{"id":56,"clientId":9,"sv":"Lawn Mowing","date":"2026-06-17","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none"},{"id":57,"clientId":9,"sv":"Lawn Mowing","date":"2026-07-01","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none"},{"id":58,"clientId":9,"sv":"Lawn Mowing","date":"2026-07-15","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none"},{"id":59,"clientId":9,"sv":"Lawn Mowing","date":"2026-07-29","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none"},{"id":60,"clientId":9,"sv":"Lawn Mowing","date":"2026-08-12","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none"},{"id":61,"clientId":9,"sv":"Lawn Mowing","date":"2026-08-26","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none"},{"id":62,"clientId":20,"sv":"Lawn Mowing","date":"2026-04-08","dur":1,"tot":75,"status":"Completed","no":"","rec":"biweekly"},{"id":63,"clientId":20,"sv":"Lawn Mowing","date":"2026-04-22","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"none"},{"id":64,"clientId":20,"sv":"Lawn Mowing","date":"2026-05-06","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"none"},{"id":65,"clientId":20,"sv":"Lawn Mowing","date":"2026-05-20","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"none"},{"id":66,"clientId":20,"sv":"Lawn Mowing","date":"2026-06-03","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"none"},{"id":67,"clientId":20,"sv":"Lawn Mowing","date":"2026-06-17","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"none"},{"id":68,"clientId":20,"sv":"Lawn Mowing","date":"2026-07-01","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"none"},{"id":69,"clientId":20,"sv":"Lawn Mowing","date":"2026-07-15","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"none"},{"id":70,"clientId":20,"sv":"Lawn Mowing","date":"2026-07-29","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"none"},{"id":71,"clientId":20,"sv":"Lawn Mowing","date":"2026-08-12","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"none"},{"id":72,"clientId":20,"sv":"Lawn Mowing","date":"2026-08-26","dur":1,"tot":75,"status":"Upcoming","no":"","rec":"none"},{"id":73,"clientId":21,"sv":"Lawn Mowing","date":"2026-04-08","dur":1,"tot":50,"status":"Completed","no":"","rec":"none"},{"id":75,"clientId":22,"sv":"Lawn Mowing","date":"2026-04-22","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":76,"clientId":22,"sv":"Lawn Mowing","date":"2026-05-06","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":77,"clientId":22,"sv":"Lawn Mowing","date":"2026-05-20","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":78,"clientId":22,"sv":"Lawn Mowing","date":"2026-06-03","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":79,"clientId":22,"sv":"Lawn Mowing","date":"2026-06-17","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":80,"clientId":22,"sv":"Lawn Mowing","date":"2026-07-01","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":81,"clientId":22,"sv":"Lawn Mowing","date":"2026-07-15","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":82,"clientId":22,"sv":"Lawn Mowing","date":"2026-07-29","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":83,"clientId":22,"sv":"Lawn Mowing","date":"2026-08-12","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":84,"clientId":22,"sv":"Lawn Mowing","date":"2026-08-26","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":96,"clientId":8,"sv":"Lawn Mowing","date":"2026-04-10","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"biweekly","startTime":"","finishTime":""},{"id":97,"clientId":8,"sv":"Lawn Mowing","date":"2026-04-24","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":98,"clientId":8,"sv":"Lawn Mowing","date":"2026-05-08","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":99,"clientId":8,"sv":"Lawn Mowing","date":"2026-05-22","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":100,"clientId":8,"sv":"Lawn Mowing","date":"2026-06-05","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":101,"clientId":8,"sv":"Lawn Mowing","date":"2026-06-19","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":102,"clientId":8,"sv":"Lawn Mowing","date":"2026-07-03","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":103,"clientId":8,"sv":"Lawn Mowing","date":"2026-07-17","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":104,"clientId":8,"sv":"Lawn Mowing","date":"2026-07-31","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":105,"clientId":8,"sv":"Lawn Mowing","date":"2026-08-14","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":106,"clientId":8,"sv":"Lawn Mowing","date":"2026-08-28","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":113,"clientId":12,"sv":"Lawn Mowing","date":"2026-05-21","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":128,"clientId":11,"sv":"Lawn Mowing","date":"2026-04-23","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"biweekly","startTime":"","finishTime":""},{"id":129,"clientId":11,"sv":"Lawn Mowing","date":"2026-05-07","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":130,"clientId":11,"sv":"Lawn Mowing","date":"2026-05-21","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":131,"clientId":11,"sv":"Lawn Mowing","date":"2026-06-04","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":132,"clientId":11,"sv":"Lawn Mowing","date":"2026-06-18","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":133,"clientId":11,"sv":"Lawn Mowing","date":"2026-07-02","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":134,"clientId":11,"sv":"Lawn Mowing","date":"2026-07-16","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":135,"clientId":11,"sv":"Lawn Mowing","date":"2026-07-30","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":136,"clientId":11,"sv":"Lawn Mowing","date":"2026-08-13","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":137,"clientId":11,"sv":"Lawn Mowing","date":"2026-08-27","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":138,"clientId":12,"sv":"Lawn Mowing","date":"2026-04-09","dur":1,"tot":50,"status":"Completed","no":"","rec":"weekly","startTime":"","finishTime":""},{"id":139,"clientId":12,"sv":"Lawn Mowing","date":"2026-04-16","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":140,"clientId":12,"sv":"Lawn Mowing","date":"2026-04-23","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":141,"clientId":12,"sv":"Lawn Mowing","date":"2026-04-30","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":142,"clientId":12,"sv":"Lawn Mowing","date":"2026-05-07","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":143,"clientId":12,"sv":"Lawn Mowing","date":"2026-05-14","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":145,"clientId":12,"sv":"Lawn Mowing","date":"2026-05-28","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":146,"clientId":12,"sv":"Lawn Mowing","date":"2026-06-04","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":147,"clientId":12,"sv":"Lawn Mowing","date":"2026-06-11","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":148,"clientId":12,"sv":"Lawn Mowing","date":"2026-06-18","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":149,"clientId":12,"sv":"Lawn Mowing","date":"2026-06-25","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":150,"clientId":12,"sv":"Lawn Mowing","date":"2026-07-02","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":151,"clientId":12,"sv":"Lawn Mowing","date":"2026-07-09","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":152,"clientId":12,"sv":"Lawn Mowing","date":"2026-07-16","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":153,"clientId":12,"sv":"Lawn Mowing","date":"2026-07-23","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":154,"clientId":12,"sv":"Lawn Mowing","date":"2026-07-30","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":155,"clientId":12,"sv":"Lawn Mowing","date":"2026-08-06","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":156,"clientId":12,"sv":"Lawn Mowing","date":"2026-08-13","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":157,"clientId":12,"sv":"Lawn Mowing","date":"2026-08-20","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":158,"clientId":12,"sv":"Lawn Mowing","date":"2026-08-27","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":159,"clientId":18,"sv":"Full Yard Cleanup","date":"2026-04-09","dur":1,"tot":0,"status":"Completed","no":"","rec":"none","startTime":"","finishTime":""},{"id":160,"clientId":24,"sv":"Full Yard Cleanup","date":"2026-04-07","dur":1,"tot":50,"status":"Completed","no":"","rec":"none","startTime":"","finishTime":""},{"id":168,"clientId":5,"sv":"Full Yard Cleanup","date":"2026-07-24","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":169,"clientId":5,"sv":"Full Yard Cleanup","date":"2026-08-07","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":170,"clientId":5,"sv":"Full Yard Cleanup","date":"2026-08-21","dur":1,"tot":55,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":171,"clientId":25,"sv":"Lawn Mowing","date":"2026-04-08","dur":1,"tot":0,"status":"Completed","no":"","rec":"biweekly","startTime":"","finishTime":""},{"id":172,"clientId":26,"sv":"Lawn Mowing","date":"2026-04-08","dur":1,"tot":0,"status":"Completed","no":"","rec":"biweekly","startTime":"","finishTime":""},{"id":222,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-04-10","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"weekly","startTime":"","finishTime":""},{"id":223,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-04-17","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":224,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-04-24","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":225,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-05-01","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":226,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-05-08","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":227,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-05-15","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":228,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-05-22","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":229,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-05-29","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":230,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-06-05","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":231,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-06-12","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":232,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-06-19","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":233,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-06-26","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":234,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-07-03","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":235,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-07-10","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":236,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-07-17","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":237,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-07-24","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":238,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-07-31","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":239,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-08-07","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":240,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-08-14","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":241,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-08-21","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":242,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-08-28","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":243,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-09-04","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":244,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-09-11","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":245,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-09-18","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":246,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-09-25","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":247,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-10-02","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":248,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-10-09","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":249,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-10-16","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":250,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-10-23","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":251,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-10-30","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":252,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-11-06","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":253,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-11-13","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":254,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-11-20","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":255,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-11-27","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":256,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-12-04","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":257,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-12-11","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":258,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-12-18","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":259,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2026-12-25","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":260,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2027-01-01","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":261,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2027-01-08","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":262,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2027-01-15","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":263,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2027-01-22","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":264,"clientId":1,"propId":3,"sv":"Full Yard Cleanup","date":"2027-01-29","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":265,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2026-04-10","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"biweekly","startTime":"","finishTime":""},{"id":266,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2026-04-24","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":267,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2026-05-08","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":268,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2026-05-22","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":269,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2026-06-05","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":270,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2026-06-19","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":271,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2026-07-03","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":272,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2026-07-17","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":273,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2026-07-31","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":274,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2026-08-14","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":275,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2026-08-28","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":276,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2026-09-11","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":277,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2026-09-25","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":278,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2026-10-09","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":279,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2026-10-23","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":280,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2026-11-06","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":281,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2026-11-20","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":282,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2026-12-04","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":283,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2026-12-18","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":284,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2027-01-01","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":285,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2027-01-15","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":286,"clientId":1,"propId":1,"sv":"Full Yard Cleanup","date":"2027-01-29","dur":1,"tot":50,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":287,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2026-04-22","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"biweekly","startTime":"","finishTime":""},{"id":288,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2026-05-06","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":289,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2026-05-20","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":290,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2026-06-03","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":291,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2026-06-17","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":292,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2026-07-01","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":293,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2026-07-15","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":294,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2026-07-29","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":295,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2026-08-12","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":296,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2026-08-26","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":297,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2026-09-09","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":298,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2026-09-23","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":299,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2026-10-07","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":300,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2026-10-21","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":301,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2026-11-04","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":302,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2026-11-18","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":303,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2026-12-02","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":304,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2026-12-16","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":305,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2026-12-30","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":306,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2027-01-13","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":307,"clientId":25,"propId":1,"sv":"Full Yard Cleanup","date":"2027-01-27","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":308,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2026-04-22","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"biweekly","startTime":"","finishTime":""},{"id":309,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2026-05-06","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":310,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2026-05-20","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":311,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2026-06-03","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":312,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2026-06-17","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":313,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2026-07-01","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":314,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2026-07-15","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":315,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2026-07-29","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":316,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2026-08-12","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":317,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2026-08-26","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":318,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2026-09-09","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":319,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2026-09-23","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":320,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2026-10-07","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":321,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2026-10-21","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":322,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2026-11-04","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":323,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2026-11-18","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":324,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2026-12-02","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":325,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2026-12-16","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":326,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2026-12-30","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":327,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2027-01-13","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":328,"clientId":25,"propId":2,"sv":"Full Yard Cleanup","date":"2027-01-27","dur":1,"tot":0,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":329,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2026-04-09","dur":1,"tot":40,"status":"Completed","no":"","rec":"biweekly","startTime":"","finishTime":""},{"id":330,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2026-04-23","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":331,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2026-05-07","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":332,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2026-05-21","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":333,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2026-06-04","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":334,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2026-06-18","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":335,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2026-07-02","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":336,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2026-07-16","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":337,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2026-07-30","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":338,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2026-08-13","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":339,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2026-08-27","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":340,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2026-09-10","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":341,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2026-09-24","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":342,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2026-10-08","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":343,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2026-10-22","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":344,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2026-11-05","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":345,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2026-11-19","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":346,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2026-12-03","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":347,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2026-12-17","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":348,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2026-12-31","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":349,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2027-01-14","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":350,"clientId":4,"propId":1,"sv":"Lawn Mowing","date":"2027-01-28","dur":1,"tot":40,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":351,"clientId":6,"propId":null,"sv":"Lawn Mowing","date":"2026-04-09","dur":1,"tot":120,"status":"Completed","no":"","rec":"none","startTime":"","finishTime":""},{"id":352,"clientId":27,"propId":1,"sv":"Lawn Mowing","date":"2026-04-09","dur":1,"tot":40,"status":"Completed","no":"","rec":"none","startTime":"","finishTime":""},{"id":353,"clientId":27,"propId":1,"sv":"Lawn Mowing","date":"2026-04-23","dur":1,"tot":70,"status":"Upcoming","no":"","rec":"biweekly","startTime":"","finishTime":""},{"id":354,"clientId":27,"propId":1,"sv":"Lawn Mowing","date":"2026-05-07","dur":1,"tot":70,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":355,"clientId":27,"propId":1,"sv":"Lawn Mowing","date":"2026-05-21","dur":1,"tot":70,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""},{"id":356,"clientId":14,"propId":1,"sv":"Lawn Mowing","date":"2026-04-15","dur":1,"tot":200,"status":"Upcoming","no":"","rec":"none","startTime":"","finishTime":""}],"invoices":[{"id":1,"clientId":14,"de":"Full Yard Cleanup \u2014 Mar 30, 2026","items":[{"d":"Full Yard Cleanup","q":1,"p":200}],"total":200,"date":"2026-03-30","status":"Paid","at":"2026-03-30T18:54:58.998Z"},{"id":2,"clientId":16,"de":"Other \u2014 Mar 31, 2026","items":[{"d":"Other","q":1,"p":65}],"total":65,"date":"2026-03-31","status":"Paid","at":"2026-03-31T20:11:33.059Z"},{"id":3,"clientId":15,"de":"Full Yard Cleanup \u2014 Mar 31, 2026","items":[{"d":"Full Yard Cleanup","q":1,"p":1000}],"total":1000,"date":"2026-03-31","status":"Paid","at":"2026-03-31T20:11:40.137Z"},{"id":4,"clientId":18,"de":"","items":[{"d":"Yard cleanup","q":1,"p":320}],"total":320,"date":"2026-04-02","status":"Paid"},{"id":5,"clientId":6,"de":"Mowing","items":[{"d":"Mowing","q":1,"p":120}],"total":120,"date":"2026-04-02","status":"Paid"},{"id":6,"clientId":19,"de":"","items":[{"d":"Mowing","q":1,"p":60}],"total":60,"date":"2026-04-02","status":"Paid"},{"id":7,"clientId":12,"de":"Lawn Mowing - Apr 3, 2026","items":[{"d":"Lawn Mowing","q":1,"p":50}],"total":50,"date":"2026-04-03","status":"Paid"},{"id":8,"clientId":13,"de":"Full Yard Cleanup - Apr 3, 2026","items":[{"d":"Full Yard Cleanup","q":1,"p":170}],"total":170,"date":"2026-04-03","status":"Paid"},{"id":9,"clientId":2,"de":"Full Yard Cleanup - Apr 3, 2026","items":[{"d":"Full Yard Cleanup","q":1,"p":50}],"total":50,"date":"2026-04-03","status":"Paid"},{"id":10,"clientId":1,"de":"Full Yard Cleanup - Apr 3, 2026","items":[{"d":"Full Yard Cleanup","q":1,"p":50}],"total":50,"date":"2026-04-03","status":"Paid"},{"id":11,"clientId":17,"de":"Lawn Mowing - Apr 7, 2026","items":[{"d":"Lawn Mowing","q":1,"p":125}],"total":125,"date":"2026-04-07","status":"Paid"},{"id":12,"clientId":11,"de":"Lawn Mowing - Apr 7, 2026","items":[{"d":"Lawn Mowing","q":1,"p":50}],"total":50,"date":"2026-04-07","status":"Paid"},{"id":13,"clientId":5,"de":"Lawn Mowing - Apr 7, 2026","items":[{"d":"Lawn Mowing","q":1,"p":55}],"total":55,"date":"2026-04-07","status":"Paid"},{"id":14,"clientId":24,"de":"Full Yard Cleanup - Apr 7, 2026","items":[{"d":"Full Yard Cleanup","q":1,"p":50}],"total":50,"date":"2026-04-07","status":"Paid"},{"id":15,"clientId":21,"de":"Lawn Mowing - Apr 8, 2026","items":[{"d":"Lawn Mowing","q":1,"p":40}],"total":40,"date":"2026-04-08","status":"Paid"},{"id":16,"clientId":25,"de":"Lawn Mowing - Apr 8, 2026","items":[{"d":"Lawn Mowing","q":1,"p":50}],"total":50,"date":"2026-04-08","status":"Sent"},{"id":17,"clientId":26,"de":"Lawn Mowing - Apr 8, 2026","items":[{"d":"Lawn Mowing","q":1,"p":50}],"total":50,"date":"2026-04-08","status":"Sent"},{"id":18,"clientId":9,"de":"Lawn Mowing - Apr 8, 2026","items":[{"d":"Lawn Mowing","q":1,"p":55}],"total":55,"date":"2026-04-08","status":"Sent"},{"id":19,"clientId":20,"de":"Lawn Mowing - Apr 8, 2026","items":[{"d":"Lawn Mowing","q":1,"p":75}],"total":75,"date":"2026-04-08","status":"Paid"},{"id":20,"clientId":6,"propId":null,"de":"Lawn Mowing - Apr 9, 2026","items":[{"d":"Lawn Mowing","q":1,"p":120}],"total":120,"date":"2026-04-09","status":"Paid"},{"id":21,"clientId":12,"propId":null,"de":"Lawn Mowing - Apr 9, 2026","items":[{"d":"Lawn Mowing","q":1,"p":50}],"total":50,"date":"2026-04-09","status":"Paid"},{"id":22,"clientId":27,"propId":1,"de":"Lawn Mowing - Apr 9, 2026","items":[{"d":"Lawn Mowing","q":1,"p":40}],"total":40,"date":"2026-04-09","status":"Paid"},{"id":23,"clientId":18,"propId":1,"de":"Full Yard Cleanup - Apr 9, 2026","items":[{"d":"Full Yard Cleanup","q":1,"p":25}],"total":25,"date":"2026-04-09","status":"Paid"},{"id":24,"clientId":4,"propId":1,"de":"Lawn Mowing - Apr 9, 2026","items":[{"d":"Lawn Mowing","q":1,"p":0}],"total":0,"date":"2026-04-09","status":"Paid"}],"nxt":{"c":28,"j":357,"i":25},"activity":[],"exportedAt":"2026-04-10T00:39:16.233Z"};
 
@@ -2934,11 +2978,18 @@ function renderDash() {
     tjEl.innerHTML = '<p style="color: var(--text3); text-align: center;">No jobs today</p>';
   } else {
     tjEl.innerHTML = '<table class="table"><tbody>' + 
-      tj.map(j => `<tr><td><strong>${getPropName(j.clientId, j.propId)}</strong> - ${j.sv}</td>
+      tj.map(j => {
+        const client = DB.clients.find(c => c.id === j.clientId);
+        const hasAddress = client && (client.properties?.length > 0 ? client.properties[j.propId]?.address : client.ad);
+        const addressStr = client && (client.properties?.length > 0 ? client.properties[j.propId]?.address : client.ad);
+        const mapsLink = hasAddress ? `<a href="https://maps.google.com/maps?q=${encodeURIComponent(addressStr)}" target="_blank" style="color: var(--blue); text-decoration: none; cursor: pointer; font-size: 12px;">🗺️</a>` : '';
+        
+        return `<tr><td><strong>${getPropName(j.clientId, j.propId)}</strong> ${mapsLink} - ${j.sv}</td>
         <td style="text-align: right; display: flex; gap: 6px; justify-content: flex-end;">
           ${j.status !== 'Completed' ? `<button class="btn btn-primary btn-xs" onclick="completeJob(${j.id})">Done</button>
           <button class="btn btn-secondary btn-xs" onclick="openSkipJobModal(${j.id})">Skip</button>` : '<span class="badge badge-green">Completed</span>'}
-        </td></tr>`).join('') + 
+        </td></tr>`;
+      }).join('') + 
       '</tbody></table>';
   }
 }
@@ -3018,7 +3069,12 @@ function clearJobTimer() {
 
 function renderJobs() {
   const q = (document.getElementById('job-search')?.value || '').toLowerCase();
-  let list = [...DB.jobs].sort((a, b) => a.date.localeCompare(b.date));
+  let list = [...DB.jobs].sort((a, b) => {
+    // Put completed jobs at the bottom, sort upcoming by date
+    if (a.status === 'Completed' && b.status !== 'Completed') return 1;
+    if (a.status !== 'Completed' && b.status === 'Completed') return -1;
+    return a.date.localeCompare(b.date);
+  });
   if (q) list = list.filter(j => (getPropName(j.clientId, j.propId) + j.sv + j.date).toLowerCase().includes(q));
   
   const el = document.getElementById('jobs-list');
@@ -3209,6 +3265,7 @@ function confirmSkipJob() {
 function newJob() {
   document.querySelector('#m-job .modal-header h3').textContent = '🔧 New Job';
   document.getElementById('j-id').value = '';
+  document.getElementById('j-cl-search').value = ''; // Clear search field
   fillClients('j-cl');
   document.getElementById('j-dt').value = today();
   document.getElementById('j-dur').value = '1';
@@ -3226,6 +3283,7 @@ function editJob(id) {
   if (!j) return;
   document.querySelector('#m-job .modal-header h3').textContent = '🔧 Edit Job';
   document.getElementById('j-id').value = id;
+  document.getElementById('j-cl-search').value = ''; // Clear search field
   fillClients('j-cl', j.clientId);
   fillJobProperties();
   // Restore saved property selection
@@ -3335,6 +3393,28 @@ function fillClients(selId, selVal) {
   });
 }
 
+function filterClientDropdown() {
+  const searchText = document.getElementById('j-cl-search').value.toLowerCase();
+  const select = document.getElementById('j-cl');
+  const options = select.querySelectorAll('option');
+  
+  options.forEach(option => {
+    if (option.value === '') return; // Always show "Select client..."
+    
+    const clientName = option.textContent.toLowerCase();
+    const clientId = parseInt(option.value);
+    const client = DB.clients.find(c => c.id === clientId);
+    const clientAddress = client ? (client.ad || '').toLowerCase() : '';
+    
+    // Show option if search text matches name or address
+    if (searchText === '' || clientName.includes(searchText) || clientAddress.includes(searchText)) {
+      option.style.display = '';
+    } else {
+      option.style.display = 'none';
+    }
+  });
+}
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MULTI-PROPERTY HELPERS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -3434,6 +3514,140 @@ function fillInvoiceProperties(selPropId) {
   }
 }
 
+function previewScreenshot() {
+  const fileInput = document.getElementById('c-screenshot');
+  const preview = document.getElementById('screenshot-preview');
+  
+  if (!fileInput || !preview) return;
+  
+  if (!fileInput.files || !fileInput.files[0]) {
+    preview.style.display = 'none';
+    return;
+  }
+  
+  try {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+      toast('🔍 Extracting text from image...');
+      
+      // Extract text automatically using cloud OCR
+      extractTextFromImage(fileInput.files[0]);
+    };
+    reader.onerror = () => {
+      toast('❌ Failed to load image');
+    };
+    reader.readAsDataURL(fileInput.files[0]);
+  } catch (err) {
+    console.error('Screenshot preview error:', err);
+  }
+}
+
+async function extractTextFromImage(file) {
+  try {
+    // Convert file to base64
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target.result.split(',')[1];
+      
+      // Use OCR.space free API
+      const response = await fetch('https://api.ocr.space/parse', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          base64Image: 'data:image/png;base64,' + base64,
+          language: 'eng',
+          isOverlayRequired: false,
+          apikey: 'K87899142372222' // Free tier key
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.isErroredOnProcessing) {
+        toast('⚠️ Could not read text. Fill in manually please.');
+        return;
+      }
+      
+      const text = result.parsedText || '';
+      if (text && text.trim().length > 0) {
+        parseAndFillFields(text);
+        toast('✅ Information extracted!');
+      } else {
+        toast('⚠️ No text found in image.');
+      }
+    };
+    reader.readAsDataURL(file);
+  } catch (err) {
+    console.error('OCR Error:', err);
+    toast('⚠️ Could not extract text. Fill in manually.');
+  }
+}
+
+function parseAndFillFields(text) {
+  try {
+    console.log('Extracted text:', text);
+    
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    console.log('Lines:', lines);
+    
+    // Find phone numbers (various formats)
+    const phoneRegex = /(\(?[0-9]{3}\)?[\s.\-]?[0-9]{3}[\s.\-]?[0-9]{4})/;
+    const phoneMatch = text.match(phoneRegex);
+    
+    // Find emails
+    const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/i;
+    const emailMatch = text.match(emailRegex);
+    
+    console.log('Phone match:', phoneMatch);
+    console.log('Email match:', emailMatch);
+    
+    // Extract name from first non-empty, non-numeric line
+    let nameSet = false;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      // Skip lines that are just numbers, emails, or common non-name content
+      if (!/^[\d\(\)\-\.\s]+$/.test(line) && !line.includes('@') && !/st|ave|rd|ln|blvd|road|drive|street/i.test(line) && line.length > 2) {
+        const parts = line.split(/\s+/);
+        
+        if (parts.length >= 1) {
+          const fn = document.getElementById('c-fn');
+          if (fn) {
+            fn.value = parts[0];
+            nameSet = true;
+          }
+        }
+        if (parts.length >= 2) {
+          const ln = document.getElementById('c-ln');
+          if (ln) {
+            ln.value = parts.slice(1).join(' ');
+          }
+        }
+        if (nameSet) break;
+      }
+    }
+    
+    // Fill phone
+    if (phoneMatch) {
+      const ph = document.getElementById('c-ph');
+      if (ph) {
+        ph.value = phoneMatch[0];
+      }
+    }
+    
+    // Fill email
+    if (emailMatch) {
+      const em = document.getElementById('c-em');
+      if (em) em.value = emailMatch[0];
+    }
+  } catch (err) {
+    console.error('Parse error:', err);
+  }
+}
+
 function newClient() {
   document.querySelector('#m-client .modal-header h3').textContent = '👤 New Client';
   document.getElementById('c-id').value = '';
@@ -3444,6 +3658,8 @@ function newClient() {
   document.getElementById('c-sec-name').value = '';
   document.getElementById('c-sec-ph').value = '';
   document.getElementById('c-monthly').checked = false;
+  document.getElementById('c-screenshot').value = '';
+  document.getElementById('screenshot-preview').style.display = 'none';
   renderClientPropsEditor([]);
   openModal('m-client');
 }
@@ -3460,6 +3676,8 @@ function editClient(id) {
   document.getElementById('c-sec-name').value = c.secName || '';
   document.getElementById('c-sec-ph').value = c.secPh || '';
   document.getElementById('c-monthly').checked = c.monthlyBilling || false;
+  document.getElementById('c-screenshot').value = '';
+  document.getElementById('screenshot-preview').style.display = 'none';
   // Migrate legacy single address to properties if needed
   let props = c.properties || [];
   if (!props.length && c.ad) props = [{id: 1, nickname: 'Main', address: c.ad}];
@@ -4000,10 +4218,62 @@ function renderInvoices() {
 function setInvStatus(id, status) {
   const inv = DB.invoices.find(i => i.id === id);
   if (inv) {
-    inv.status = status;
+    if (status === 'Paid' && inv.status !== 'Paid') {
+      // Show payment method modal when marking as paid
+      window.pendingPaymentInvId = id;
+      document.getElementById('check-number').value = '';
+      document.getElementById('check-number-wrap').style.display = 'none';
+      document.querySelectorAll('[id^="pm-"]').forEach(btn => btn.style.backgroundColor = '');
+      openModal('m-payment-method');
+    } else {
+      inv.status = status;
+      save();
+      renderInvoices();
+      renderDash();
+    }
+  }
+}
+
+function selectPaymentMethod(method) {
+  // Update button styles
+  document.querySelectorAll('[id^="pm-"]').forEach(btn => btn.style.backgroundColor = '');
+  
+  if (method === 'Cash') {
+    document.getElementById('pm-cash').style.backgroundColor = 'var(--green)';
+    document.getElementById('pm-cash').style.color = 'white';
+    window.selectedPaymentMethod = 'Cash';
+    document.getElementById('check-number-wrap').style.display = 'none';
+  } else if (method === 'Check') {
+    document.getElementById('pm-check').style.backgroundColor = 'var(--green)';
+    document.getElementById('pm-check').style.color = 'white';
+    window.selectedPaymentMethod = 'Check';
+    document.getElementById('check-number-wrap').style.display = 'block';
+  } else if (method === 'CashApp') {
+    document.getElementById('pm-cashapp').style.backgroundColor = 'var(--green)';
+    document.getElementById('pm-cashapp').style.color = 'white';
+    window.selectedPaymentMethod = 'CashApp';
+    document.getElementById('check-number-wrap').style.display = 'none';
+  }
+}
+
+function confirmPayment() {
+  if (!window.selectedPaymentMethod) {
+    toast('Please select a payment method');
+    return;
+  }
+  
+  const inv = DB.invoices.find(i => i.id === window.pendingPaymentInvId);
+  if (inv) {
+    inv.status = 'Paid';
+    inv.paymentMethod = window.selectedPaymentMethod;
+    if (window.selectedPaymentMethod === 'Check') {
+      inv.checkNumber = document.getElementById('check-number').value || '';
+    }
     save();
     renderInvoices();
     renderDash();
+    closeModal('m-payment-method');
+    toast('✅ Payment recorded!');
   }
 }
 
@@ -4025,46 +4295,52 @@ function viewInvoice(id) {
   
   document.getElementById('inv-prev-lbl').textContent = bp.prefix + String(inv.id).padStart(4, '0');
   document.getElementById('inv-box').innerHTML = `
-    <div class="inv-head">
-      <div>${logoHTML}<br><span style="font-size: 13px; color: var(--text2); margin-top: 8px; line-height: 1.6; display: block;">${bp.owner ? '<strong style="display: block; margin-bottom: 4px;">' + bp.owner + '</strong>' : ''}${bp.phone}<br>${bp.email}${bp.web ? '<br>' + bp.web : ''}${bp.addr ? '<br>' + formatAddress(bp.addr) : ''}</span></div>
-      <div style="text-align: right;">
-        <h2 style="font-size: 20px; color: ${bp.color};">INVOICE</h2>
-        <p style="font-size: 12px; color: var(--text2);">${bp.prefix}${String(inv.id).padStart(4, '0')}</p>
-        <p style="font-size: 12px; color: var(--text2);">${fdate(today())}</p>
-        <p style="font-size: 11px; color: var(--text3);">${bp.terms}</p>
-      </div>
-    </div>
-    <div class="inv-parties">
-      <div>
-        <div class="party-label">Bill To</div>
-        <div style="font-weight: 700;">${c ? (c.fn + ' ' + c.ln).trim() : 'Client'}</div>
-        <div style="font-size: 13px; color: var(--text2);">${c?.ph || ''}<br>${(() => { if (inv.propId) { const props = getClientProps(inv.clientId); const p = props.find(p => p.id === inv.propId); if (p) return formatAddress(p.address); } return formatAddress(c?.ad || ''); })()}</div>
-      </div>
-    </div>
-    <table class="line-items" style="margin-bottom: 20px;">
-      <thead style="background: ${bp.color}20;">
-        <tr><th style="color: ${bp.color};">Description</th><th style="color: ${bp.color};">Qty</th><th style="color: ${bp.color};">Price</th><th style="color: ${bp.color};">Total</th></tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-    <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
-      <div style="min-width: 200px;">
-        <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px;">
-          <span>Subtotal</span>
-          <span>$${subtotal.toFixed(2)}</span>
+    <div style="position: relative;">
+      ${inv.status === 'Paid' ? '<div class="paid-stamp">PAID</div>' : ''}
+      <div class="inv-head">
+        <div>${logoHTML}<br><span style="font-size: 13px; color: var(--text2); margin-top: 8px; line-height: 1.6; display: block;">${bp.owner ? '<strong style="display: block; margin-bottom: 4px;">' + bp.owner + '</strong>' : ''}${bp.phone}<br>${bp.email}${bp.web ? '<br>' + bp.web : ''}${bp.addr ? '<br>' + formatAddress(bp.addr) : ''}</span></div>
+        <div style="text-align: right;">
+          <h2 style="font-size: 20px; color: ${bp.color};">INVOICE</h2>
+          <p style="font-size: 12px; color: var(--text2);">${bp.prefix}${String(inv.id).padStart(4, '0')}</p>
+          <p style="font-size: 12px; color: var(--text2);">${fdate(today())}</p>
+          <p style="font-size: 11px; color: var(--text3);">${bp.terms}</p>
         </div>
-        ${bp.tax > 0 ? `<div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px;">
-          <span>Tax (${bp.tax}%)</span>
-          <span>$${taxAmt.toFixed(2)}</span>
+      </div>
+      <div class="inv-parties">
+        <div>
+          <div class="party-label">Bill To</div>
+          <div style="font-weight: 700;">${c ? (c.fn + ' ' + c.ln).trim() : 'Client'}</div>
+          <div style="font-size: 13px; color: var(--text2);">${c?.ph || ''}<br>${(() => { if (inv.propId) { const props = getClientProps(inv.clientId); const p = props.find(p => p.id === inv.propId); if (p) return formatAddress(p.address); } return formatAddress(c?.ad || ''); })()}</div>
+        </div>
+      </div>
+      <table class="line-items" style="margin-bottom: 20px;">
+        <thead style="background: ${bp.color}20;">
+          <tr><th style="color: ${bp.color};">Description</th><th style="color: ${bp.color};">Qty</th><th style="color: ${bp.color};">Price</th><th style="color: ${bp.color};">Total</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+        <div style="min-width: 200px;">
+          <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px;">
+            <span>Subtotal</span>
+            <span>$${subtotal.toFixed(2)}</span>
+          </div>
+          ${bp.tax > 0 ? `<div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px;">
+            <span>Tax (${bp.tax}%)</span>
+            <span>$${taxAmt.toFixed(2)}</span>
+          </div>` : ''}
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 15px; border-top: 2px solid var(--border); font-weight: 700; color: ${bp.color};">
+            <span>Total Due</span>
+            <span>$${total.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: var(--text3); border-top: 1px solid var(--border); padding-top: 12px;">
+        ${bp.footer}
+        ${inv.paymentMethod ? `<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text2);">
+          <strong>Payment Method:</strong> ${inv.paymentMethod}${inv.checkNumber ? ` (Check #${inv.checkNumber})` : ''}
         </div>` : ''}
-        <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 15px; border-top: 2px solid var(--border); font-weight: 700; color: ${bp.color};">
-          <span>Total Due</span>
-          <span>$${total.toFixed(2)}</span>
-        </div>
       </div>
-    </div>
-    <div style="font-size: 12px; color: var(--text3); border-top: 1px solid var(--border); padding-top: 12px;">
-      ${bp.footer}
     </div>
   `;
   
@@ -4446,11 +4722,25 @@ function captureInvoicePNG(box, invNum) {
     windowHeight: box.scrollHeight,
     windowWidth: box.scrollWidth
   }).then(canvas => {
-    const link = document.createElement('a');
-    link.href = canvas.toDataURL('image/png');
-    link.download = invNum.replace(/\D/g, '') + '-invoice.png';
-    link.click();
-    toast('📸 Invoice saved as PNG!');
+    const imageData = canvas.toDataURL('image/png');
+    const filename = invNum.replace(/\D/g, '') + '-invoice.png';
+    
+    // Detect if iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    if (isIOS) {
+      // For iOS: Open in new window so user can long-press and save
+      const imgWindow = window.open();
+      imgWindow.document.write(`<img src="${imageData}" style="width: 100%; display: block;"><p style="text-align: center; color: #666; margin-top: 20px;">Long-press image and select "Save Image"</p>`);
+      toast('📸 Image opened - long-press to save!');
+    } else {
+      // For desktop/Android: Use download attribute
+      const link = document.createElement('a');
+      link.href = imageData;
+      link.download = filename;
+      link.click();
+      toast('📸 Invoice saved as PNG!');
+    }
   }).catch(err => {
     console.error('PNG capture failed:', err);
     toast('❌ Failed to save as PNG');
@@ -4915,11 +5205,6 @@ function initGithubSync() {
   };
 }
 
-function toggleDarkMode() {
-  document.body.classList.toggle('dark-mode');
-  const isDark = document.body.classList.contains('dark-mode');
-  localStorage.setItem(DARK_MODE_KEY, isDark ? '1' : '0');
-}
 
 function toggleFAB() {
   const menu = document.getElementById('fab-menu');
@@ -4940,13 +5225,6 @@ function toggleFAB() {
 function closeFAB() {
   document.getElementById('fab-menu').style.display = 'none';
   document.getElementById('fab-icon').textContent = '+';
-}
-
-function initDarkMode() {
-  const isDark = localStorage.getItem(DARK_MODE_KEY) === '1';
-  if (isDark) {
-    document.body.classList.add('dark-mode');
-  }
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -5040,7 +5318,6 @@ function lockApp() {
 
 document.addEventListener('DOMContentLoaded', () => {
   loadDB();
-  initDarkMode();
   initPIN();
   initGithubSync();
   
