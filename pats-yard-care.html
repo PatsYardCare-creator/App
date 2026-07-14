@@ -3082,7 +3082,7 @@ async function getWeatherForJob(date, clientId) {
     const addrParts = c.ad.split(',');
     const city = addrParts[0]?.trim() || c.ad;
     
-    const resp = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=35.3395&longitude=-97.4867&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code&timezone=America/Chicago&start_date=${date}&end_date=${date}`);
+    const resp = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=35.3395&longitude=-97.4867&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code&temperature_unit=fahrenheit&timezone=America/Chicago&start_date=${date}&end_date=${date}`);
     const data = await resp.json();
     
     if (data.daily) {
