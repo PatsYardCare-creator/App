@@ -1230,6 +1230,8 @@ nav {
     <div class="nav-item" onclick="gotoPage('clients', this)">👥 Clients</div>
     <div class="nav-section">Tools</div>
     <div class="nav-item" onclick="gotoPage('measure', this)">📐 Measurement</div>
+    <div class="nav-item" onclick="gotoPage('lawn-calc', this)">📏 Lawn Calculator</div>
+    <div class="nav-item" onclick="gotoPage('maintenance', this)">🔧 Maintenance Log</div>
     <div class="nav-section">Data</div>
     <div class="nav-item" onclick="gotoPage('backup', this)">💾 Backup</div>
     <div class="nav-item" onclick="gotoPage('settings', this)">⚙️ Settings</div>
@@ -1307,7 +1309,6 @@ nav {
     <div class="page active" id="page-dashboard">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px;">
         <span style="font-weight: 700;">Dashboard</span>
-        <button class="btn btn-secondary btn-sm" onclick="refreshFromGithub()" title="Pull latest data from GitHub">🔄 Sync</button>
       </div>
       <div class="stat-grid">
         <div class="stat-card">
@@ -1521,7 +1522,113 @@ nav {
       </div>
     </div>
 
-    <!-- SETTINGS PAGE -->
+    <!-- LAWN AREA CALCULATOR PAGE -->
+    <div class="page" id="page-lawn-calc">
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header">📏 Lawn Area & Price Calculator</div>
+        <div style="padding: 18px;">
+          <div style="background: var(--green-light); color: var(--green-dark); padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 12px; line-height: 1.5;">
+            <strong>Calculate lawn size & estimate price quickly</strong><br>
+            Enter dimensions to get square footage and estimate pricing
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Length (feet)</label>
+              <input class="form-control" id="lawn-length" type="number" placeholder="100" min="0" step="0.1" oninput="calcLawnArea()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Width (feet)</label>
+              <input class="form-control" id="lawn-width" type="number" placeholder="80" min="0" step="0.1" oninput="calcLawnArea()">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Price per 1000 sq ft ($)</label>
+            <input class="form-control" id="lawn-rate" type="number" placeholder="50" min="0" step="1" value="50" oninput="calcLawnArea()">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; padding: 14px; background: var(--surface2); border-radius: 8px;">
+            <div>
+              <div style="font-size: 11px; color: var(--text3); margin-bottom: 6px;">AREA</div>
+              <div id="lawn-area-result" style="font-size: 24px; font-weight: 700; color: var(--green);">0 sq ft</div>
+            </div>
+            <div>
+              <div style="font-size: 11px; color: var(--text3); margin-bottom: 6px;">ESTIMATED PRICE</div>
+              <div id="lawn-price-result" style="font-size: 24px; font-weight: 700; color: var(--green);">$0.00</div>
+            </div>
+          </div>
+
+          <div style="background: var(--surface2); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+            <div style="font-size: 12px; color: var(--text2); line-height: 1.8;">
+              Length: <span id="lawn-len-show">—</span> ft<br>
+              Width: <span id="lawn-wid-show">—</span> ft<br>
+              Rate: <span id="lawn-rate-show">—</span> per 1000 sq ft
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-sm" onclick="copyLawnCalc()">📋 Copy</button>
+          <button class="btn btn-secondary btn-sm" onclick="resetLawnCalc()" style="margin-left: 8px;">Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAINTENANCE LOG PAGE -->
+    <div class="page" id="page-maintenance">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px; flex-wrap: wrap;">
+        <span style="font-weight: 700;">🔧 Maintenance Log</span>
+        <button class="btn btn-primary btn-sm" onclick="openMaintenanceEntry()">+ New Entry</button>
+      </div>
+
+      <div class="card" style="margin-bottom: 20px;">
+        <div style="padding: 18px;">
+          <input class="form-control" id="maint-search" placeholder="Search equipment..." oninput="filterMaintenanceLog()" style="margin-bottom: 12px;">
+          <div id="maintenance-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAINTENANCE ENTRY MODAL -->
+    <div class="modal-overlay" id="m-maintenance">
+      <div class="modal">
+        <div class="modal-header"><h3>🔧 Maintenance Entry</h3><button class="close-btn" onclick="closeModal('m-maintenance')">✕</button></div>
+        <div class="modal-body">
+          <input type="hidden" id="maint-id">
+          <div class="form-group">
+            <label class="form-label">Equipment Name *</label>
+            <input class="form-control" id="maint-equip" placeholder="e.g., Mower, Edger, Trimmer">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Service Type *</label>
+            <select class="form-control" id="maint-type">
+              <option>Oil Change</option>
+              <option>Blade Sharpen</option>
+              <option>Filter Replacement</option>
+              <option>Spark Plug</option>
+              <option>Repair</option>
+              <option>Inspection</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input class="form-control" id="maint-date" type="date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cost ($)</label>
+            <input class="form-control" id="maint-cost" type="number" min="0" step="0.01" placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea class="form-control" id="maint-notes" rows="3" placeholder="Details about the service..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal('m-maintenance')">Cancel</button>
+          <button class="btn btn-primary" onclick="saveMaintenanceEntry()">Save</button>
+        </div>
+      </div>
+    </div>
     <div class="page" id="page-settings">
       <div class="card" style="margin-bottom: 20px;">
         <div class="card-header">🏢 Business Info</div>
@@ -1601,6 +1708,51 @@ nav {
       </div>
 
       <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header">📐 Invoice Layout</div>
+        <div style="padding: 18px;">
+          <div class="form-group">
+            <label class="form-label">Logo Position</label>
+            <select class="form-control" id="bp-logo-pos">
+              <option value="top-left">Top Left</option>
+              <option value="top-center">Top Center</option>
+              <option value="top-right">Top Right</option>
+              <option value="hidden">Hidden</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Logo Size</label>
+            <select class="form-control" id="bp-logo-size">
+              <option value="small">Small (60px)</option>
+              <option value="medium" selected>Medium (80px)</option>
+              <option value="large">Large (100px)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Header Layout</label>
+            <select class="form-control" id="bp-header-layout">
+              <option value="logo-left">Logo Left, Info Right</option>
+              <option value="logo-top" selected>Logo Top, Info Below</option>
+              <option value="info-only">Info Only (No Logo)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Show Company Address on Invoice</label>
+            <select class="form-control" id="bp-show-addr">
+              <option value="yes" selected>Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Show Business Owner Name</label>
+            <select class="form-control" id="bp-show-owner">
+              <option value="yes">Yes</option>
+              <option value="no" selected>No</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 20px;">
         <div class="card-header">📄 Invoice Preview</div>
         <div style="padding: 18px;">
           <button class="btn btn-primary" onclick="updateInvoicePreview()">↻ Refresh Preview</button>
@@ -1610,33 +1762,6 @@ nav {
 
       <div style="display: flex; gap: 10px; flex-wrap: wrap;">
         <button class="btn btn-primary" onclick="saveBizProfile()">💾 Save Settings</button>
-      </div>
-    </div>
-
-    <!-- GITHUB SYNC SECTION -->
-    <div class="card" style="margin-bottom: 20px; margin-top: 20px; border: 2px solid var(--green-light);">
-      <div class="card-header">☁️ GitHub Data Sync</div>
-      <div style="padding: 18px;">
-        <div style="background: var(--green-light); color: var(--green-dark); padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 12px; line-height: 1.5;">
-          <strong>Auto-sync all your data across devices</strong><br>
-          Your clients, jobs, and invoices will sync instantly to GitHub and appear on any device.
-        </div>
-        
-        <div class="form-group">
-          <label class="form-label">GitHub Personal Access Token</label>
-          <input class="form-control" id="gh-token" type="password" placeholder="ghp_..." style="font-family: monospace;">
-          <div style="font-size: 11px; color: var(--text3); margin-top: 8px;">
-            Don't have a token? <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--green); text-decoration: none; font-weight: 600;">Create one here</a>
-          </div>
-        </div>
-        
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <button class="btn btn-primary" onclick="saveGithubToken()">💾 Save Token</button>
-          <button class="btn btn-secondary" onclick="testGithubConnection()">🧪 Test Connection</button>
-          <button class="btn btn-ghost" onclick="clearGithubToken()">🗑️ Remove Token</button>
-        </div>
-        
-        <div id="gh-status" style="margin-top: 12px; font-size: 12px; color: var(--text3);"></div>
       </div>
     </div>
 
@@ -1753,9 +1878,13 @@ nav {
         <label class="form-label">Client *</label>
         <div style="position: relative;">
           <input type="text" class="form-control" id="j-cl-search" placeholder="Search by name or address..." oninput="filterClientDropdown()" style="margin-bottom: 4px;">
-          <select class="form-control" id="j-cl" onchange="fillJobProperties()" style="height: 120px;">
-            <!-- Options will be filled by JavaScript -->
+          <div id="j-cl-dropdown" style="position: absolute; top: 100%; left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 100; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <!-- Filtered options will be populated here -->
+          </div>
+          <select class="form-control" id="j-cl" onchange="fillJobProperties()" style="display: none;">
+            <!-- Hidden select for storing the value -->
           </select>
+          <div id="j-cl-selected" class="form-control" style="background: var(--surface2); color: var(--text2); cursor: pointer; user-select: none;">Select client...</div>
         </div>
       </div>
       <div class="form-group" id="j-prop-group" style="display:none;"><label class="form-label">Property</label><select class="form-control" id="j-prop" onchange="applyPropertyPrice()"></select></div>
@@ -2449,17 +2578,12 @@ function viewQuote(id) {
     // Update the label
     document.getElementById('inv-prev-lbl').textContent = 'Quote #' + quote.id;
     
+    // Build header with customizable layout
+    const headerHTML = buildInvoiceHeader(bp, logoHTML, 'QUOTE');
+    
     // Set the preview content
     document.getElementById('inv-box').innerHTML = `
-      <div class="inv-head">
-        <div>${logoHTML}<br><span style="font-size: 13px; color: var(--text2); margin-top: 8px; line-height: 1.6; display: block;">${bp.owner ? '<strong style="display: block; margin-bottom: 4px;">' + bp.owner + '</strong>' : ''}${bp.phone}<br>${bp.email}${bp.web ? '<br>' + bp.web : ''}${bp.addr ? '<br>' + formatAddress(bp.addr) : ''}</span></div>
-        <div style="text-align: right;">
-          <h2 style="font-size: 20px; color: ${bp.color};">QUOTE</h2>
-          <p style="font-size: 12px; color: var(--text2);">Quote #${quote.id}</p>
-          <p style="font-size: 12px; color: var(--text2);">${quote.createdAt ? fdate(quote.createdAt.split('T')[0]) : 'N/A'}</p>
-          <p style="font-size: 11px; color: var(--text3);">Expires: ${quote.exp ? (isExpired ? '❌ ' : '') + fdate(quote.exp) : 'No exp date'}</p>
-        </div>
-      </div>
+      ${headerHTML}
       <div class="inv-parties">
         <div>
           <div class="party-label">Quote For</div>
@@ -2727,6 +2851,363 @@ function copyFlowerBedCalc() {
   });
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// LAWN AREA CALCULATOR
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function calcLawnArea() {
+  const length = parseFloat(document.getElementById('lawn-length').value) || 0;
+  const width = parseFloat(document.getElementById('lawn-width').value) || 0;
+  const rate = parseFloat(document.getElementById('lawn-rate').value) || 0;
+
+  if (length <= 0 || width <= 0) {
+    document.getElementById('lawn-area-result').textContent = '0 sq ft';
+    document.getElementById('lawn-price-result').textContent = '$0.00';
+    document.getElementById('lawn-len-show').textContent = '—';
+    document.getElementById('lawn-wid-show').textContent = '—';
+    return;
+  }
+
+  const area = length * width;
+  const price = (area / 1000) * rate;
+
+  document.getElementById('lawn-area-result').textContent = area.toFixed(0) + ' sq ft';
+  document.getElementById('lawn-price-result').textContent = '$' + price.toFixed(2);
+  document.getElementById('lawn-len-show').textContent = length.toFixed(1);
+  document.getElementById('lawn-wid-show').textContent = width.toFixed(1);
+  document.getElementById('lawn-rate-show').textContent = '$' + rate.toFixed(2);
+}
+
+function resetLawnCalc() {
+  document.getElementById('lawn-length').value = '';
+  document.getElementById('lawn-width').value = '';
+  document.getElementById('lawn-rate').value = '50';
+  calcLawnArea();
+}
+
+function copyLawnCalc() {
+  const length = document.getElementById('lawn-length').value;
+  const width = document.getElementById('lawn-width').value;
+  const area = document.getElementById('lawn-area-result').textContent;
+  const price = document.getElementById('lawn-price-result').textContent;
+
+  if (!length || !width) {
+    toast('⚠️ Enter dimensions first');
+    return;
+  }
+
+  const text = `Lawn Calculator\nLength: ${length} ft\nWidth: ${width} ft\n\nArea: ${area}\nEstimated Price: ${price}`;
+  navigator.clipboard.writeText(text).then(() => {
+    toast('📋 Lawn calc copied!');
+  }).catch(() => {
+    toast('❌ Copy failed');
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// MAINTENANCE LOG
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function ensureMaintenanceLog() {
+  if (!DB.maintenance) {
+    DB.maintenance = [];
+  }
+}
+
+function openMaintenanceEntry() {
+  document.getElementById('maint-id').value = '';
+  document.getElementById('maint-equip').value = '';
+  document.getElementById('maint-type').value = 'Oil Change';
+  document.getElementById('maint-date').value = today();
+  document.getElementById('maint-cost').value = '';
+  document.getElementById('maint-notes').value = '';
+  openModal('m-maintenance');
+}
+
+function saveMaintenanceEntry() {
+  ensureMaintenanceLog();
+  const id = document.getElementById('maint-id').value;
+  const equip = document.getElementById('maint-equip').value.trim();
+  const type = document.getElementById('maint-type').value;
+  const date = document.getElementById('maint-date').value;
+  const cost = parseFloat(document.getElementById('maint-cost').value) || 0;
+  const notes = document.getElementById('maint-notes').value;
+
+  if (!equip || !date) {
+    toast('⚠️ Fill in equipment name and date');
+    return;
+  }
+
+  if (id) {
+    const entry = DB.maintenance.find(m => m.id === parseInt(id));
+    if (entry) {
+      entry.equip = equip;
+      entry.type = type;
+      entry.date = date;
+      entry.cost = cost;
+      entry.notes = notes;
+    }
+  } else {
+    const newId = Math.max(0, ...DB.maintenance.map(m => m.id || 0)) + 1;
+    DB.maintenance.push({ id: newId, equip, type, date, cost, notes });
+  }
+
+  saveDB();
+  closeModal('m-maintenance');
+  renderMaintenanceLog();
+  toast('✅ Maintenance entry saved!');
+}
+
+function renderMaintenanceLog() {
+  ensureMaintenanceLog();
+  const list = document.getElementById('maintenance-list');
+  
+  if (DB.maintenance.length === 0) {
+    list.innerHTML = '<div style="text-align: center; color: var(--text3); padding: 20px;">No maintenance entries yet</div>';
+    return;
+  }
+
+  const sorted = [...DB.maintenance].sort((a, b) => new Date(b.date) - new Date(a.date));
+  
+  let html = '';
+  sorted.forEach(m => {
+    html += `
+      <div style="border-bottom: 1px solid var(--border); padding: 12px 0; display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <div style="font-weight: 700; color: var(--text);">${m.equip}</div>
+          <div style="font-size: 12px; color: var(--text2); margin-top: 4px;">
+            <strong>${m.type}</strong> • ${fdate(m.date)}
+          </div>
+          ${m.notes ? `<div style="font-size: 12px; color: var(--text3); margin-top: 4px;">${m.notes}</div>` : ''}
+          ${m.cost > 0 ? `<div style="font-size: 12px; color: var(--green); margin-top: 4px; font-weight: 600;">$${m.cost.toFixed(2)}</div>` : ''}
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <button class="btn btn-ghost btn-xs" onclick="editMaintenanceEntry(${m.id})">✎</button>
+          <button class="btn btn-ghost btn-xs" onclick="deleteMaintenanceEntry(${m.id})">🗑️</button>
+        </div>
+      </div>
+    `;
+  });
+
+  list.innerHTML = html;
+}
+
+function editMaintenanceEntry(id) {
+  ensureMaintenanceLog();
+  const entry = DB.maintenance.find(m => m.id === id);
+  if (!entry) return;
+
+  document.getElementById('maint-id').value = id;
+  document.getElementById('maint-equip').value = entry.equip;
+  document.getElementById('maint-type').value = entry.type;
+  document.getElementById('maint-date').value = entry.date;
+  document.getElementById('maint-cost').value = entry.cost || '';
+  document.getElementById('maint-notes').value = entry.notes || '';
+  openModal('m-maintenance');
+}
+
+function deleteMaintenanceEntry(id) {
+  ensureMaintenanceLog();
+  if (confirm('Delete this maintenance entry?')) {
+    DB.maintenance = DB.maintenance.filter(m => m.id !== id);
+    saveDB();
+    renderMaintenanceLog();
+    toast('🗑️ Entry deleted');
+  }
+}
+
+function filterMaintenanceLog() {
+  ensureMaintenanceLog();
+  const search = document.getElementById('maint-search').value.toLowerCase();
+  const list = document.getElementById('maintenance-list');
+  
+  if (search === '') {
+    renderMaintenanceLog();
+    return;
+  }
+
+  const filtered = DB.maintenance.filter(m => 
+    m.equip.toLowerCase().includes(search) || 
+    m.type.toLowerCase().includes(search) ||
+    (m.notes && m.notes.toLowerCase().includes(search))
+  );
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div style="text-align: center; color: var(--text3); padding: 20px;">No matches found</div>';
+    return;
+  }
+
+  const sorted = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
+  let html = '';
+  sorted.forEach(m => {
+    html += `
+      <div style="border-bottom: 1px solid var(--border); padding: 12px 0; display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <div style="font-weight: 700; color: var(--text);">${m.equip}</div>
+          <div style="font-size: 12px; color: var(--text2); margin-top: 4px;">
+            <strong>${m.type}</strong> • ${fdate(m.date)}
+          </div>
+          ${m.notes ? `<div style="font-size: 12px; color: var(--text3); margin-top: 4px;">${m.notes}</div>` : ''}
+          ${m.cost > 0 ? `<div style="font-size: 12px; color: var(--green); margin-top: 4px; font-weight: 600;">$${m.cost.toFixed(2)}</div>` : ''}
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <button class="btn btn-ghost btn-xs" onclick="editMaintenanceEntry(${m.id})">✎</button>
+          <button class="btn btn-ghost btn-xs" onclick="deleteMaintenanceEntry(${m.id})">🗑️</button>
+        </div>
+      </div>
+    `;
+  });
+
+  list.innerHTML = html;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SERVICE HISTORY (added to job rendering)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function getClientServiceHistory(clientId) {
+  return DB.jobs.filter(j => j.clientId === clientId).sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// WEATHER INTEGRATION
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+async function getWeatherForJob(date, clientId) {
+  try {
+    const c = cby(clientId);
+    if (!c || !c.ad) return null;
+    
+    // Extract city from address (last part)
+    const addrParts = c.ad.split(',');
+    const city = addrParts[0]?.trim() || c.ad;
+    
+    const resp = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=35.3395&longitude=-97.4867&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code&timezone=America/Chicago&start_date=${date}&end_date=${date}`);
+    const data = await resp.json();
+    
+    if (data.daily) {
+      return {
+        high: data.daily.temperature_2m_max[0],
+        low: data.daily.temperature_2m_min[0],
+        rain: data.daily.precipitation_sum[0],
+        code: data.daily.weather_code[0]
+      };
+    }
+  } catch (e) {
+    // Fail silently
+  }
+  return null;
+}
+
+function getWeatherIcon(code) {
+  if (!code) return '🌤️';
+  if (code === 0) return '☀️'; // Clear
+  if (code === 1 || code === 2) return '🌤️'; // Partly cloudy
+  if (code === 3) return '☁️'; // Cloudy
+  if (code === 45 || code === 48) return '🌫️'; // Foggy
+  if (code >= 51 && code <= 67) return '🌧️'; // Rain
+  if (code >= 71 && code <= 77) return '❄️'; // Snow
+  if (code >= 80 && code <= 82) return '🌧️'; // Showers
+  if (code >= 85 && code <= 86) return '❄️'; // Snow showers
+  return '🌤️';
+}
+
+function getRainPercentage(code, precipitation) {
+  // Estimate rain chance based on weather code and precipitation
+  let baseChance = 0;
+  
+  if (code === 0) baseChance = 0; // Clear
+  else if (code === 1 || code === 2) baseChance = 5; // Partly cloudy
+  else if (code === 3) baseChance = 10; // Cloudy
+  else if (code === 45 || code === 48) baseChance = 5; // Foggy
+  else if (code >= 51 && code <= 67) baseChance = 85; // Rain
+  else if (code >= 71 && code <= 77) baseChance = 80; // Snow
+  else if (code >= 80 && code <= 82) baseChance = 75; // Showers
+  else if (code >= 85 && code <= 86) baseChance = 80; // Snow showers
+  
+  // Boost based on actual precipitation
+  if (precipitation > 0) {
+    baseChance = Math.min(95, baseChance + (precipitation * 10));
+  }
+  
+  return Math.round(baseChance);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// RECURRING JOB AUTO-SCHEDULER
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function autoScheduleRecurringJobs() {
+  try {
+    if (!DB || !DB.jobs || typeof saveDB !== 'function') return;
+    
+    const today_str = today();
+    const todayDate = new Date(today_str);
+    let jobsCreated = false;
+    
+    DB.jobs.forEach(job => {
+      if (!job.rec || job.rec === 'none') return;
+      
+      const lastDate = new Date(job.date);
+      let nextDate = new Date(lastDate);
+      
+      // Calculate next occurrence
+      if (job.rec === 'weekly') {
+        nextDate.setDate(nextDate.getDate() + 7);
+      } else if (job.rec === 'biweekly') {
+        nextDate.setDate(nextDate.getDate() + 14);
+      }
+      
+      const nextDateStr = nextDate.toISOString().split('T')[0];
+      
+      // Check if we should create a new job
+      if (nextDate <= todayDate) {
+        // Check if job already exists for this date
+        const exists = DB.jobs.some(j => 
+          j.clientId === job.clientId && 
+          j.sv === job.sv && 
+          j.date === nextDateStr &&
+          j.status !== 'Completed'
+        );
+        
+        if (!exists && job.recEnd && nextDateStr <= job.recEnd) {
+          // Create new job
+          const newJob = {
+            id: DB.nxt.j++,
+            clientId: job.clientId,
+            propId: job.propId,
+            sv: job.sv,
+            date: nextDateStr,
+            status: 'Upcoming',
+            dur: job.dur,
+            tot: job.tot,
+            rec: job.rec,
+            recEnd: job.recEnd,
+            no: job.no ? job.no + ' (recurring)' : ''
+          };
+          DB.jobs.push(newJob);
+          jobsCreated = true;
+        }
+      }
+    });
+    
+    if (jobsCreated) saveDB();
+  } catch (e) {
+    console.error('Recurring scheduler error:', e);
+  }
+}
+
+// Run auto-scheduler on app load
+function initRecurringScheduler() {
+  try {
+    autoScheduleRecurringJobs();
+    // Check daily for new recurring jobs
+    setInterval(autoScheduleRecurringJobs, 24 * 60 * 60 * 1000);
+  } catch (e) {
+    console.error('Recurring scheduler init error:', e);
+  }
+}
+
 function renderPage(p) {
   if (p === 'dashboard') renderDash();
   else if (p === 'schedule') renderSchedule();
@@ -2736,6 +3217,15 @@ function renderPage(p) {
   else if (p === 'clients') renderClients();
   else if (p === 'measure') {
     setTimeout(initMeasureTool, 100);
+  }
+  else if (p === 'lawn-calc') {
+    document.getElementById('lawn-length').value = '';
+    document.getElementById('lawn-width').value = '';
+    document.getElementById('lawn-rate').value = '50';
+    calcLawnArea();
+  }
+  else if (p === 'maintenance') {
+    renderMaintenanceLog();
   }
   else if (p === 'settings') { loadBizProfile(); updateInvoicePreview(); }
 }
@@ -2776,11 +3266,15 @@ function renderDailyView() {
   
   let html = `<div class="daily-header"><h3>${currentMonth.toLocaleDateString('en-US', {weekday: 'long', month: 'long', day: 'numeric'})}</h3></div>`;
   
-  // Add earnings summary
+  // Add earnings & weather summary
   html += `<div style="background: var(--green-light); padding: 14px; border-radius: 10px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
     <div>
       <div style="font-size: 12px; color: var(--text2); font-weight: 600;">TODAY'S EARNINGS</div>
       <div style="font-size: 18px; font-weight: 700; color: var(--green); margin-top: 4px;">$${dayTotal.toFixed(2)}</div>
+    </div>
+    <div style="text-align: center;">
+      <div style="font-size: 12px; color: var(--text2); font-weight: 600;">WEATHER</div>
+      <div style="font-size: 24px; margin-top: 4px;" id="daily-weather">🌤️</div>
     </div>
     <div style="text-align: right;">
       <div style="font-size: 12px; color: var(--text2); font-weight: 600;">JOBS TODAY</div>
@@ -2803,6 +3297,17 @@ function renderDailyView() {
   }
   
   document.getElementById('daily-content').innerHTML = html;
+  
+  // Fetch and display weather for the date
+  (async () => {
+    const weather = await getWeatherForJob(dateStr, dayJobs[0]?.clientId);
+    if (weather) {
+      const icon = getWeatherIcon(weather.code);
+      const temp = Math.round((weather.high + weather.low) / 2);
+      const rainPercent = getRainPercentage(weather.code, weather.rain);
+      document.getElementById('daily-weather').textContent = `${icon}\n${temp}°F\n💧${rainPercent}%`;
+    }
+  })();
 }
 
 function renderWeeklyView() {
@@ -2977,20 +3482,34 @@ function renderDash() {
   if (!tj.length) {
     tjEl.innerHTML = '<p style="color: var(--text3); text-align: center;">No jobs today</p>';
   } else {
-    tjEl.innerHTML = '<table class="table"><tbody>' + 
-      tj.map(j => {
-        const client = DB.clients.find(c => c.id === j.clientId);
-        const hasAddress = client && (client.properties?.length > 0 ? client.properties[j.propId]?.address : client.ad);
-        const addressStr = client && (client.properties?.length > 0 ? client.properties[j.propId]?.address : client.ad);
-        const mapsLink = hasAddress ? `<a href="https://maps.google.com/maps?q=${encodeURIComponent(addressStr)}" target="_blank" style="color: var(--blue); text-decoration: none; cursor: pointer; font-size: 12px;">🗺️</a>` : '';
-        
-        return `<tr><td><strong>${getPropName(j.clientId, j.propId)}</strong> ${mapsLink} - ${j.sv}</td>
-        <td style="text-align: right; display: flex; gap: 6px; justify-content: flex-end;">
-          ${j.status !== 'Completed' ? `<button class="btn btn-primary btn-xs" onclick="completeJob(${j.id})">Done</button>
-          <button class="btn btn-secondary btn-xs" onclick="openSkipJobModal(${j.id})">Skip</button>` : '<span class="badge badge-green">Completed</span>'}
-        </td></tr>`;
-      }).join('') + 
-      '</tbody></table>';
+    // Fetch weather for today
+    (async () => {
+      const weather = await getWeatherForJob(today(), tj[0]?.clientId);
+      let weatherDisplay = '';
+      if (weather) {
+        const icon = getWeatherIcon(weather.code);
+        const temp = Math.round((weather.high + weather.low) / 2);
+        const rainPercent = getRainPercentage(weather.code, weather.rain);
+        weatherDisplay = `<div style="background: var(--green-light); padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; text-align: center;">
+          <strong>${icon} ${temp}°F</strong> • 💧 ${rainPercent}% rain
+        </div>`;
+      }
+      
+      tjEl.innerHTML = weatherDisplay + '<table class="table"><tbody>' + 
+        tj.map(j => {
+          const client = DB.clients.find(c => c.id === j.clientId);
+          const hasAddress = client && (client.properties?.length > 0 ? client.properties[j.propId]?.address : client.ad);
+          const addressStr = client && (client.properties?.length > 0 ? client.properties[j.propId]?.address : client.ad);
+          const mapsLink = hasAddress ? `<a href="https://maps.google.com/maps?q=${encodeURIComponent(addressStr)}" target="_blank" style="color: var(--blue); text-decoration: none; cursor: pointer; font-size: 12px;">🗺️</a>` : '';
+          
+          return `<tr><td><strong>${getPropName(j.clientId, j.propId)}</strong> ${mapsLink} - ${j.sv}</td>
+          <td style="text-align: right; display: flex; gap: 6px; justify-content: flex-end;">
+            ${j.status !== 'Completed' ? `<button class="btn btn-primary btn-xs" onclick="completeJob(${j.id})">Done</button>
+            <button class="btn btn-secondary btn-xs" onclick="openSkipJobModal(${j.id})">Skip</button>` : '<span class="badge badge-green">Completed</span>'}
+          </td></tr>`;
+        }).join('') + 
+        '</tbody></table>';
+    })();
   }
 }
 
@@ -3267,6 +3786,8 @@ function newJob() {
   document.getElementById('j-id').value = '';
   document.getElementById('j-cl-search').value = ''; // Clear search field
   fillClients('j-cl');
+  document.getElementById('j-cl-selected').textContent = 'Select client...';
+  document.getElementById('j-cl-dropdown').style.display = 'none';
   document.getElementById('j-dt').value = today();
   document.getElementById('j-dur').value = '1';
   document.getElementById('j-tot').value = '';
@@ -3284,6 +3805,7 @@ function editJob(id) {
   document.querySelector('#m-job .modal-header h3').textContent = '🔧 Edit Job';
   document.getElementById('j-id').value = id;
   document.getElementById('j-cl-search').value = ''; // Clear search field
+  document.getElementById('j-cl-dropdown').style.display = 'none';
   fillClients('j-cl', j.clientId);
   fillJobProperties();
   // Restore saved property selection
@@ -3383,36 +3905,88 @@ function saveJob() {
 
 function fillClients(selId, selVal) {
   const s = document.getElementById(selId);
-  s.innerHTML = '<option value="">Select client...</option>';
-  DB.clients.forEach(c => {
-    const o = document.createElement('option');
-    o.value = c.id;
-    o.textContent = (c.fn + ' ' + c.ln).trim();
-    if (c.id === selVal) o.selected = true;
-    s.appendChild(o);
-  });
+  if (selId === 'j-cl') {
+    // For the job modal, populate the hidden select
+    s.innerHTML = '<option value="">Select client...</option>';
+    DB.clients.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.id;
+      o.textContent = (c.fn + ' ' + c.ln).trim();
+      if (c.id === selVal) {
+        o.selected = true;
+        document.getElementById('j-cl-selected').textContent = o.textContent;
+      }
+      s.appendChild(o);
+    });
+    populateClientDropdown();
+  } else {
+    // For other selects, use the original method
+    s.innerHTML = '<option value="">Select client...</option>';
+    DB.clients.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.id;
+      o.textContent = (c.fn + ' ' + c.ln).trim();
+      if (c.id === selVal) o.selected = true;
+      s.appendChild(o);
+    });
+  }
 }
 
-function filterClientDropdown() {
+function populateClientDropdown() {
+  const dropdown = document.getElementById('j-cl-dropdown');
   const searchText = document.getElementById('j-cl-search').value.toLowerCase();
-  const select = document.getElementById('j-cl');
-  const options = select.querySelectorAll('option');
   
-  options.forEach(option => {
-    if (option.value === '') return; // Always show "Select client..."
-    
-    const clientName = option.textContent.toLowerCase();
-    const clientId = parseInt(option.value);
-    const client = DB.clients.find(c => c.id === clientId);
-    const clientAddress = client ? (client.ad || '').toLowerCase() : '';
+  dropdown.innerHTML = '';
+  
+  DB.clients.forEach(c => {
+    const clientName = (c.fn + ' ' + c.ln).trim().toLowerCase();
+    const clientAddress = (c.ad || '').toLowerCase();
     
     // Show option if search text matches name or address
     if (searchText === '' || clientName.includes(searchText) || clientAddress.includes(searchText)) {
-      option.style.display = '';
-    } else {
-      option.style.display = 'none';
+      const div = document.createElement('div');
+      div.style.padding = '10px 12px';
+      div.style.cursor = 'pointer';
+      div.style.borderBottom = '1px solid var(--border)';
+      div.style.fontSize = '14px';
+      div.style.color = 'var(--text)';
+      div.onmouseover = () => div.style.background = 'var(--surface2)';
+      div.onmouseout = () => div.style.background = '';
+      
+      const name = (c.fn + ' ' + c.ln).trim();
+      const addr = c.ad ? ` • ${c.ad}` : '';
+      div.textContent = name + addr;
+      
+      div.onclick = () => selectClient(c.id, name);
+      dropdown.appendChild(div);
     }
   });
+  
+  if (dropdown.children.length > 0) {
+    dropdown.style.display = 'block';
+  } else if (searchText !== '') {
+    dropdown.style.display = 'block';
+    const noResults = document.createElement('div');
+    noResults.style.padding = '10px 12px';
+    noResults.style.color = 'var(--text3)';
+    noResults.style.textAlign = 'center';
+    noResults.textContent = 'No clients found';
+    dropdown.appendChild(noResults);
+  } else {
+    dropdown.style.display = 'none';
+  }
+}
+
+function selectClient(clientId, clientName) {
+  document.getElementById('j-cl').value = clientId;
+  document.getElementById('j-cl-selected').textContent = clientName;
+  document.getElementById('j-cl-dropdown').style.display = 'none';
+  document.getElementById('j-cl-search').value = '';
+  fillJobProperties();
+}
+
+function filterClientDropdown() {
+  populateClientDropdown();
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -3869,6 +4443,12 @@ function viewClient(id) {
         <div style="background:var(--surface2); border-radius:12px; padding:10px;">${invoicesHTML}</div>
       </div>
 
+      <!-- Service History -->
+      <div style="margin-bottom:18px;">
+        <div style="font-size:13px; font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:6px;">📜 Service History</div>
+        <div style="background:var(--surface2); border-radius:12px; padding:10px;" id="service-history-${id}"></div>
+      </div>
+
       <!-- Time Log -->
       <div style="margin-bottom:8px;">
         <div style="font-size:13px; font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:6px;">⏱️ Time Log (${timeLogs.length})</div>
@@ -3884,6 +4464,32 @@ function viewClient(id) {
 
   // Store id for new invoice button
   document.getElementById('m-profile').dataset.clientId = id;
+  
+  // Populate service history
+  setTimeout(() => {
+    const history = getClientServiceHistory(id);
+    const historyDiv = document.getElementById(`service-history-${id}`);
+    if (historyDiv) {
+      if (history.length === 0) {
+        historyDiv.innerHTML = '<div style="font-size:12px; color:var(--text3); text-align:center; padding:10px;">No service history</div>';
+      } else {
+        let html = '';
+        history.slice(0, 10).forEach(job => {
+          html += `
+            <div style="border-bottom:1px solid var(--border); padding:8px 0; font-size:12px; display:flex; justify-content:space-between;">
+              <div>
+                <div style="font-weight:600; color:var(--text);">${job.sv}</div>
+                <div style="color:var(--text3);">${fdate(job.date)}</div>
+              </div>
+              <div style="text-align:right; color:var(--green); font-weight:600;">$${job.tot ? job.tot.toFixed(2) : '0.00'}</div>
+            </div>
+          `;
+        });
+        historyDiv.innerHTML = html;
+      }
+    }
+  }, 100);
+  
   openModal('m-profile');
 }
 
@@ -4277,6 +4883,95 @@ function confirmPayment() {
   }
 }
 
+function getLogoSizeStyle(size) {
+  const sizes = {
+    small: '60px',
+    medium: '80px',
+    large: '100px'
+  };
+  return sizes[size] || sizes.medium;
+}
+
+function getLogoPositionStyle(pos) {
+  const styles = {
+    'top-left': 'flex-start',
+    'top-center': 'center',
+    'top-right': 'flex-end'
+  };
+  return styles[pos] || styles['top-left'];
+}
+
+function buildInvoiceHeader(bp, logoHTML, heading = 'INVOICE') {
+  const logoSize = getLogoSizeStyle(bp.logoSize || 'medium');
+  const logoPos = getLogoPositionStyle(bp.logoPos || 'top-left');
+  const headerLayout = bp.headerLayout || 'logo-top';
+  const showAddr = bp.showAddr !== 'no';
+  const showOwner = bp.showOwner === 'yes';
+  
+  if (headerLayout === 'info-only') {
+    // Info only, no logo
+    return `
+      <div class="inv-head">
+        <div>
+          <span style="font-size: 13px; color: var(--text2); margin-top: 8px; line-height: 1.6; display: block;">
+            ${showOwner ? '<strong style="display: block; margin-bottom: 4px;">' + bp.owner + '</strong>' : ''}
+            ${bp.phone}<br>
+            ${bp.email}
+            ${bp.web ? '<br>' + bp.web : ''}
+            ${showAddr && bp.addr ? '<br>' + formatAddress(bp.addr) : ''}
+          </span>
+        </div>
+        <div style="text-align: right;">
+          <h2 style="font-size: 20px; color: ${bp.color};">${heading}</h2>
+        </div>
+      </div>
+    `;
+  } else if (headerLayout === 'logo-left') {
+    // Logo left, info right
+    return `
+      <div class="inv-head" style="display: flex; gap: 20px; align-items: flex-start;">
+        <div style="flex-shrink: 0; ${bp.logoPos === 'hidden' ? 'display: none;' : ''}">${logoHTML}</div>
+        <div style="flex: 1;">
+          <span style="font-size: 13px; color: var(--text2); margin-top: 8px; line-height: 1.6; display: block;">
+            <strong style="font-size: 16px; color: ${bp.color}; display: block; margin-bottom: 4px;">${bp.name}</strong>
+            ${showOwner ? '<strong style="display: block; margin-bottom: 4px;">' + bp.owner + '</strong>' : ''}
+            ${bp.phone}<br>
+            ${bp.email}
+            ${bp.web ? '<br>' + bp.web : ''}
+            ${showAddr && bp.addr ? '<br>' + formatAddress(bp.addr) : ''}
+          </span>
+        </div>
+        <div style="text-align: right;">
+          <h2 style="font-size: 20px; color: ${bp.color};">${heading}</h2>
+        </div>
+      </div>
+    `;
+  } else {
+    // Logo top, info below (default)
+    return `
+      <div class="inv-head">
+        <div style="text-align: ${logoPos === 'center' ? 'center' : logoPos === 'flex-end' ? 'right' : 'left'}; margin-bottom: 16px; ${bp.logoPos === 'hidden' ? 'display: none;' : ''}">
+          ${logoHTML.replace('max-height: 80px; max-width: 160px;', `max-height: ${logoSize}; max-width: ${parseInt(logoSize) * 2}px;`)}
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <div>
+            <span style="font-size: 13px; color: var(--text2); line-height: 1.6; display: block;">
+              ${showOwner ? '<strong style="display: block; margin-bottom: 4px;">' + bp.owner + '</strong>' : ''}
+              ${bp.phone}<br>
+              ${bp.email}
+              ${bp.web ? '<br>' + bp.web : ''}
+              ${showAddr && bp.addr ? '<br>' + formatAddress(bp.addr) : ''}
+            </span>
+          </div>
+          <div style="text-align: right;">
+            <h2 style="font-size: 20px; color: ${bp.color};">${heading}</h2>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+}
+
 function viewInvoice(id) {
   const inv = DB.invoices.find(i => i.id === id);
   if (!inv) return;
@@ -4294,18 +4989,12 @@ function viewInvoice(id) {
   const logoHTML = bp.logo ? `<img src="${bp.logo}" style="max-height: 80px; max-width: 160px; object-fit: contain;">` : `<strong style="font-size: 18px;">${bp.name}</strong>`;
   
   document.getElementById('inv-prev-lbl').textContent = bp.prefix + String(inv.id).padStart(4, '0');
+  const headerHTML = buildInvoiceHeader(bp, logoHTML);
+  
   document.getElementById('inv-box').innerHTML = `
     <div style="position: relative;">
       ${inv.status === 'Paid' ? '<div class="paid-stamp">PAID</div>' : ''}
-      <div class="inv-head">
-        <div>${logoHTML}<br><span style="font-size: 13px; color: var(--text2); margin-top: 8px; line-height: 1.6; display: block;">${bp.owner ? '<strong style="display: block; margin-bottom: 4px;">' + bp.owner + '</strong>' : ''}${bp.phone}<br>${bp.email}${bp.web ? '<br>' + bp.web : ''}${bp.addr ? '<br>' + formatAddress(bp.addr) : ''}</span></div>
-        <div style="text-align: right;">
-          <h2 style="font-size: 20px; color: ${bp.color};">INVOICE</h2>
-          <p style="font-size: 12px; color: var(--text2);">${bp.prefix}${String(inv.id).padStart(4, '0')}</p>
-          <p style="font-size: 12px; color: var(--text2);">${fdate(today())}</p>
-          <p style="font-size: 11px; color: var(--text3);">${bp.terms}</p>
-        </div>
-      </div>
+      ${headerHTML}
       <div class="inv-parties">
         <div>
           <div class="party-label">Bill To</div>
@@ -4839,6 +5528,13 @@ function loadBizProfile() {
   document.getElementById('bp-footer').value = bp.footer;
   document.getElementById('bp-tax').value = bp.tax;
   
+  // Load layout settings
+  document.getElementById('bp-logo-pos').value = bp.logoPos || 'top-left';
+  document.getElementById('bp-logo-size').value = bp.logoSize || 'medium';
+  document.getElementById('bp-header-layout').value = bp.headerLayout || 'logo-top';
+  document.getElementById('bp-show-addr').value = bp.showAddr || 'yes';
+  document.getElementById('bp-show-owner').value = bp.showOwner || 'no';
+  
   // Load logo
   const prev = document.getElementById('logo-preview');
   if (bp.logo) {
@@ -4847,87 +5543,6 @@ function loadBizProfile() {
   } else {
     prev.innerHTML = '<span style="font-size: 11px; color: var(--text3); text-align: center; padding: 8px;">Tap to upload logo</span>';
     prev.dataset.src = '';
-  }
-  
-  // Load GitHub token - show empty if no token saved
-  const token = getGithubToken();
-  const tokenField = document.getElementById('gh-token');
-  if (token) {
-    tokenField.value = '••••••••••';
-    tokenField.placeholder = '••••••••••';
-  } else {
-    tokenField.value = '';
-    tokenField.placeholder = 'ghp_... (paste your token here)';
-  }
-  updateGithubStatus();
-}
-
-function saveGithubToken() {
-  let token = document.getElementById('gh-token').value.trim();
-  
-  // If it's masked (••••••••••), don't save
-  if (token === '••••••••••' || token === '') {
-    toast('⚠️ Please paste your GitHub token (starts with ghp_)');
-    return;
-  }
-  
-  // Make sure it looks like a valid token
-  if (!token.startsWith('ghp_')) {
-    toast('⚠️ Invalid token format. Should start with ghp_');
-    return;
-  }
-  
-  setGithubToken(token);
-  document.getElementById('gh-token').value = '••••••••••';
-  document.getElementById('gh-token').placeholder = '••••••••••';
-  updateGithubStatus();
-}
-
-function clearGithubToken() {
-  if (confirm('Remove GitHub sync token?')) {
-    setGithubToken('');
-    document.getElementById('gh-token').value = '';
-    updateGithubStatus();
-  }
-}
-
-async function testGithubConnection() {
-  const token = getGithubToken();
-  if (!token) {
-    toast('⚠️ Token not set');
-    return;
-  }
-  
-  document.getElementById('gh-status').textContent = '🔄 Testing...';
-  
-  try {
-    const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}`, {
-      headers: {'Authorization': `token ${token}`}
-    });
-    
-    if (resp.ok) {
-      document.getElementById('gh-status').innerHTML = '✅ <strong>Connected!</strong> Your data will auto-sync to GitHub.';
-      document.getElementById('gh-status').style.color = 'var(--green)';
-      await pushDataToGithub();
-    } else {
-      document.getElementById('gh-status').innerHTML = '❌ <strong>Connection failed</strong> - Check token or repo access';
-      document.getElementById('gh-status').style.color = 'var(--red)';
-    }
-  } catch (e) {
-    document.getElementById('gh-status').innerHTML = '❌ <strong>Error</strong> - ' + e.message;
-    document.getElementById('gh-status').style.color = 'var(--red)';
-  }
-}
-
-function updateGithubStatus() {
-  const token = getGithubToken();
-  const el = document.getElementById('gh-status');
-  if (token) {
-    el.innerHTML = '✅ Token saved. Data will sync automatically.';
-    el.style.color = 'var(--green)';
-  } else {
-    el.innerHTML = '⚠️ No token set. Add one to enable auto-sync.';
-    el.style.color = 'var(--text3)';
   }
 }
 
@@ -4965,7 +5580,13 @@ function saveBizProfile() {
     color: document.getElementById('bp-color').value,
     terms: document.getElementById('bp-terms').value,
     footer: document.getElementById('bp-footer').value,
-    tax: parseFloat(document.getElementById('bp-tax').value) || 0
+    tax: parseFloat(document.getElementById('bp-tax').value) || 0,
+    // Layout settings
+    logoPos: document.getElementById('bp-logo-pos').value || 'top-left',
+    logoSize: document.getElementById('bp-logo-size').value || 'medium',
+    headerLayout: document.getElementById('bp-header-layout').value || 'logo-top',
+    showAddr: document.getElementById('bp-show-addr').value || 'yes',
+    showOwner: document.getElementById('bp-show-owner').value || 'no'
   };
   localStorage.setItem(BP_KEY, JSON.stringify(bp));
   toast('✅ Invoice settings saved!');
@@ -4992,18 +5613,11 @@ function updateInvoicePreview() {
   const total = subtotal + taxAmt;
   
   const logoHTML = bp.logo ? `<img src="${bp.logo}" style="max-height: 80px; max-width: 160px; object-fit: contain;">` : `<strong style="font-size: 18px;">${bp.name}</strong>`;
+  const headerHTML = buildInvoiceHeader(bp, logoHTML);
   
   const html = `
     <div class="invoice-box" style="max-width: 600px;">
-      <div class="inv-head">
-        <div>${logoHTML}<br><span style="font-size: 13px; color: var(--text2); margin-top: 8px; line-height: 1.6; display: block;">${bp.owner ? '<strong style="display: block; margin-bottom: 4px;">' + bp.owner + '</strong>' : ''}${bp.phone}<br>${bp.email}${bp.web ? '<br>' + bp.web : ''}${bp.addr ? '<br>' + formatAddress(bp.addr) : ''}</span></div>
-        <div style="text-align: right;">
-          <h2 style="font-size: 20px; color: ${bp.color}; margin: 0;">INVOICE</h2>
-          <p style="font-size: 12px; color: var(--text2); margin: 4px 0;">${bp.prefix}0001</p>
-          <p style="font-size: 12px; color: var(--text2); margin: 4px 0;">${fdate(dummyInv.date)}</p>
-          <p style="font-size: 11px; color: var(--text3); margin: 4px 0;">${bp.terms}</p>
-        </div>
-      </div>
+      ${headerHTML}
       <div class="inv-parties">
         <div>
           <div class="party-label">Bill To</div>
@@ -5045,165 +5659,6 @@ function updateInvoicePreview() {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // GITHUB DATA SYNC
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-const GITHUB_SYNC_KEY = 'pyc_gh_token';
-const GITHUB_SYNC_KEY_BACKUP = 'pyc_gh_token_backup';
-const GITHUB_SYNC_KEY_DATE = 'pyc_gh_token_date';
-const GITHUB_DATA_FILE = 'pyc_data.json';
-const GITHUB_REPO_OWNER = 'PatsYardCare-creator';
-const GITHUB_REPO_NAME = 'App';
-const GITHUB_RAW_URL = `https://raw.githubusercontent.com/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/main/${GITHUB_DATA_FILE}`;
-
-function getGithubToken() {
-  // Try primary storage
-  let token = localStorage.getItem(GITHUB_SYNC_KEY);
-  
-  // If empty, try backup
-  if (!token) {
-    token = localStorage.getItem(GITHUB_SYNC_KEY_BACKUP);
-  }
-  
-  // Fallback to sessionStorage
-  if (!token) {
-    token = sessionStorage.getItem(GITHUB_SYNC_KEY);
-  }
-  
-  return token || '';
-}
-
-function setGithubToken(token) {
-  if (token) {
-    // Save to multiple locations for redundancy
-    localStorage.setItem(GITHUB_SYNC_KEY, token);
-    localStorage.setItem(GITHUB_SYNC_KEY_BACKUP, token);
-    sessionStorage.setItem(GITHUB_SYNC_KEY, token);
-    localStorage.setItem(GITHUB_SYNC_KEY_DATE, new Date().toISOString());
-    toast('✅ GitHub token saved securely!');
-  } else {
-    localStorage.removeItem(GITHUB_SYNC_KEY);
-    localStorage.removeItem(GITHUB_SYNC_KEY_BACKUP);
-    sessionStorage.removeItem(GITHUB_SYNC_KEY);
-    localStorage.removeItem(GITHUB_SYNC_KEY_DATE);
-    toast('GitHub token removed');
-  }
-}
-
-async function pushDataToGithub() {
-  const token = getGithubToken();
-  if (!token) {
-    toast('⚠️ GitHub token not set. Go to Settings > GitHub Sync');
-    return;
-  }
-  
-  try {
-    const data = JSON.stringify(DB);
-    const url = `https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_DATA_FILE}`;
-    
-    // Get current file SHA
-    const getResp = await fetch(url, {
-      headers: {'Authorization': `token ${token}`}
-    });
-    
-    let sha = '';
-    if (getResp.ok) {
-      const fileData = await getResp.json();
-      sha = fileData.sha;
-    }
-    
-    // Push updated file
-    const pushResp = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `token ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        message: `Auto-sync: ${new Date().toLocaleString()}`,
-        content: btoa(data),
-        sha: sha || undefined
-      })
-    });
-    
-    if (pushResp.ok) {
-      localStorage.setItem('pyc_last_gh_sync', new Date().toISOString());
-      console.log('✅ Data synced to GitHub');
-    } else {
-      console.error('GitHub push failed:', await pushResp.json());
-    }
-  } catch (e) {
-    console.error('GitHub sync error:', e);
-  }
-}
-
-async function pullDataFromGithub() {
-  try {
-    const resp = await fetch(GITHUB_RAW_URL);
-    
-    if (!resp.ok) return;
-    
-    const content = await resp.json();
-    
-    // Merge remote data if newer
-    const localTime = new Date(localStorage.getItem('pyc_last_gh_sync') || 0).getTime();
-    const remoteTime = new Date(resp.headers.get('last-modified') || 0).getTime();
-    
-    if (remoteTime > localTime) {
-      DB = content;
-      save();
-      console.log('✅ Data synced from GitHub');
-      // Don't reload - let user continue working
-    }
-  } catch (e) {
-    console.error('GitHub pull error:', e);
-  }
-}
-
-async function refreshFromGithub() {
-  try {
-    toast('🔄 Syncing from GitHub...');
-    
-    const resp = await fetch(GITHUB_RAW_URL);
-    
-    if (!resp.ok) {
-      toast('❌ Could not reach GitHub. Check your connection.');
-      console.error('GitHub fetch failed:', resp.status);
-      return;
-    }
-    
-    const content = await resp.json();
-    
-    DB = content;
-    save();
-    localStorage.setItem('pyc_last_gh_sync', new Date().toISOString());
-    
-    // Re-render pages
-    renderDash();
-    renderJobs();
-    renderInvoices();
-    renderClients();
-    renderSchedule();
-    
-    toast('✅ Data synced from GitHub!');
-  } catch (e) {
-    console.error('Refresh error:', e);
-    toast('❌ Sync error. Check console.');
-  }
-}
-
-function initGithubSync() {
-  const token = getGithubToken();
-  if (!token) return;
-  
-  // Pull on startup
-  pullDataFromGithub();
-  
-  // Push after every save
-  const originalSave = window.save;
-  window.save = function() {
-    originalSave();
-    setTimeout(pushDataToGithub, 500);
-  };
-}
 
 
 function toggleFAB() {
@@ -5319,10 +5774,21 @@ function lockApp() {
 document.addEventListener('DOMContentLoaded', () => {
   loadDB();
   initPIN();
-  initGithubSync();
+  initRecurringScheduler();
   
   document.getElementById('btn-new-job').onclick = newJob;
   document.getElementById('btn-new-invoice').onclick = newInvoice;
+  
+  // Close client dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('j-cl-dropdown');
+    const searchInput = document.getElementById('j-cl-search');
+    const selectedDiv = document.getElementById('j-cl-selected');
+    
+    if (dropdown && !dropdown.contains(e.target) && e.target !== searchInput && e.target !== selectedDiv) {
+      dropdown.style.display = 'none';
+    }
+  });
   
   renderDash();
 });
