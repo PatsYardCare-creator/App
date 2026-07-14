@@ -4894,9 +4894,9 @@ function getLogoSizeStyle(size) {
 
 function getLogoPositionStyle(pos) {
   const styles = {
-    'top-left': 'flex-start',
+    'top-left': 'left',
     'top-center': 'center',
-    'top-right': 'flex-end'
+    'top-right': 'right'
   };
   return styles[pos] || styles['top-left'];
 }
@@ -4950,7 +4950,7 @@ function buildInvoiceHeader(bp, logoHTML, heading = 'INVOICE') {
     // Logo top, info below (default)
     return `
       <div class="inv-head">
-        <div style="text-align: ${logoPos === 'center' ? 'center' : logoPos === 'flex-end' ? 'right' : 'left'}; margin-bottom: 16px; ${bp.logoPos === 'hidden' ? 'display: none;' : ''}">
+        <div style="text-align: ${logoPos}; margin-bottom: 16px; ${bp.logoPos === 'hidden' ? 'display: none;' : ''}">
           ${logoHTML.replace('max-height: 80px; max-width: 160px;', `max-height: ${logoSize}; max-width: ${parseInt(logoSize) * 2}px;`)}
         </div>
         <div style="display: flex; justify-content: space-between;">
