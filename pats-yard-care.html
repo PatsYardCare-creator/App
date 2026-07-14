@@ -1712,7 +1712,7 @@ nav {
         <div style="padding: 18px;">
           <div class="form-group">
             <label class="form-label">Logo Position</label>
-            <select class="form-control" id="bp-logo-pos">
+            <select class="form-control" id="bp-logo-pos" onchange="updateInvoicePreview()">
               <option value="top-left">Top Left</option>
               <option value="top-center">Top Center</option>
               <option value="top-right">Top Right</option>
@@ -1721,7 +1721,7 @@ nav {
           </div>
           <div class="form-group">
             <label class="form-label">Logo Size</label>
-            <select class="form-control" id="bp-logo-size">
+            <select class="form-control" id="bp-logo-size" onchange="updateInvoicePreview()">
               <option value="small">Small (60px)</option>
               <option value="medium" selected>Medium (80px)</option>
               <option value="large">Large (100px)</option>
@@ -1729,7 +1729,7 @@ nav {
           </div>
           <div class="form-group">
             <label class="form-label">Header Layout</label>
-            <select class="form-control" id="bp-header-layout">
+            <select class="form-control" id="bp-header-layout" onchange="updateInvoicePreview()">
               <option value="logo-left">Logo Left, Info Right</option>
               <option value="logo-top" selected>Logo Top, Info Below</option>
               <option value="info-only">Info Only (No Logo)</option>
@@ -1737,14 +1737,14 @@ nav {
           </div>
           <div class="form-group">
             <label class="form-label">Show Company Address on Invoice</label>
-            <select class="form-control" id="bp-show-addr">
+            <select class="form-control" id="bp-show-addr" onchange="updateInvoicePreview()">
               <option value="yes" selected>Yes</option>
               <option value="no">No</option>
             </select>
           </div>
           <div class="form-group">
             <label class="form-label">Show Business Owner Name</label>
-            <select class="form-control" id="bp-show-owner">
+            <select class="form-control" id="bp-show-owner" onchange="updateInvoicePreview()">
               <option value="yes">Yes</option>
               <option value="no" selected>No</option>
             </select>
@@ -4994,6 +4994,9 @@ function viewInvoice(id) {
   document.getElementById('inv-box').innerHTML = `
     <div style="position: relative;">
       ${inv.status === 'Paid' ? '<div class="paid-stamp">PAID</div>' : ''}
+      <div style="text-align: right; margin-bottom: 12px; font-size: 12px; color: var(--text3); font-weight: 600;">
+        ${bp.prefix + String(inv.id).padStart(4, '0')}
+      </div>
       ${headerHTML}
       <div class="inv-parties">
         <div>
