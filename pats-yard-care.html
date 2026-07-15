@@ -5420,11 +5420,11 @@ function captureInvoicePNG(box, filename) {
   html2canvas(box, {
     scale: 2,
     backgroundColor: '#ffffff',
-    useCORS: true,
+    useCORS: false,
+    allowTaint: true,
     logging: false,
     windowHeight: box.scrollHeight,
-    windowWidth: box.scrollWidth,
-    allowTaint: true
+    windowWidth: box.scrollWidth
   }).then(canvas => {
     try {
       const imageData = canvas.toDataURL('image/png');
