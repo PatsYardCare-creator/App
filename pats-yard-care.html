@@ -5417,43 +5417,68 @@ function downloadInvoicePNG() {
 }
 
 function captureInvoicePNG(box, filename) {
-  html2canvas(box, {
-    scale: 2,
-    backgroundColor: '#ffffff',
-    useCORS: false,
-    allowTaint: true,
-    logging: false,
-    windowHeight: box.scrollHeight,
-    windowWidth: box.scrollWidth
-  }).then(canvas => {
-    try {
-      const imageData = canvas.toDataURL('image/png');
-      const finalFilename = filename + '-invoice.png';
-      
-      // Detect if iOS
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      
-      if (isIOS) {
-        // For iOS: Open in new window so user can long-press and save
-        const imgWindow = window.open();
-        imgWindow.document.write(`<img src="${imageData}" style="width: 100%; display: block;"><p style="text-align: center; color: #666; margin-top: 20px;">Long-press image and select "Save Image"</p>`);
-        toast('📸 Image opened - long-press to save!');
-      } else {
-        // For desktop/Android: Use download attribute
-        const link = document.createElement('a');
-        link.href = imageData;
-        link.download = finalFilename;
-        link.click();
-        toast('📸 Invoice saved as PNG!');
+  try {
+    html2canvas(box, {
+      scale: 1,
+      backgroundColor: '#ffffff',
+      useCORS: false,
+      allowTaint: true,
+      logging: false,
+      windowHeight: box.scrollHeight,
+      windowWidth: box.scrollWidth,
+      proxy: null
+    }).then(canvas => {
+      try {
+        const imageData = canvas.toDataURL('image/png');
+        const finalFilename = filename + '-invoice.png';
+        
+        // Detect if iOS
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        
+        if (isIOS) {
+          // For iOS: Try to create a link and trigger download
+          try {
+            // Try opening new window first
+            const imgWindow = window.open();
+            if (imgWindow) {
+              imgWindow.document.write(`<img src="${imageData}" style="width: 100%; display: block;"><p style="text-align: center; color: #666; margin-top: 20px;">Long-press image and select "Save Image"</p>`);
+              toast('📸 Image opened - long-press to save!');
+            } else {
+              // Fallback to download link
+              const link = document.createElement('a');
+              link.href = imageData;
+              link.download = finalFilename;
+              link.click();
+              toast('📸 Invoice saved as PNG!');
+            }
+          } catch (e) {
+            // If window.open fails, use download link approach
+            const link = document.createElement('a');
+            link.href = imageData;
+            link.download = finalFilename;
+            link.click();
+            toast('📸 Invoice saved as PNG!');
+          }
+        } else {
+          // For desktop/Android: Use download attribute
+          const link = document.createElement('a');
+          link.href = imageData;
+          link.download = finalFilename;
+          link.click();
+          toast('📸 Invoice saved as PNG!');
+        }
+      } catch (err) {
+        console.error('PNG save error:', err);
+        toast('❌ PNG failed - use PDF instead');
       }
-    } catch (err) {
-      console.error('PNG save failed:', err);
-      toast('❌ Failed to save as PNG');
-    }
-  }).catch(err => {
-    console.error('PNG capture failed:', err);
-    toast('❌ Failed to save as PNG - try PDF instead');
-  });
+    }).catch(err => {
+      console.error('html2canvas error:', err);
+      toast('❌ PNG export failed - try PDF download instead');
+    });
+  } catch (err) {
+    console.error('PNG capture error:', err);
+    toast('❌ Error - try PDF download');
+  }
 }
 
 function exportJSON() {
