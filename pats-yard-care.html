@@ -4746,7 +4746,13 @@ function renderInvoices() {
   const q = (document.getElementById('inv-search')?.value || '').toLowerCase();
   let list = [...DB.invoices].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   if (currentInvFilter !== 'all') list = list.filter(i => i.status === currentInvFilter);
-  if (q) list = list.filter(i => (getPropName(i.clientId, i.propId) + i.de + i.date).toLowerCase().includes(q));
+  if (q) list = list.filter(i => {
+    const clientName = getPropName(i.clientId, i.propId).toLowerCase();
+    const invNum = String(i.id).padStart(4, '0');
+    const checkNum = (i.checkNumber || '').toString().toLowerCase();
+    const searchText = (clientName + i.de + i.date + invNum + checkNum).toLowerCase();
+    return searchText.includes(q);
+  });
 
   // Update summary
   const sumEl = document.getElementById('inv-filter-summary');
@@ -4775,6 +4781,7 @@ function renderInvoices() {
             <div>
               <div style="font-weight: 700; font-size: 14px;">#${String(inv.id).padStart(4, '0')}</div>
               <div style="font-size: 11px; color: var(--text3); margin-top: 4px;">${getPropName(inv.clientId, inv.propId)}</div>
+              ${inv.checkNumber ? `<div style="font-size: 10px; color: var(--text3); margin-top: 2px;">Check #${inv.checkNumber}</div>` : ''}
             </div>
             <div style="text-align: right;">
               <div style="font-weight: 700; font-size: 14px;">$${inv.total.toFixed(2)}</div>
@@ -4801,6 +4808,7 @@ function renderInvoices() {
         <td>
           <strong>#${String(inv.id).padStart(4, '0')}</strong><br>
           <span style="font-size: 11px; color: var(--text3);">${getPropName(inv.clientId, inv.propId)}</span>
+          ${inv.checkNumber ? `<br><span style="font-size: 10px; color: var(--text3);">Check #${inv.checkNumber}</span>` : ''}
         </td>
         <td style="font-size: 12px; color: var(--text3);">${fdate(inv.date)}</td>
         <td><strong>$${inv.total.toFixed(2)}</strong></td>
@@ -5391,51 +5399,60 @@ function downloadInvoicePDF() {
 
 function downloadInvoicePNG() {
   const box = document.getElementById('inv-box');
-  const invNum = document.querySelector('[id*=inv-num]')?.textContent || 'Invoice';
+  
+  // Get invoice number from the preview label
+  const invNumText = document.getElementById('inv-prev-lbl')?.textContent || 'Invoice';
+  const filename = invNumText.replace(/\D/g, '') || 'invoice';
   
   // Check if html2canvas is available
   if (typeof html2canvas === 'undefined') {
     // Load html2canvas library from CDN
     const script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-    script.onload = () => captureInvoicePNG(box, invNum);
+    script.onload = () => captureInvoicePNG(box, filename);
     document.head.appendChild(script);
   } else {
-    captureInvoicePNG(box, invNum);
+    captureInvoicePNG(box, filename);
   }
 }
 
-function captureInvoicePNG(box, invNum) {
+function captureInvoicePNG(box, filename) {
   html2canvas(box, {
     scale: 2,
     backgroundColor: '#ffffff',
     useCORS: true,
     logging: false,
     windowHeight: box.scrollHeight,
-    windowWidth: box.scrollWidth
+    windowWidth: box.scrollWidth,
+    allowTaint: true
   }).then(canvas => {
-    const imageData = canvas.toDataURL('image/png');
-    const filename = invNum.replace(/\D/g, '') + '-invoice.png';
-    
-    // Detect if iOS
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    
-    if (isIOS) {
-      // For iOS: Open in new window so user can long-press and save
-      const imgWindow = window.open();
-      imgWindow.document.write(`<img src="${imageData}" style="width: 100%; display: block;"><p style="text-align: center; color: #666; margin-top: 20px;">Long-press image and select "Save Image"</p>`);
-      toast('📸 Image opened - long-press to save!');
-    } else {
-      // For desktop/Android: Use download attribute
-      const link = document.createElement('a');
-      link.href = imageData;
-      link.download = filename;
-      link.click();
-      toast('📸 Invoice saved as PNG!');
+    try {
+      const imageData = canvas.toDataURL('image/png');
+      const finalFilename = filename + '-invoice.png';
+      
+      // Detect if iOS
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      
+      if (isIOS) {
+        // For iOS: Open in new window so user can long-press and save
+        const imgWindow = window.open();
+        imgWindow.document.write(`<img src="${imageData}" style="width: 100%; display: block;"><p style="text-align: center; color: #666; margin-top: 20px;">Long-press image and select "Save Image"</p>`);
+        toast('📸 Image opened - long-press to save!');
+      } else {
+        // For desktop/Android: Use download attribute
+        const link = document.createElement('a');
+        link.href = imageData;
+        link.download = finalFilename;
+        link.click();
+        toast('📸 Invoice saved as PNG!');
+      }
+    } catch (err) {
+      console.error('PNG save failed:', err);
+      toast('❌ Failed to save as PNG');
     }
   }).catch(err => {
     console.error('PNG capture failed:', err);
-    toast('❌ Failed to save as PNG');
+    toast('❌ Failed to save as PNG - try PDF instead');
   });
 }
 
