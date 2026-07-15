@@ -5421,63 +5421,43 @@ function captureInvoicePNG(box, filename) {
     html2canvas(box, {
       scale: 1,
       backgroundColor: '#ffffff',
-      useCORS: false,
       allowTaint: true,
+      useCORS: false,
       logging: false,
       windowHeight: box.scrollHeight,
-      windowWidth: box.scrollWidth,
-      proxy: null
+      windowWidth: box.scrollWidth
     }).then(canvas => {
       try {
-        const imageData = canvas.toDataURL('image/png');
-        const finalFilename = filename + '-invoice.png';
-        
-        // Detect if iOS
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        
-        if (isIOS) {
-          // For iOS: Try to create a link and trigger download
-          try {
-            // Try opening new window first
-            const imgWindow = window.open();
-            if (imgWindow) {
-              imgWindow.document.write(`<img src="${imageData}" style="width: 100%; display: block;"><p style="text-align: center; color: #666; margin-top: 20px;">Long-press image and select "Save Image"</p>`);
-              toast('📸 Image opened - long-press to save!');
-            } else {
-              // Fallback to download link
-              const link = document.createElement('a');
-              link.href = imageData;
-              link.download = finalFilename;
-              link.click();
-              toast('📸 Invoice saved as PNG!');
-            }
-          } catch (e) {
-            // If window.open fails, use download link approach
-            const link = document.createElement('a');
-            link.href = imageData;
-            link.download = finalFilename;
-            link.click();
-            toast('📸 Invoice saved as PNG!');
+        // Convert canvas to blob instead of data URL
+        canvas.toBlob(function(blob) {
+          if (!blob) {
+            console.error('Blob creation failed');
+            toast('❌ Failed to create image');
+            return;
           }
-        } else {
-          // For desktop/Android: Use download attribute
+          
+          const url = URL.createObjectURL(blob);
           const link = document.createElement('a');
-          link.href = imageData;
-          link.download = finalFilename;
+          link.href = url;
+          link.download = filename + '-invoice.png';
+          document.body.appendChild(link);
           link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          
           toast('📸 Invoice saved as PNG!');
-        }
+        }, 'image/png');
       } catch (err) {
-        console.error('PNG save error:', err);
-        toast('❌ PNG failed - use PDF instead');
+        console.error('PNG blob error:', err);
+        toast('❌ Download failed - try PDF');
       }
     }).catch(err => {
       console.error('html2canvas error:', err);
-      toast('❌ PNG export failed - try PDF download instead');
+      toast('❌ PNG failed - use PDF instead');
     });
   } catch (err) {
-    console.error('PNG capture error:', err);
-    toast('❌ Error - try PDF download');
+    console.error('PNG error:', err);
+    toast('❌ Error - try PDF');
   }
 }
 
