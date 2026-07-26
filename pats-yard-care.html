@@ -1317,7 +1317,7 @@ nav {
           <div class="stat-value" id="ds-rev">$0</div>
           <div class="stat-sub">Revenue</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" style="cursor: pointer;" onclick="showUnpaidModal()">
           <div class="stat-label">Outstanding</div>
           <div class="stat-value" id="ds-out">$0</div>
           <div class="stat-sub" style="color: var(--red);">Unpaid</div>
@@ -1719,6 +1719,41 @@ nav {
         <div class="modal-footer">
           <button class="btn btn-secondary" onclick="closeModal('m-expense')">Cancel</button>
           <button class="btn btn-primary" onclick="saveExpense()">Save Expense</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- UNPAID INVOICES MODAL -->
+    <div class="modal-overlay" id="m-unpaid">
+      <div class="modal">
+        <div class="modal-header"><h3>💰 Unpaid Invoices</h3><button class="close-btn" onclick="closeModal('m-unpaid')">✕</button></div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+          <div id="unpaid-list"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal('m-unpaid')">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PREPAYMENT MODAL -->
+    <div class="modal-overlay" id="m-prepayment">
+      <div class="modal">
+        <div class="modal-header"><h3>💰 Add Client Credit</h3><button class="close-btn" onclick="closeModal('m-prepayment')">✕</button></div>
+        <div class="modal-body">
+          <input type="hidden" id="prep-client-id">
+          <div class="form-group">
+            <label class="form-label">Amount to Add ($) *</label>
+            <input class="form-control" id="prep-amount" type="number" min="0" step="0.01" placeholder="0.00" autofocus>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Note (optional)</label>
+            <input class="form-control" id="prep-note" placeholder="e.g., Prepayment, overpayment, etc.">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal('m-prepayment')">Cancel</button>
+          <button class="btn btn-primary" onclick="addClientCredit()">Add Credit</button>
         </div>
       </div>
     </div>
@@ -2220,6 +2255,13 @@ nav {
           <button class="btn btn-secondary" onclick="selectPaymentMethod('CashApp')" id="pm-cashapp" style="flex: 1;">📱 Cash App</button>
         </div>
       </div>
+
+      <!-- Client Account Credit Display -->
+      <div id="client-credit-display" style="display: none; margin-bottom: 16px; background: var(--surface2); padding: 12px; border-radius: 8px; border-left: 3px solid var(--green);">
+        <div style="font-size: 12px; color: var(--text3); margin-bottom: 4px;">CLIENT HAS ACCOUNT CREDIT</div>
+        <div style="font-size: 16px; font-weight: 700; color: var(--green); margin-bottom: 8px;" id="credit-amount-display">💰 $0.00</div>
+        <button class="btn btn-primary" style="width: 100%;" onclick="useClientCredit()">Use Credit for Payment</button>
+      </div>
       
       <div id="check-number-wrap" style="display: none; margin-bottom: 16px;">
         <label class="form-label">Check Number (if you still have it)</label>
@@ -2233,6 +2275,15 @@ nav {
           <input type="number" class="form-control" id="payment-amount" placeholder="Full amount" min="0" step="0.01">
         </div>
         <div style="font-size: 11px; color: var(--text3); margin-top: 6px;">Leave blank to mark fully paid. Enter amount for partial payment.</div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label class="form-label">💝 Tip (optional)</label>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <span style="font-size: 18px; font-weight: 600;">$</span>
+          <input type="number" class="form-control" id="tip-amount" placeholder="Tip amount" min="0" step="0.01">
+        </div>
+        <div style="font-size: 11px; color: var(--text3); margin-top: 6px;">Track tips from appreciative clients!</div>
       </div>
       
       <div style="display: flex; gap: 8px;">
@@ -3414,6 +3465,59 @@ function deleteExpense(id) {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CLIENT PREPAYMENT / CREDIT
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function openPrepaymentModal(clientId) {
+  document.getElementById('prep-client-id').value = clientId;
+  document.getElementById('prep-amount').value = '';
+  document.getElementById('prep-note').value = '';
+  openModal('m-prepayment');
+}
+
+function addClientCredit() {
+  const clientId = parseInt(document.getElementById('prep-client-id').value);
+  const amount = parseFloat(document.getElementById('prep-amount').value) || 0;
+  const note = document.getElementById('prep-note').value;
+
+  if (amount <= 0) {
+    toast('⚠️ Enter an amount greater than 0');
+    return;
+  }
+
+  const client = DB.clients.find(c => c.id === clientId);
+  if (!client) return;
+
+  // Add to account balance
+  if (!client.accountBalance) client.accountBalance = 0;
+  client.accountBalance += amount;
+
+  save();
+  closeModal('m-prepayment');
+  
+  // Refresh profile if it's open
+  viewClient(clientId);
+  
+  toast(`✅ Added $${amount.toFixed(2)} credit for ${client.fn} ${client.ln}`);
+}
+
+function useClientCredit() {
+  const inv = DB.invoices.find(i => i.id === window.pendingPaymentInvId);
+  const client = DB.clients.find(c => c.id === inv.clientId);
+  
+  if (client && client.accountBalance > 0) {
+    // Pre-fill the amount as 0 (credit will be used first in confirmPayment)
+    document.getElementById('payment-amount').value = '0';
+    window.selectedPaymentMethod = 'Credit';
+    
+    // Simulate payment method selection
+    document.querySelectorAll('[id^="pm-"]').forEach(btn => btn.style.backgroundColor = '');
+    
+    toast(`✅ Using $${client.accountBalance.toFixed(2)} credit. Confirm to apply.`);
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // SERVICE HISTORY (added to job rendering)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -3879,6 +3983,71 @@ function renderDash() {
         '</tbody></table>';
     })();
   }
+}
+
+function showUnpaidModal() {
+  const unpaid = {};
+  
+  DB.invoices.forEach(i => {
+    if (i.status !== 'Paid') {
+      const client = DB.clients.find(c => c.id === i.clientId);
+      const clientName = client ? client.na : 'Unknown Client';
+      const remaining = i.total - (i.amountPaid || 0);
+      
+      if (!unpaid[clientName]) {
+        unpaid[clientName] = [];
+      }
+      unpaid[clientName].push({
+        invNum: i.num,
+        total: i.total,
+        paid: i.amountPaid || 0,
+        remaining: remaining,
+        date: i.date,
+        status: i.status
+      });
+    }
+  });
+
+  let html = '';
+  const clients = Object.keys(unpaid).sort();
+  
+  if (clients.length === 0) {
+    html = '<div style="text-align: center; color: var(--green); padding: 30px; font-weight: 700;">✅ All invoices paid!</div>';
+  } else {
+    let grandTotal = 0;
+    clients.forEach(clientName => {
+      const invs = unpaid[clientName];
+      const clientTotal = invs.reduce((sum, inv) => sum + inv.remaining, 0);
+      grandTotal += clientTotal;
+      
+      html += `<div style="background: var(--surface2); padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+        <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px; color: var(--text);">${clientName}</div>
+        <div style="font-size: 12px; color: var(--text2); margin-bottom: 8px;">
+          <strong style="color: var(--red);">$${clientTotal.toFixed(2)}</strong> remaining
+        </div>`;
+      
+      invs.forEach(inv => {
+        html += `<div style="font-size: 11px; color: var(--text3); padding: 6px; background: var(--surface); border-radius: 4px; margin-bottom: 4px; display: flex; justify-content: space-between;">
+          <span><strong>Invoice #${inv.invNum}</strong> • ${fdate(inv.date)}</span>
+          <span style="color: var(--red);">$${inv.remaining.toFixed(2)}</span>
+        </div>`;
+        
+        if (inv.paid > 0) {
+          html += `<div style="font-size: 10px; color: var(--green); padding: 2px 6px; margin-bottom: 6px;">Paid: $${inv.paid.toFixed(2)} / Total: $${inv.total.toFixed(2)}</div>`;
+        }
+      });
+      
+      html += `</div>`;
+    });
+    
+    html = `<div style="background: var(--surface); padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 3px solid var(--red);">
+      <div style="font-size: 12px; color: var(--text2);">TOTAL OUTSTANDING</div>
+      <div style="font-size: 24px; font-weight: 700; color: var(--red);">$${grandTotal.toFixed(2)}</div>
+    </div>` + html;
+  }
+  
+  document.getElementById('unpaid-list').innerHTML = html;
+  openModal('m-unpaid');
 }
 
 function toggleRecurrence() {
@@ -4688,8 +4857,9 @@ function viewClient(id) {
 
   // Invoices
   const clientInvs = DB.invoices.filter(i => i.clientId === id).sort((a,b) => (b.date||'').localeCompare(a.date||'')).slice(0,5);
-  const balance = DB.invoices.filter(i => i.clientId === id && i.status !== 'Paid').reduce((s,i) => s + i.total, 0);
+  const balance = DB.invoices.filter(i => i.clientId === id && i.status !== 'Paid').reduce((s,i) => s + (i.total - (i.amountPaid || 0)), 0);
   const totalPaid = DB.invoices.filter(i => i.clientId === id && i.status === 'Paid').reduce((s,i) => s + i.total, 0);
+  const accountBalance = c.accountBalance || 0;
 
   // Time logs (jobs with startTime + finishTime)
   const timeLogs = allJobs.filter(j => j.startTime && j.finishTime).sort((a,b) => (b.date||'').localeCompare(a.date||'')).slice(0,5);
@@ -4775,8 +4945,8 @@ function viewClient(id) {
           <div style="font-size:14px; font-weight:500;">${lastVisit || '—'}</div>
         </div>
         <div style="background:var(--surface); border-radius:12px; padding:14px;">
-          <div style="font-size:10px; font-weight:700; color:var(--text3); letter-spacing:.5px; margin-bottom:4px;">BALANCE</div>
-          <div style="font-size:14px; font-weight:700; color:${balance > 0 ? 'var(--red)' : 'var(--green)'};">${balance > 0 ? 'Owes $'+balance.toFixed(2) : totalPaid > 0 ? 'Paid up ✓' : '—'}</div>
+          <div style="font-size:10px; font-weight:700; color:var(--text3); letter-spacing:.5px; margin-bottom:4px;">ACCOUNT</div>
+          <div style="font-size:14px; font-weight:700; color:${accountBalance > 0 ? 'var(--green)' : balance > 0 ? 'var(--red)' : 'var(--green)'};">${accountBalance > 0 ? '💰 Credit: $' + accountBalance.toFixed(2) : balance > 0 ? '⚠️ Owes $' + balance.toFixed(2) : '✅ All paid'}</div>
         </div>
       </div>
 
@@ -4813,6 +4983,7 @@ function viewClient(id) {
 
       <!-- Edit button -->
       <div style="display:flex; gap:8px; margin-top:16px;">
+        <button class="btn btn-secondary" style="flex:1;" onclick="openPrepaymentModal(${id})">💰 Add Credit</button>
         <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('m-profile'); editClient(${id})">✏️ Edit Client</button>
       </div>
     </div>
@@ -5141,6 +5312,7 @@ function renderInvoices() {
             </div>
             <div style="text-align: right;">
               <div style="font-weight: 700; font-size: 14px;">$${inv.total.toFixed(2)}</div>
+              ${inv.tip ? `<div style="font-size: 11px; color: var(--green); margin-top: 2px; font-weight: 600;">💝 Tip: $${inv.tip.toFixed(2)}</div>` : ''}
               ${inv.status === 'Partial' ? `<div style="font-size: 10px; color: var(--gold); margin-top: 2px;">Paid: $${(inv.amountPaid || 0).toFixed(2)}<br>Remaining: $${(inv.total - (inv.amountPaid || 0)).toFixed(2)}</div>` : ''}
               <div style="font-size: 10px; color: var(--text3);">${fdate(inv.date)}</div>
             </div>
@@ -5195,9 +5367,22 @@ function setInvStatus(id, status) {
     if (status === 'Paid' && inv.status !== 'Paid') {
       // Show payment method modal when marking as paid
       window.pendingPaymentInvId = id;
+      const client = DB.clients.find(c => c.id === inv.clientId);
+      
       document.getElementById('check-number').value = '';
+      document.getElementById('payment-amount').value = '';
+      document.getElementById('tip-amount').value = '';
       document.getElementById('check-number-wrap').style.display = 'none';
       document.querySelectorAll('[id^="pm-"]').forEach(btn => btn.style.backgroundColor = '');
+      
+      // Show client credit if available
+      if (client && client.accountBalance > 0) {
+        document.getElementById('client-credit-display').style.display = 'block';
+        document.getElementById('credit-amount-display').textContent = `💰 $${client.accountBalance.toFixed(2)}`;
+      } else {
+        document.getElementById('client-credit-display').style.display = 'none';
+      }
+      
       openModal('m-payment-method');
     } else {
       inv.status = status;
@@ -5237,21 +5422,48 @@ function confirmPayment() {
   }
   
   const inv = DB.invoices.find(i => i.id === window.pendingPaymentInvId);
-  if (inv) {
-    const paymentAmount = parseFloat(document.getElementById('payment-amount').value) || inv.total;
+  const client = DB.clients.find(c => c.id === inv.clientId);
+  
+  if (inv && client) {
+    // Initialize account balance if needed
+    if (!client.accountBalance) client.accountBalance = 0;
+    
+    let paymentAmount = parseFloat(document.getElementById('payment-amount').value) || 0;
+    let tipAmount = parseFloat(document.getElementById('tip-amount').value) || 0;
+    
+    // Apply any available credit first
+    let amountNeeded = inv.total - (inv.amountPaid || 0);
+    let creditApplied = 0;
+    
+    if (client.accountBalance > 0 && amountNeeded > 0) {
+      creditApplied = Math.min(client.accountBalance, amountNeeded);
+      client.accountBalance -= creditApplied;
+      amountNeeded -= creditApplied;
+    }
     
     inv.paymentMethod = window.selectedPaymentMethod;
     if (window.selectedPaymentMethod === 'Check') {
       inv.checkNumber = document.getElementById('check-number').value || '';
     }
     
-    // Track payment amount
-    inv.amountPaid = (inv.amountPaid || 0) + paymentAmount;
+    // Track tip
+    if (tipAmount > 0) {
+      inv.tip = (inv.tip || 0) + tipAmount;
+    }
+    
+    // Track total payment (credit + cash/check)
+    inv.amountPaid = (inv.amountPaid || 0) + creditApplied + paymentAmount;
     
     // Set status based on payment
     if (inv.amountPaid >= inv.total) {
       inv.status = 'Paid';
-      inv.amountPaid = inv.total; // Don't overpay
+      const overpayment = inv.amountPaid - inv.total;
+      inv.amountPaid = inv.total;
+      
+      // Add overpayment to client account credit
+      if (overpayment > 0) {
+        client.accountBalance += overpayment;
+      }
     } else if (inv.amountPaid > 0) {
       inv.status = 'Partial';
     }
@@ -5262,7 +5474,17 @@ function confirmPayment() {
     closeModal('m-payment-method');
     
     if (inv.status === 'Paid') {
-      toast('✅ Invoice fully paid!');
+      let message = '✅ Invoice fully paid!';
+      if (creditApplied > 0) {
+        message = `✅ Paid! (Credit: $${creditApplied.toFixed(2)} + Cash/Check: $${paymentAmount.toFixed(2)})`;
+      }
+      if (tipAmount > 0) {
+        message += ` | 💝 Tip: $${tipAmount.toFixed(2)}`;
+      }
+      if (client.accountBalance > 0) {
+        message += ` | Client credit: $${client.accountBalance.toFixed(2)}`;
+      }
+      toast(message);
     } else {
       const remaining = (inv.total - inv.amountPaid).toFixed(2);
       toast(`💰 Partial payment recorded! $${remaining} remaining`);
@@ -5437,6 +5659,7 @@ function viewInvoice(id) {
         ${bp.footer}
         ${inv.paymentMethod ? `<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text2);">
           <strong>Payment Method:</strong> ${inv.paymentMethod}${inv.checkNumber ? ` (Check #${inv.checkNumber})` : ''}
+          ${inv.tip ? `<div style="margin-top: 8px; color: var(--green); font-weight: 600;">💝 Tip: $${inv.tip.toFixed(2)}</div>` : ''}
         </div>` : ''}
       </div>
     </div>
@@ -5828,16 +6051,19 @@ function captureInvoicePNG(box, filename) {
       removeContainer: true
     }).then(canvas => {
       try {
-        // Use toDataURL for better quality than toBlob
-        const imageData = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.href = imageData;
-        link.download = filename + '-invoice.png';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        toast('📸 Invoice saved as PNG!');
+        // Convert canvas to blob for better browser compatibility
+        canvas.toBlob(function(blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = filename + '-invoice.png';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          
+          toast('📸 Invoice saved as PNG!');
+        }, 'image/png');
       } catch (err) {
         console.error('PNG save error:', err);
         toast('❌ Download failed - try PDF');
