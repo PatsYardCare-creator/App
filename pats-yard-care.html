@@ -1228,6 +1228,8 @@ nav {
     <div class="nav-item" onclick="gotoPage('quotes', this)">💬 Quotes</div>
     <div class="nav-section">Clients</div>
     <div class="nav-item" onclick="gotoPage('clients', this)">👥 Clients</div>
+    <div class="nav-section">Team</div>
+    <div class="nav-item" onclick="gotoPage('employees', this)">🕒 Employees</div>
     <div class="nav-section">Tools</div>
     <div class="nav-item" onclick="gotoPage('measure', this)">📐 Measurement</div>
     <div class="nav-item" onclick="gotoPage('lawn-calc', this)">📏 Lawn Calculator</div>
@@ -1723,6 +1725,64 @@ nav {
       </div>
     </div>
 
+    <!-- EMPLOYEE MODAL -->
+    <div class="modal-overlay" id="m-employee">
+      <div class="modal">
+        <div class="modal-header"><h3>👷 Employee</h3><button class="close-btn" onclick="closeModal('m-employee')">✕</button></div>
+        <div class="modal-body">
+          <input type="hidden" id="emp-id">
+          <div class="form-group">
+            <label class="form-label">Name *</label>
+            <input class="form-control" id="emp-name" placeholder="Employee name">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Hourly Rate ($) *</label>
+            <input class="form-control" id="emp-rate" type="number" min="0" step="0.01" placeholder="15.00">
+          </div>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; margin-top: 8px;">
+            <input type="checkbox" id="emp-active" checked style="width: auto;"> Active
+          </label>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal('m-employee')">Cancel</button>
+          <button class="btn btn-primary" onclick="saveEmployee()">Save Employee</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIME ENTRY MODAL -->
+    <div class="modal-overlay" id="m-time-entry">
+      <div class="modal">
+        <div class="modal-header"><h3>🕒 Log Hours</h3><button class="close-btn" onclick="closeModal('m-time-entry')">✕</button></div>
+        <div class="modal-body">
+          <input type="hidden" id="te-id">
+          <div class="form-group">
+            <label class="form-label">Employee *</label>
+            <select class="form-control" id="te-emp"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date *</label>
+            <input class="form-control" id="te-date" type="date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Hours *</label>
+            <input class="form-control" id="te-hours" type="number" min="0" step="0.25" placeholder="8">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Note</label>
+            <input class="form-control" id="te-note" placeholder="e.g., Smith property mowing">
+          </div>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; margin-top: 8px;">
+            <input type="checkbox" id="te-paid" style="width: auto;"> Paid
+          </label>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal('m-time-entry')">Cancel</button>
+          <button class="btn btn-primary" onclick="saveTimeEntry()">Save Hours</button>
+        </div>
+      </div>
+    </div>
+
     <!-- UNPAID INVOICES MODAL -->
     <div class="modal-overlay" id="m-unpaid">
       <div class="modal">
@@ -1945,6 +2005,48 @@ nav {
       </div>
     </div>
 
+    <!-- EMPLOYEES / TIME TRACKING PAGE -->
+    <div class="page" id="page-employees">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px; flex-wrap: wrap;">
+        <span style="font-weight: 700;">🕒 Employees</span>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary btn-sm" onclick="openTimeEntryForm()">+ Log Hours</button>
+          <button class="btn btn-primary btn-sm" onclick="openEmployeeForm()">+ Add Employee</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 16px;">
+        <div style="padding: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+          <div style="background: var(--surface2); padding: 12px; border-radius: 6px;">
+            <div style="font-size: 11px; color: var(--text3); margin-bottom: 6px;">THIS WEEK HOURS</div>
+            <div id="emp-week-hours" style="font-size: 20px; font-weight: 700; color: var(--green);">0.0</div>
+          </div>
+          <div style="background: var(--surface2); padding: 12px; border-radius: 6px;">
+            <div style="font-size: 11px; color: var(--text3); margin-bottom: 6px;">THIS WEEK PAY</div>
+            <div id="emp-week-pay" style="font-size: 20px; font-weight: 700; color: var(--green);">$0.00</div>
+          </div>
+          <div style="background: var(--surface2); padding: 12px; border-radius: 6px;">
+            <div style="font-size: 11px; color: var(--text3); margin-bottom: 6px;">UNPAID</div>
+            <div id="emp-unpaid-total" style="font-size: 20px; font-weight: 700; color: var(--red);">$0.00</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="employee-cards" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;"></div>
+
+      <div class="card">
+        <div style="padding: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+            <div style="font-weight: 600; color: var(--text);">Time Entries</div>
+            <select class="form-control" id="entries-filter-emp" style="width: auto; font-size: 12px; padding: 6px 8px;" onchange="renderTimeEntries()">
+              <option value="">All Employees</option>
+            </select>
+          </div>
+          <div id="time-entries-list" style="font-size: 12px;"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- BACKUP PAGE -->
     <div class="page" id="page-backup">
       <div class="card" style="margin-bottom: 20px;">
@@ -1979,6 +2081,7 @@ nav {
     <button class="tab-btn" onclick="gotoMobile('jobs', this)" data-p="jobs"><span class="ti">🔧</span>Jobs</button>
     <button class="tab-btn" onclick="gotoMobile('invoices', this)" data-p="invoices"><span class="ti">🧾</span>Invoices</button>
     <button class="tab-btn" onclick="gotoMobile('clients', this)" data-p="clients"><span class="ti">👥</span>Clients</button>
+    <button class="tab-btn" onclick="gotoMobile('employees', this)" data-p="employees"><span class="ti">🕒</span>Team</button>
   </div>
 </nav>
 
@@ -2418,7 +2521,7 @@ function gotoPage(p, el) {
   document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
   if (el) el.classList.add('active');
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.p === p));
-  const titles = {dashboard: 'Dashboard', schedule: 'Schedule', jobs: 'Jobs', invoices: 'Invoices', quotes: 'Quotes', clients: 'Clients', measure: 'Measurement Tool', backup: 'Backup', settings: 'Invoice Settings'};
+  const titles = {dashboard: 'Dashboard', schedule: 'Schedule', jobs: 'Jobs', invoices: 'Invoices', quotes: 'Quotes', clients: 'Clients', employees: 'Employees', measure: 'Measurement Tool', backup: 'Backup', settings: 'Invoice Settings'};
   document.getElementById('page-title').textContent = titles[p] || p;
   renderPage(p);
 }
@@ -3465,6 +3568,327 @@ function deleteExpense(id) {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// EMPLOYEES / TIME TRACKING
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function ensureEmployees() {
+  if (!DB.employees) DB.employees = [];
+  if (!DB.timeEntries) DB.timeEntries = [];
+  if (!DB.nxt.emp) DB.nxt.emp = 1;
+  if (!DB.nxt.te) DB.nxt.te = 1;
+}
+
+function openEmployeeForm(id) {
+  ensureEmployees();
+  document.getElementById('emp-id').value = id || '';
+  if (id) {
+    const emp = DB.employees.find(e => e.id === id);
+    if (!emp) return;
+    document.getElementById('emp-name').value = emp.name;
+    document.getElementById('emp-rate').value = emp.rate;
+    document.getElementById('emp-active').checked = emp.active !== false;
+  } else {
+    document.getElementById('emp-name').value = '';
+    document.getElementById('emp-rate').value = '';
+    document.getElementById('emp-active').checked = true;
+  }
+  openModal('m-employee');
+}
+
+function saveEmployee() {
+  ensureEmployees();
+  const id = document.getElementById('emp-id').value;
+  const name = document.getElementById('emp-name').value.trim();
+  const rate = parseFloat(document.getElementById('emp-rate').value) || 0;
+  const active = document.getElementById('emp-active').checked;
+
+  if (!name || rate <= 0) {
+    toast('⚠️ Enter name and hourly rate');
+    return;
+  }
+
+  if (id) {
+    const emp = DB.employees.find(e => e.id == id);
+    if (emp) {
+      emp.name = name;
+      emp.rate = rate;
+      emp.active = active;
+    }
+  } else {
+    DB.employees.push({ id: nid('emp'), name, rate, active });
+  }
+
+  save();
+  renderEmployees();
+  closeModal('m-employee');
+  toast('✅ Employee saved!');
+}
+
+function deleteEmployee(id) {
+  ensureEmployees();
+  const hasEntries = DB.timeEntries.some(t => t.employeeId === id);
+  const msg = hasEntries
+    ? 'This employee has logged hours. Delete anyway? Their past time entries will be kept.'
+    : 'Delete this employee?';
+  if (confirm(msg)) {
+    DB.employees = DB.employees.filter(e => e.id !== id);
+    save();
+    renderEmployees();
+  }
+}
+
+function clockIn(empId) {
+  ensureEmployees();
+  const already = DB.timeEntries.find(t => t.employeeId === empId && t.clockIn && !t.clockOut);
+  if (already) { toast('⚠️ Already clocked in'); return; }
+  DB.timeEntries.push({
+    id: nid('te'),
+    employeeId: empId,
+    date: today(),
+    clockIn: new Date().toISOString(),
+    clockOut: null,
+    hours: 0,
+    note: '',
+    paid: false
+  });
+  save();
+  renderEmployees();
+  toast('🟢 Clocked in');
+}
+
+function clockOut(empId) {
+  ensureEmployees();
+  const entry = DB.timeEntries.find(t => t.employeeId === empId && t.clockIn && !t.clockOut);
+  if (!entry) { toast('⚠️ Not clocked in'); return; }
+  entry.clockOut = new Date().toISOString();
+  const ms = new Date(entry.clockOut) - new Date(entry.clockIn);
+  entry.hours = Math.round((ms / 3600000) * 100) / 100;
+  save();
+  renderEmployees();
+  toast('⏹ Clocked out — ' + entry.hours + ' hrs logged');
+}
+
+function openTimeEntryForm(empId, editId) {
+  ensureEmployees();
+  if (DB.employees.length === 0) {
+    toast('⚠️ Add an employee first');
+    return;
+  }
+  const sel = document.getElementById('te-emp');
+  sel.innerHTML = DB.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+
+  document.getElementById('te-id').value = editId || '';
+  if (editId) {
+    const t = DB.timeEntries.find(x => x.id === editId);
+    if (!t) return;
+    sel.value = t.employeeId;
+    document.getElementById('te-date').value = t.date;
+    document.getElementById('te-hours').value = t.hours;
+    document.getElementById('te-note').value = t.note || '';
+    document.getElementById('te-paid').checked = !!t.paid;
+  } else {
+    if (empId) sel.value = empId;
+    document.getElementById('te-date').value = today();
+    document.getElementById('te-hours').value = '';
+    document.getElementById('te-note').value = '';
+    document.getElementById('te-paid').checked = false;
+  }
+  openModal('m-time-entry');
+}
+
+function saveTimeEntry() {
+  ensureEmployees();
+  const id = document.getElementById('te-id').value;
+  const employeeId = parseInt(document.getElementById('te-emp').value);
+  const date = document.getElementById('te-date').value;
+  const hours = parseFloat(document.getElementById('te-hours').value) || 0;
+  const note = document.getElementById('te-note').value;
+  const paid = document.getElementById('te-paid').checked;
+
+  if (!employeeId || !date || hours <= 0) {
+    toast('⚠️ Select employee, date, and hours');
+    return;
+  }
+
+  if (id) {
+    const t = DB.timeEntries.find(x => x.id == id);
+    if (t) {
+      t.employeeId = employeeId;
+      t.date = date;
+      t.hours = hours;
+      t.note = note;
+      t.paid = paid;
+    }
+  } else {
+    DB.timeEntries.push({
+      id: nid('te'),
+      employeeId, date, hours, note, paid,
+      clockIn: null, clockOut: null
+    });
+  }
+
+  save();
+  renderEmployees();
+  closeModal('m-time-entry');
+  toast('✅ Hours saved!');
+}
+
+function editTimeEntry(id) {
+  openTimeEntryForm(null, id);
+}
+
+function deleteTimeEntry(id) {
+  if (confirm('Delete this time entry?')) {
+    DB.timeEntries = DB.timeEntries.filter(t => t.id !== id);
+    save();
+    renderEmployees();
+  }
+}
+
+function toggleEntryPaid(id) {
+  const t = DB.timeEntries.find(x => x.id === id);
+  if (!t) return;
+  t.paid = !t.paid;
+  save();
+  renderEmployees();
+}
+
+function getWeekRange(dateStr) {
+  const date = new Date(dateStr + 'T12:00:00');
+  const day = date.getDay();
+  const diffToMon = (day === 0 ? -6 : 1) - day;
+  const monday = new Date(date);
+  monday.setDate(date.getDate() + diffToMon);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const fmt = x => x.toISOString().slice(0, 10);
+  return { start: fmt(monday), end: fmt(sunday) };
+}
+
+function renderEmployees() {
+  ensureEmployees();
+  renderEmployeeCards();
+  renderEmployeeSummary();
+  populateEntriesFilter();
+  renderTimeEntries();
+}
+
+function renderEmployeeCards() {
+  const wrap = document.getElementById('employee-cards');
+  if (DB.employees.length === 0) {
+    wrap.innerHTML = '<div class="card"><div style="padding:20px; text-align:center; color:var(--text3);">No employees yet. Tap "+ Add Employee" to get started.</div></div>';
+    return;
+  }
+
+  let html = '';
+  DB.employees.forEach(emp => {
+    const activeEntry = DB.timeEntries.find(t => t.employeeId === emp.id && t.clockIn && !t.clockOut);
+    let clockHtml = '';
+    if (activeEntry) {
+      const t = new Date(activeEntry.clockIn).toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago'});
+      clockHtml = `<span style="font-size:11px; color: var(--green); font-weight:600;">🟢 Since ${t}</span> <button class="btn btn-secondary btn-xs" onclick="clockOut(${emp.id})">⏹ Clock Out</button>`;
+    } else {
+      clockHtml = `<button class="btn btn-primary btn-xs" onclick="clockIn(${emp.id})">▶ Clock In</button>`;
+    }
+
+    const status = emp.active === false ? ' • <span style="color: var(--text3);">Inactive</span>' : '';
+
+    html += `
+      <div class="card">
+        <div style="padding: 14px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+          <div>
+            <div style="font-weight:700;">${emp.name}</div>
+            <div style="font-size:11px; color:var(--text3);">$${emp.rate.toFixed(2)}/hr${status}</div>
+          </div>
+          <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+            ${clockHtml}
+            <button class="btn btn-secondary btn-xs" onclick="openTimeEntryForm(${emp.id})">+ Hours</button>
+            <button class="btn btn-ghost btn-xs" onclick="openEmployeeForm(${emp.id})">✎</button>
+            <button class="btn btn-ghost btn-xs" onclick="deleteEmployee(${emp.id})">🗑️</button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  wrap.innerHTML = html;
+}
+
+function renderEmployeeSummary() {
+  const wk = getWeekRange(today());
+  let weekHours = 0, weekPay = 0, unpaidPay = 0;
+
+  DB.timeEntries.forEach(t => {
+    const emp = DB.employees.find(e => e.id === t.employeeId);
+    const rate = emp ? emp.rate : 0;
+    const pay = t.hours * rate;
+
+    if (t.date >= wk.start && t.date <= wk.end) {
+      weekHours += t.hours;
+      weekPay += pay;
+    }
+    if (!t.paid) {
+      unpaidPay += pay;
+    }
+  });
+
+  document.getElementById('emp-week-hours').textContent = weekHours.toFixed(1);
+  document.getElementById('emp-week-pay').textContent = '$' + weekPay.toFixed(2);
+  document.getElementById('emp-unpaid-total').textContent = '$' + unpaidPay.toFixed(2);
+}
+
+function populateEntriesFilter() {
+  const sel = document.getElementById('entries-filter-emp');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">All Employees</option>' +
+    DB.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+  sel.value = current;
+}
+
+function renderTimeEntries() {
+  const list = document.getElementById('time-entries-list');
+  const filterId = document.getElementById('entries-filter-emp').value;
+
+  let entries = [...DB.timeEntries];
+  if (filterId) entries = entries.filter(t => t.employeeId == filterId);
+  entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  if (entries.length === 0) {
+    list.innerHTML = '<div style="color: var(--text3); text-align: center; padding: 20px;">No hours logged yet</div>';
+    return;
+  }
+
+  let html = '';
+  entries.forEach(t => {
+    const emp = DB.employees.find(e => e.id === t.employeeId);
+    const name = emp ? emp.name : 'Unknown';
+    const rate = emp ? emp.rate : 0;
+    const inProgress = t.clockIn && !t.clockOut;
+    const pay = t.hours * rate;
+
+    html += `
+      <div style="border-bottom: 1px solid var(--border); padding: 10px 0; display: flex; justify-content: space-between; align-items: flex-start;">
+        <div style="flex: 1;">
+          <div style="font-weight: 700; color: var(--text);">${name}</div>
+          <div style="font-size: 11px; color: var(--text3); margin-top: 2px;">
+            ${fdate(t.date)} ${inProgress ? '• 🟢 In progress' : '• ' + t.hours.toFixed(2) + ' hrs'}${t.note ? ' • ' + t.note : ''}
+          </div>
+        </div>
+        <div style="text-align: right; flex-shrink: 0; margin-left: 10px;">
+          <div style="font-weight: 700; color: ${t.paid ? 'var(--green)' : 'var(--red)'};">
+            ${inProgress ? '—' : '$' + pay.toFixed(2)}
+          </div>
+          ${!inProgress ? `<button class="btn btn-ghost btn-xs" onclick="toggleEntryPaid(${t.id})">${t.paid ? '✓ Paid' : 'Mark Paid'}</button>
+          <button class="btn btn-ghost btn-xs" onclick="editTimeEntry(${t.id})">✎</button>` : ''}
+          <button class="btn btn-ghost btn-xs" onclick="deleteTimeEntry(${t.id})">🗑️</button>
+        </div>
+      </div>
+    `;
+  });
+
+  list.innerHTML = html;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CLIENT PREPAYMENT / CREDIT
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -3685,6 +4109,9 @@ function renderPage(p) {
   }
   else if (p === 'expenses') {
     renderExpenses();
+  }
+  else if (p === 'employees') {
+    renderEmployees();
   }
   else if (p === 'settings') { loadBizProfile(); updateInvoicePreview(); }
 }
@@ -6094,6 +6521,16 @@ function exportCSV() {
   let csv = 'CLIENTS\nName,Phone,Address\n' + DB.clients.map(c => `"${(c.fn + ' ' + c.ln).trim()}","${c.ph}","${c.ad}"`).join('\n');
   csv += '\n\nJOBS\nClient,Service,Date,Total,Status,Notes\n' + DB.jobs.map(j => `"${cname(j.clientId)}","${j.sv}","${j.date}","${j.tot}","${j.status}","${j.no}"`).join('\n');
   csv += '\n\nINVOICES\nClient,Description,Date,Total,Status\n' + DB.invoices.map(i => `"${cname(i.clientId)}","${i.de}","${i.date}","${i.total}","${i.status}"`).join('\n');
+  if (DB.employees && DB.employees.length) {
+    csv += '\n\nEMPLOYEES\nName,Hourly Rate,Active\n' + DB.employees.map(e => `"${e.name}","${e.rate.toFixed(2)}","${e.active !== false ? 'Yes' : 'No'}"`).join('\n');
+  }
+  if (DB.timeEntries && DB.timeEntries.length) {
+    csv += '\n\nTIME ENTRIES\nEmployee,Date,Hours,Pay,Paid,Note\n' + DB.timeEntries.filter(t => !(t.clockIn && !t.clockOut)).map(t => {
+      const emp = DB.employees.find(e => e.id === t.employeeId);
+      const rate = emp ? emp.rate : 0;
+      return `"${emp ? emp.name : 'Unknown'}","${t.date}","${t.hours.toFixed(2)}","${(t.hours * rate).toFixed(2)}","${t.paid ? 'Yes' : 'No'}","${(t.note || '').replace(/"/g, '""')}"`;
+    }).join('\n');
+  }
   const b = new Blob([csv], {type: 'text/csv'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(b);
