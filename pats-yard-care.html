@@ -1742,6 +1742,23 @@ nav {
           <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; margin-top: 8px;">
             <input type="checkbox" id="emp-active" checked style="width: auto;"> Active
           </label>
+
+          <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600;">
+              <input type="checkbox" id="emp-dayrate-on" style="width: auto;" onchange="toggleDayRateFields()"> Special flat day rate
+            </label>
+            <div style="font-size: 11px; color: var(--text3); margin-top: 4px;">e.g. pay a flat amount instead of hourly when a day falls in a certain hour range</div>
+            <div id="emp-dayrate-fields" style="display: none; margin-top: 10px;">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label" style="font-size: 12px;">Flat Amount ($)</label><input class="form-control" id="emp-dayrate-amt" type="number" min="0" step="0.01" placeholder="100"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label" style="font-size: 12px;">From (hours)</label><input class="form-control" id="emp-dayrate-min" type="number" min="0" step="0.25" placeholder="8"></div>
+                <div class="form-group"><label class="form-label" style="font-size: 12px;">To (hours)</label><input class="form-control" id="emp-dayrate-max" type="number" min="0" step="0.25" placeholder="9"></div>
+              </div>
+              <div style="font-size: 11px; color: var(--text3);">Below this range: normal hourly. At or above the "To" value: back to normal hourly.</div>
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" onclick="closeModal('m-employee')">Cancel</button>
@@ -2016,17 +2033,18 @@ nav {
       </div>
 
       <div class="card" style="margin-bottom: 16px;">
-        <div style="padding: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+        <div style="padding: 14px 14px 4px; font-size: 11px; color: var(--text3);">Pay period: <span id="pay-period-range" style="color: var(--text2); font-weight: 600;"></span> (Sat–Fri)</div>
+        <div style="padding: 8px 14px 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
           <div style="background: var(--surface2); padding: 12px; border-radius: 6px;">
-            <div style="font-size: 11px; color: var(--text3); margin-bottom: 6px;">THIS WEEK HOURS</div>
+            <div style="font-size: 11px; color: var(--text3); margin-bottom: 6px;">PAY PERIOD HOURS</div>
             <div id="emp-week-hours" style="font-size: 20px; font-weight: 700; color: var(--green);">0.0</div>
           </div>
           <div style="background: var(--surface2); padding: 12px; border-radius: 6px;">
-            <div style="font-size: 11px; color: var(--text3); margin-bottom: 6px;">THIS WEEK PAY</div>
+            <div style="font-size: 11px; color: var(--text3); margin-bottom: 6px;">PAY PERIOD TOTAL</div>
             <div id="emp-week-pay" style="font-size: 20px; font-weight: 700; color: var(--green);">$0.00</div>
           </div>
           <div style="background: var(--surface2); padding: 12px; border-radius: 6px;">
-            <div style="font-size: 11px; color: var(--text3); margin-bottom: 6px;">UNPAID</div>
+            <div style="font-size: 11px; color: var(--text3); margin-bottom: 6px;">UNPAID (ALL TIME)</div>
             <div id="emp-unpaid-total" style="font-size: 20px; font-weight: 700; color: var(--red);">$0.00</div>
           </div>
         </div>
@@ -3578,6 +3596,11 @@ function ensureEmployees() {
   if (!DB.nxt.te) DB.nxt.te = 1;
 }
 
+function toggleDayRateFields() {
+  const on = document.getElementById('emp-dayrate-on').checked;
+  document.getElementById('emp-dayrate-fields').style.display = on ? 'block' : 'none';
+}
+
 function openEmployeeForm(id) {
   ensureEmployees();
   document.getElementById('emp-id').value = id || '';
@@ -3587,11 +3610,20 @@ function openEmployeeForm(id) {
     document.getElementById('emp-name').value = emp.name;
     document.getElementById('emp-rate').value = emp.rate;
     document.getElementById('emp-active').checked = emp.active !== false;
+    document.getElementById('emp-dayrate-on').checked = !!emp.dayRateOn;
+    document.getElementById('emp-dayrate-amt').value = emp.dayRateAmt || '';
+    document.getElementById('emp-dayrate-min').value = emp.dayRateMin || '';
+    document.getElementById('emp-dayrate-max').value = emp.dayRateMax || '';
   } else {
     document.getElementById('emp-name').value = '';
     document.getElementById('emp-rate').value = '';
     document.getElementById('emp-active').checked = true;
+    document.getElementById('emp-dayrate-on').checked = false;
+    document.getElementById('emp-dayrate-amt').value = '';
+    document.getElementById('emp-dayrate-min').value = '';
+    document.getElementById('emp-dayrate-max').value = '';
   }
+  toggleDayRateFields();
   openModal('m-employee');
 }
 
@@ -3601,21 +3633,27 @@ function saveEmployee() {
   const name = document.getElementById('emp-name').value.trim();
   const rate = parseFloat(document.getElementById('emp-rate').value) || 0;
   const active = document.getElementById('emp-active').checked;
+  const dayRateOn = document.getElementById('emp-dayrate-on').checked;
+  const dayRateAmt = parseFloat(document.getElementById('emp-dayrate-amt').value) || 0;
+  const dayRateMin = parseFloat(document.getElementById('emp-dayrate-min').value) || 0;
+  const dayRateMax = parseFloat(document.getElementById('emp-dayrate-max').value) || 0;
 
   if (!name || rate <= 0) {
     toast('⚠️ Enter name and hourly rate');
     return;
   }
+  if (dayRateOn && (dayRateAmt <= 0 || dayRateMax <= dayRateMin)) {
+    toast('⚠️ Fill in the day rate amount and a valid hour range');
+    return;
+  }
+
+  const fields = { name, rate, active, dayRateOn, dayRateAmt, dayRateMin, dayRateMax };
 
   if (id) {
     const emp = DB.employees.find(e => e.id == id);
-    if (emp) {
-      emp.name = name;
-      emp.rate = rate;
-      emp.active = active;
-    }
+    if (emp) Object.assign(emp, fields);
   } else {
-    DB.employees.push({ id: nid('emp'), name, rate, active });
+    DB.employees.push({ id: nid('emp'), ...fields });
   }
 
   save();
@@ -3753,6 +3791,14 @@ function toggleEntryPaid(id) {
   renderEmployees();
 }
 
+function calcEntryPay(emp, hours) {
+  if (!emp) return 0;
+  if (emp.dayRateOn && hours >= emp.dayRateMin && hours <= emp.dayRateMax) {
+    return emp.dayRateAmt;
+  }
+  return hours * emp.rate;
+}
+
 function getWeekRange(dateStr) {
   const date = new Date(dateStr + 'T12:00:00');
   const day = date.getDay();
@@ -3763,6 +3809,25 @@ function getWeekRange(dateStr) {
   sunday.setDate(monday.getDate() + 6);
   const fmt = x => x.toISOString().slice(0, 10);
   return { start: fmt(monday), end: fmt(sunday) };
+}
+
+// Pay period: Saturday through Friday (payday)
+function getPayPeriodRange(dateStr) {
+  const date = new Date(dateStr + 'T12:00:00');
+  const day = date.getDay(); // Sun=0 ... Sat=6
+  const diffToSat = (day - 6 + 7) % 7;
+  const saturday = new Date(date);
+  saturday.setDate(date.getDate() - diffToSat);
+  const friday = new Date(saturday);
+  friday.setDate(saturday.getDate() + 6);
+  const fmt = x => x.toISOString().slice(0, 10);
+  return { start: fmt(saturday), end: fmt(friday) };
+}
+
+function fdateShort(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T12:00:00');
+  return d.toLocaleDateString('en-US', {month: 'short', day: 'numeric', timeZone: 'America/Chicago'});
 }
 
 function renderEmployees() {
@@ -3780,6 +3845,8 @@ function renderEmployeeCards() {
     return;
   }
 
+  const pp = getPayPeriodRange(today());
+
   let html = '';
   DB.employees.forEach(emp => {
     const activeEntry = DB.timeEntries.find(t => t.employeeId === emp.id && t.clockIn && !t.clockOut);
@@ -3793,12 +3860,17 @@ function renderEmployeeCards() {
 
     const status = emp.active === false ? ' • <span style="color: var(--text3);">Inactive</span>' : '';
 
+    const periodEntries = DB.timeEntries.filter(t => t.employeeId === emp.id && t.date >= pp.start && t.date <= pp.end && !(t.clockIn && !t.clockOut));
+    const periodHours = periodEntries.reduce((s, t) => s + t.hours, 0);
+    const periodPay = periodEntries.reduce((s, t) => s + calcEntryPay(emp, t.hours), 0);
+
     html += `
       <div class="card">
         <div style="padding: 14px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
           <div>
             <div style="font-weight:700;">${emp.name}</div>
             <div style="font-size:11px; color:var(--text3);">$${emp.rate.toFixed(2)}/hr${status}</div>
+            <div style="font-size:11px; color:var(--green); font-weight:600; margin-top:2px;">${periodHours.toFixed(2)} hrs this period • $${periodPay.toFixed(2)} due Fri</div>
           </div>
           <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
             ${clockHtml}
@@ -3814,25 +3886,26 @@ function renderEmployeeCards() {
 }
 
 function renderEmployeeSummary() {
-  const wk = getWeekRange(today());
-  let weekHours = 0, weekPay = 0, unpaidPay = 0;
+  const pp = getPayPeriodRange(today());
+  let periodHours = 0, periodPay = 0, unpaidPay = 0;
 
   DB.timeEntries.forEach(t => {
+    if (t.clockIn && !t.clockOut) return; // skip entries still in progress
     const emp = DB.employees.find(e => e.id === t.employeeId);
-    const rate = emp ? emp.rate : 0;
-    const pay = t.hours * rate;
+    const pay = calcEntryPay(emp, t.hours);
 
-    if (t.date >= wk.start && t.date <= wk.end) {
-      weekHours += t.hours;
-      weekPay += pay;
+    if (t.date >= pp.start && t.date <= pp.end) {
+      periodHours += t.hours;
+      periodPay += pay;
     }
     if (!t.paid) {
       unpaidPay += pay;
     }
   });
 
-  document.getElementById('emp-week-hours').textContent = weekHours.toFixed(1);
-  document.getElementById('emp-week-pay').textContent = '$' + weekPay.toFixed(2);
+  document.getElementById('pay-period-range').textContent = fdateShort(pp.start) + ' – ' + fdateShort(pp.end);
+  document.getElementById('emp-week-hours').textContent = periodHours.toFixed(1);
+  document.getElementById('emp-week-pay').textContent = '$' + periodPay.toFixed(2);
   document.getElementById('emp-unpaid-total').textContent = '$' + unpaidPay.toFixed(2);
 }
 
@@ -3861,9 +3934,8 @@ function renderTimeEntries() {
   entries.forEach(t => {
     const emp = DB.employees.find(e => e.id === t.employeeId);
     const name = emp ? emp.name : 'Unknown';
-    const rate = emp ? emp.rate : 0;
     const inProgress = t.clockIn && !t.clockOut;
-    const pay = t.hours * rate;
+    const pay = calcEntryPay(emp, t.hours);
 
     html += `
       <div style="border-bottom: 1px solid var(--border); padding: 10px 0; display: flex; justify-content: space-between; align-items: flex-start;">
@@ -6527,8 +6599,7 @@ function exportCSV() {
   if (DB.timeEntries && DB.timeEntries.length) {
     csv += '\n\nTIME ENTRIES\nEmployee,Date,Hours,Pay,Paid,Note\n' + DB.timeEntries.filter(t => !(t.clockIn && !t.clockOut)).map(t => {
       const emp = DB.employees.find(e => e.id === t.employeeId);
-      const rate = emp ? emp.rate : 0;
-      return `"${emp ? emp.name : 'Unknown'}","${t.date}","${t.hours.toFixed(2)}","${(t.hours * rate).toFixed(2)}","${t.paid ? 'Yes' : 'No'}","${(t.note || '').replace(/"/g, '""')}"`;
+      return `"${emp ? emp.name : 'Unknown'}","${t.date}","${t.hours.toFixed(2)}","${calcEntryPay(emp, t.hours).toFixed(2)}","${t.paid ? 'Yes' : 'No'}","${(t.note || '').replace(/"/g, '""')}"`;
     }).join('\n');
   }
   const b = new Blob([csv], {type: 'text/csv'});
