@@ -1800,6 +1800,26 @@ nav {
       </div>
     </div>
 
+    <!-- PAY STUB MODAL -->
+    <div class="modal-overlay" id="m-paystub">
+      <div class="modal" style="max-width: 420px;">
+        <div class="modal-header"><h3 id="paystub-title">📄 Pay Stub</h3><button class="close-btn" onclick="closeModal('m-paystub')">✕</button></div>
+        <div class="modal-body">
+          <div style="display: flex; gap: 6px; margin-bottom: 12px; align-items: center;">
+            <button class="btn btn-sm btn-primary" id="paystub-btn-week" onclick="setPaystubMode('week')">Week</button>
+            <button class="btn btn-sm btn-secondary" id="paystub-btn-month" onclick="setPaystubMode('month')">Month</button>
+            <div style="flex: 1;"></div>
+            <button class="btn btn-ghost btn-xs" onclick="shiftPaystubPeriod(-1)">◀</button>
+            <button class="btn btn-ghost btn-xs" onclick="shiftPaystubPeriod(1)">▶</button>
+          </div>
+          <div id="paystub-content"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal('m-paystub')">Close</button>
+        </div>
+      </div>
+    </div>
+
     <!-- UNPAID INVOICES MODAL -->
     <div class="modal-overlay" id="m-unpaid">
       <div class="modal">
@@ -3756,13 +3776,20 @@ function saveTimeEntry() {
       t.hours = hours;
       t.note = note;
       t.paid = paid;
+      const emp = DB.employees.find(e => e.id === employeeId);
+      syncPayrollExpense(t, emp);
     }
   } else {
-    DB.timeEntries.push({
+    const newEntry = {
       id: nid('te'),
       employeeId, date, hours, note, paid,
-      clockIn: null, clockOut: null
-    });
+      clockIn: null, clockOut: null, expenseId: null
+    };
+    if (paid) {
+      const emp = DB.employees.find(e => e.id === employeeId);
+      syncPayrollExpense(newEntry, emp);
+    }
+    DB.timeEntries.push(newEntry);
   }
 
   save();
@@ -3775,9 +3802,38 @@ function editTimeEntry(id) {
   openTimeEntryForm(null, id);
 }
 
+function syncPayrollExpense(t, emp) {
+  ensureExpenses();
+  if (t.paid) {
+    const pay = calcEntryPay(emp, t.hours);
+    const desc = 'Payroll — ' + (emp ? emp.name : 'Unknown');
+    const notes = t.hours.toFixed(2) + ' hrs' + (t.note ? ' — ' + t.note : '') + ' (auto-added from Employees)';
+    let exp = t.expenseId ? DB.expenses.find(e => e.id === t.expenseId) : null;
+    if (exp) {
+      exp.date = t.date;
+      exp.amount = pay;
+      exp.desc = desc;
+      exp.notes = notes;
+    } else {
+      const newId = Date.now() + Math.floor(Math.random() * 1000);
+      DB.expenses.push({ id: newId, date: t.date, category: 'Labor/Help', desc, amount: pay, notes });
+      t.expenseId = newId;
+    }
+  } else {
+    if (t.expenseId) {
+      DB.expenses = DB.expenses.filter(e => e.id !== t.expenseId);
+      t.expenseId = null;
+    }
+  }
+}
+
 function deleteTimeEntry(id) {
   if (confirm('Delete this time entry?')) {
-    DB.timeEntries = DB.timeEntries.filter(t => t.id !== id);
+    const t = DB.timeEntries.find(x => x.id === id);
+    if (t && t.expenseId) {
+      DB.expenses = DB.expenses.filter(e => e.id !== t.expenseId);
+    }
+    DB.timeEntries = DB.timeEntries.filter(x => x.id !== id);
     save();
     renderEmployees();
   }
@@ -3786,7 +3842,9 @@ function deleteTimeEntry(id) {
 function toggleEntryPaid(id) {
   const t = DB.timeEntries.find(x => x.id === id);
   if (!t) return;
+  const emp = DB.employees.find(e => e.id === t.employeeId);
   t.paid = !t.paid;
+  syncPayrollExpense(t, emp);
   save();
   renderEmployees();
 }
@@ -3828,6 +3886,14 @@ function fdateShort(iso) {
   if (!iso) return '';
   const d = new Date(iso + 'T12:00:00');
   return d.toLocaleDateString('en-US', {month: 'short', day: 'numeric', timeZone: 'America/Chicago'});
+}
+
+function getMonthRange(dateStr) {
+  const date = new Date(dateStr + 'T12:00:00');
+  const first = new Date(date.getFullYear(), date.getMonth(), 1, 12);
+  const last = new Date(date.getFullYear(), date.getMonth() + 1, 0, 12);
+  const fmt = x => x.toISOString().slice(0, 10);
+  return { start: fmt(first), end: fmt(last) };
 }
 
 function renderEmployees() {
@@ -3875,6 +3941,7 @@ function renderEmployeeCards() {
           <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
             ${clockHtml}
             <button class="btn btn-secondary btn-xs" onclick="openTimeEntryForm(${emp.id})">+ Hours</button>
+            <button class="btn btn-secondary btn-xs" onclick="openPayStub(${emp.id})">📄 Pay Stub</button>
             <button class="btn btn-ghost btn-xs" onclick="openEmployeeForm(${emp.id})">✎</button>
             <button class="btn btn-ghost btn-xs" onclick="deleteEmployee(${emp.id})">🗑️</button>
           </div>
@@ -3958,6 +4025,74 @@ function renderTimeEntries() {
   });
 
   list.innerHTML = html;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PAY STUB (proof of hours/pay — screenshot-friendly)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+let paystubState = { employeeId: null, mode: 'week', anchor: null };
+
+function openPayStub(empId) {
+  paystubState = { employeeId: empId, mode: 'week', anchor: today() };
+  renderPaystub();
+  openModal('m-paystub');
+}
+
+function setPaystubMode(mode) {
+  paystubState.mode = mode;
+  renderPaystub();
+}
+
+function shiftPaystubPeriod(dir) {
+  const d = new Date(paystubState.anchor + 'T12:00:00');
+  if (paystubState.mode === 'week') {
+    d.setDate(d.getDate() + dir * 7);
+  } else {
+    d.setMonth(d.getMonth() + dir);
+  }
+  paystubState.anchor = d.toISOString().slice(0, 10);
+  renderPaystub();
+}
+
+function renderPaystub() {
+  const emp = DB.employees.find(e => e.id === paystubState.employeeId);
+  if (!emp) return;
+
+  const range = paystubState.mode === 'week' ? getPayPeriodRange(paystubState.anchor) : getMonthRange(paystubState.anchor);
+  const rangeLabel = paystubState.mode === 'week'
+    ? fdateShort(range.start) + ' – ' + fdateShort(range.end)
+    : new Date(paystubState.anchor + 'T12:00:00').toLocaleDateString('en-US', {month: 'long', year: 'numeric', timeZone: 'America/Chicago'});
+
+  const entries = DB.timeEntries
+    .filter(t => t.employeeId === emp.id && t.date >= range.start && t.date <= range.end && !(t.clockIn && !t.clockOut))
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const totalHours = entries.reduce((s, t) => s + t.hours, 0);
+  const totalPay = entries.reduce((s, t) => s + calcEntryPay(emp, t.hours), 0);
+
+  document.getElementById('paystub-title').textContent = '📄 Pay Stub';
+  document.getElementById('paystub-btn-week').className = 'btn btn-sm ' + (paystubState.mode === 'week' ? 'btn-primary' : 'btn-secondary');
+  document.getElementById('paystub-btn-month').className = 'btn btn-sm ' + (paystubState.mode === 'month' ? 'btn-primary' : 'btn-secondary');
+
+  const rows = entries.map(t => `
+    <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; border-bottom: 1px dashed var(--border);">
+      <span>${fdate(t.date)}</span>
+      <span>${t.hours.toFixed(2)} hrs — $${calcEntryPay(emp, t.hours).toFixed(2)}</span>
+    </div>
+  `).join('');
+
+  document.getElementById('paystub-content').innerHTML = `
+    <div style="background: var(--surface2); border-radius: 8px; padding: 16px;">
+      <div style="font-size: 18px; font-weight: 800;">${emp.name}</div>
+      <div style="font-size: 12px; color: var(--text3); margin-bottom: 10px;">${rangeLabel}</div>
+      <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border);"><span>Hourly Rate</span><span>$${emp.rate.toFixed(2)}/hr</span></div>
+      <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border);"><span>Total Hours</span><span style="font-weight: 700;">${totalHours.toFixed(2)}</span></div>
+      <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border);"><span>Total Pay</span><span style="font-weight: 700; color: var(--green);">$${totalPay.toFixed(2)}</span></div>
+      <div style="margin-top: 12px; font-size: 12px; font-weight: 600; color: var(--text2);">Daily Breakdown</div>
+      <div style="margin-top: 6px;">${rows || '<div style="color: var(--text3); text-align: center; padding: 10px; font-size: 12px;">No hours logged this period</div>'}</div>
+    </div>
+  `;
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
